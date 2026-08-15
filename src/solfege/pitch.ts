@@ -159,24 +159,40 @@ export function parsePitch(notation: string): ParsedPitch {
   return { syllable, octaveShift, hasAxis };
 }
 
+const NOTE_ACCIDENTAL_OFFSETS: Record<string, number> = {
+  'C': 0, 'B#': 0,
+  'C#': 1, 'Db': 1, 'D♭': 1,
+  'D': 2,
+  'D#': 3, 'Eb': 3, 'E♭': 3,
+  'E': 4, 'Fb': 4, 'F♭': 4,
+  'F': 5, 'E#': 5,
+  'F#': 6, 'Gb': 6, 'G♭': 6,
+  'G': 7,
+  'G#': 8, 'Ab': 8, 'A♭': 8,
+  'A': 9,
+  'A#': 10, 'Bb': 10, 'B♭': 10,
+  'B': 11, 'Cb': 11, 'C♭': 11,
+};
+
 /**
- * Parses a pitch name string like "C4" or "F#3" into a MIDI note number.
+ * Parses a pitch name string like "C4", "Eb4", or "F#3" into a MIDI note number.
  * Middle C (C4) = MIDI 60.
  */
 export function pitchNameToMidi(pitchName: string): number {
-  const match = pitchName.match(/^([A-G]#?)(\d+)$/);
+  const match = pitchName.match(/^([A-G](?:#|b|♭)?)(\d+)$/);
   if (!match) {
-    throw new Error(`Invalid pitch name: "${pitchName}" (expected format like "C4", "F#3")`);
+    throw new Error(`Invalid pitch name: "${pitchName}" (expected format like "C4", "Eb4", "F#3")`);
   }
-  const [, note, octaveStr] = match;
+  const [, noteWithAccidental, octaveStr] = match;
   const octave = parseInt(octaveStr, 10);
-  const noteIndex = PITCH_NAMES.indexOf(note as typeof PITCH_NAMES[number]);
-  if (noteIndex === -1) {
-    throw new Error(`Unknown note name: "${note}"`);
+  const semitone = NOTE_ACCIDENTAL_OFFSETS[noteWithAccidental];
+  if (semitone === undefined) {
+    throw new Error(`Unknown note name: "${noteWithAccidental}"`);
   }
   // MIDI: C4 = 60, C0 = 12, C-1 = 0
-  return (octave + 1) * 12 + noteIndex;
+  return (octave + 1) * 12 + semitone;
 }
+
 
 /**
  * Converts a MIDI note number to a pitch name string (e.g. 60 → "C4").

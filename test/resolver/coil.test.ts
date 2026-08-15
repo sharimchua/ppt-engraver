@@ -92,10 +92,23 @@ describe('resolveCoil', () => {
       expect(() => resolveCoil(coil, knotC4)).not.toThrow();
     });
 
-    it('rejects mismatched rhythm label and melody length', () => {
+    it('emits warning on mismatched rhythm label and melody length', () => {
       const coil: Coil = { id: 'test', rhythm: 'DoLa', melody: ['Do', 'Re'] };
-      expect(() => resolveCoil(coil, knotC4)).toThrow(/rhythm label.*declares 4 onsets.*melody has 2/);
+      const { warnings } = resolveCoil(coil, knotC4);
+      expect(warnings.length).toBeGreaterThan(0);
+      expect(warnings[0]).toContain('rhythm label "DoLa" specifies 4 beats, but melody has 2 onsets');
     });
+
+    it('flattens space-separated melody tokens in a single entry', () => {
+      const coil: Coil = { id: 'test', melody: ['Do', 'Re Te', 'Mi'] };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(4);
+      expect(onsets[0].scaleDegree).toBe('Do');
+      expect(onsets[1].scaleDegree).toBe('Re');
+      expect(onsets[2].scaleDegree).toBe('Te');
+      expect(onsets[3].scaleDegree).toBe('Mi');
+    });
+
 
     it('accepts omitted rhythm (onset count = melody length)', () => {
       const coil: Coil = { id: 'test', melody: ['Do', 'Re', 'Mi'] };

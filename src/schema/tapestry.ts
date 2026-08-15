@@ -8,14 +8,20 @@
 import { z } from 'zod';
 
 /**
- * Solfège pitch token: a solfège syllable optionally followed by
- * axis marker 'x' and/or octave shifts (^ for up, _ for down).
+ * Solfège pitch token: a single solfège syllable with optional axis/octave,
+ * or multiple whitespace-separated syllables in a single melody entry (e.g. "Re Te", "Le La").
  * 
- * Examples: "Do", "Mi", "Do^", "So_", "Dox", "Fax^"
+ * Examples: "Do", "Mi", "Do^", "So_", "Dox", "Fax^", "Re Te"
  */
-const SolfegePitchToken = z.string().regex(
-  /^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(x)?(\^+|_+)?$/,
-  'Must be a valid solfège pitch token (e.g. "Do", "Mi", "Do^", "Dox")'
+const SolfegePitchToken = z.string().refine(
+  val => {
+    const tokens = val.trim().split(/\s+/);
+    const tokenRegex = /^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(x)?(\^+|_+)?$/;
+    return tokens.length > 0 && tokens.every(t => tokenRegex.test(t));
+  },
+  {
+    message: 'Must be valid solfège pitch token(s) (e.g. "Do", "Mi", "Do^", "Dox", "Re Te")',
+  }
 );
 
 /**
@@ -37,14 +43,15 @@ const RhythmLabel = z.enum(['DoSo', 'DoRe', 'DoLa', 'DoMi', 'DoSi', 'DoFi']);
  * Provides the concrete value for Do and an optional tempo.
  */
 export const KnotSchema = z.object({
-  /** Absolute pitch anchor for Do, e.g. "C4", "F#3" */
+  /** Absolute pitch anchor for Do, e.g. "C4", "Eb4", "F#3" */
   do: z.string().regex(
-    /^[A-G]#?\d+$/,
-    'Must be a pitch name like "C4" or "F#3"'
+    /^[A-G](#|b|♭)?\d+$/,
+    'Must be a pitch name like "C4", "Eb4", or "F#3"'
   ),
   /** Tempo in BPM — accepted but unused in v1 */
   tempo: z.number().positive().optional(),
 });
+
 
 /**
  * Coil: the atomic composable unit with up to three layers.

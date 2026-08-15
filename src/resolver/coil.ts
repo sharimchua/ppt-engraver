@@ -61,31 +61,31 @@ export function resolveCoil(
   // 1. Resolve layers through priority-fill inheritance
   const resolvedLayers = inheritCoilLayers(coil, coilLibrary, defaultCoil);
   
-  const melody = resolvedLayers.melody;
-  if (!melody || melody.length === 0) {
+  const rawMelody = resolvedLayers.melody;
+  if (!rawMelody || rawMelody.length === 0) {
     throw new Error(
       `Coil "${coil.id}": melody layer is required (not defined locally, in parents, or in default coil)`
     );
   }
   
+  // Flatten any space-separated tokens in melody (e.g. ["Re Te"] -> ["Re", "Te"])
+  const melody = rawMelody.flatMap(entry => entry.trim().split(/\s+/).filter(Boolean));
+  
   const harmony = resolvedLayers.harmony ?? ['Do'];
   const rhythm = resolvedLayers.rhythm;
   
-  // --- Rhythm validation ---
+  // --- Rhythm validation (warning if count differs from declared beat block) ---
   if (rhythm) {
     const expectedCount = RHYTHM_BLOCK_LENGTHS[rhythm];
     if (expectedCount === undefined) {
-      throw new Error(
-        `Coil "${coil.id}": unknown rhythm label "${rhythm}"`
-      );
-    }
-    if (melody.length !== expectedCount) {
-      throw new Error(
-        `Coil "${coil.id}": rhythm label "${rhythm}" declares ${expectedCount} onsets, ` +
-        `but melody has ${melody.length} entries`
+      warnings.push(`Coil "${coil.id}": unknown rhythm label "${rhythm}"`);
+    } else if (melody.length !== expectedCount) {
+      warnings.push(
+        `Coil "${coil.id}": rhythm label "${rhythm}" specifies ${expectedCount} beats, but melody has ${melody.length} onsets (subdivision timing deferred to Phase 5)`
       );
     }
   }
+
   
   // --- Melody resolution ---
   const melodyPitches = resolveMelody(melody, knot);

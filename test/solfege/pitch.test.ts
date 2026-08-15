@@ -97,10 +97,14 @@ describe('pitchNameToMidi / midiToPitchName', () => {
     expect(midiToPitchName(60)).toBe('C4');
   });
 
-  it('handles sharps', () => {
-    expect(pitchNameToMidi('F#3')).toBe(54);
-    expect(midiToPitchName(54)).toBe('F#3');
+  it('handles flats (b and ♭)', () => {
+    expect(pitchNameToMidi('Eb4')).toBe(63);
+    expect(pitchNameToMidi('E♭4')).toBe(63);
+    expect(pitchNameToMidi('Bb3')).toBe(58);
+    expect(pitchNameToMidi('Db5')).toBe(73);
+    expect(pitchNameToMidi('Ab4')).toBe(68);
   });
+
 
   it('roundtrips all notes in octave 4', () => {
     for (let midi = 60; midi < 72; midi++) {
