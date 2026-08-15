@@ -1,0 +1,152 @@
+{
+  "ppt_verse_introMotif_1": {
+    "tag": "ppt_verse_introMotif_1",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 1,
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C4",
+      "midiNote": 60
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_2": {
+    "tag": "ppt_verse_introMotif_2",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 2,
+    "melody": {
+      "scaleDegree": "Mi",
+      "pitch": "E4",
+      "midiNote": 64
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_3": {
+    "tag": "ppt_verse_introMotif_3",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 3,
+    "melody": {
+      "scaleDegree": "So",
+      "pitch": "G4",
+      "midiNote": 67
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_4": {
+    "tag": "ppt_verse_introMotif_4",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 4,
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C5",
+      "midiNote": 72
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_cadence_1": {
+    "tag": "ppt_verse_cadence_1",
+    "weaveId": "verse",
+    "coilId": "cadence",
+    "onsetIndex": 1,
+    "melody": {
+      "scaleDegree": "Ti",
+      "pitch": "B4",
+      "midiNote": 71
+    },
+    "harmony": {
+      "root": "So",
+      "quality": "major",
+      "chordTones": [
+        "G4",
+        "B4",
+        "D5"
+      ],
+      "chordMidi": [
+        67,
+        71,
+        74
+      ]
+    }
+  },
+  "ppt_verse_cadence_2": {
+    "tag": "ppt_verse_cadence_2",
+    "weaveId": "verse",
+    "coilId": "cadence",
+    "onsetIndex": 2,
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C5",
+      "midiNote": 72
+    },
+    "harmony": {
+      "root": "So",
+      "quality": "major",
+      "chordTones": [
+        "G4",
+        "B4",
+        "D5"
+      ],
+      "chordMidi": [
+        67,
+        71,
+        74
+      ]
+    }
+  }
+}

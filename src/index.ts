@@ -26,7 +26,12 @@ export * from './resolver/weave.js';
 export * from './resolver/graph.js';
 export * from './resolver/resolve.js';
 export * from './midi/writer.js';
+export * from './lilypond/pitch.js';
+export * from './lilypond/compiler.js';
+export * from './sidecar/map.js';
+export * from './compiler/compile.js';
 export * from './constants.js';
+
 
 function main(): void {
   // Only run CLI when executed directly (or via tsx / bin)

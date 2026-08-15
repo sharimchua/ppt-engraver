@@ -6,33 +6,48 @@ Compiles [Prime Period Theory](https://ppt.midlifemuso.com/) Tapestry source int
 
 ## Status
 
-**Phase 1 — Resolution Engine** (complete)
-
-- ✅ Tapestry IR schema (Zod validation)
-- ✅ Uniform Solfège pitch mapping (all 12 positions + variations)
-- ✅ Knot resolver (absolute anchor with default fallback)
-- ✅ Coil resolver (absolute + interval melody modes, harmony triads, rhythm validation)
-- ✅ Weave resolver (concatenation, provenance tag generation)
-- ✅ CLI tool: `ppt-resolve`
+- ✅ **Phase 1 — Resolution Engine** (Tapestry IR → Onset Stream JSON + playable MIDI)
+- ✅ **Phase 2 — LilyPond Compiler** (Onset Stream → Tagged `.notation.ly` + `.ppt-map.json` sidecar)
+- ⏳ **Phase 3 — Consistency Checker + Regeneration** (Next)
 
 ## Quick Start
 
 ```bash
 npm install
-npm test                                            # run test suite (62 tests)
-npx tsx src/index.ts examples/verse.ppt.yaml        # resolve example → JSON
-npx tsx src/index.ts examples/verse.ppt.yaml -o out.json  # write to file
+npm test                                            # run full test suite (85 tests)
+npx tsx src/compile-cli.ts examples/verse.ppt.yaml  # compile → .notation.ly + .ppt-map.json
+npx tsx src/index.ts examples/verse.ppt.yaml -m out.mid # resolve → MIDI audio playback
 ```
 
-## Usage
+## CLI Usage
+
+### `ppt-compile` (Phase 2)
+
+Compiles Tapestry source into standalone LilyPond notation and sidecar expectation map:
 
 ```bash
-# Resolve a Tapestry file to an onset stream (JSON to stdout)
-ppt-resolve <file.ppt.yaml>
+# Compile to <base>.notation.ly and <base>.ppt-map.json
+ppt-compile piece.ppt.yaml
 
-# Write output to a file
-ppt-resolve <file.ppt.yaml> -o <output.json>
+# Specify custom output paths
+ppt-compile piece.ppt.yaml -o custom.ly --map custom.ppt-map.json
+
+# Optional: also render PDF via local lilypond binary if installed
+ppt-compile piece.ppt.yaml --render
 ```
+
+### `ppt-resolve` (Phase 1)
+
+Resolves Tapestry source into an onset stream JSON or MIDI file:
+
+```bash
+# Resolve and print JSON to stdout
+ppt-resolve piece.ppt.yaml
+
+# Write JSON and playable MIDI file
+ppt-resolve piece.ppt.yaml -o piece.json -m piece.mid
+```
+
 
 ## Input Format
 
