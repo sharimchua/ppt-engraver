@@ -1,0 +1,15 @@
+# Interval mode melody: first syllable has axis marker (Dox),
+# subsequent syllables are intervals from previous pitch.
+# Dox = C4 (axis anchor), Re = +2 = D4, Mi = +4 = F#4, Ti = -1 = F4
+tapestry:
+  knot:
+    do: C4
+  weave:
+    id: intervals
+    layout: concatenate
+    children:
+      - coil:
+          id: intervalMelody
+          rhythm: DoLa
+          melody: [Dox, Re, Mi, Ti]
+          harmony: [Do]

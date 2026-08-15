@@ -1,0 +1,14 @@
+# Test cross-layer alignment: 4 melody notes, 2 harmony chords.
+# Harmony should distribute: Do held for onsets 1-2, So held for onsets 3-4.
+tapestry:
+  knot:
+    do: C4
+  weave:
+    id: aligned
+    layout: concatenate
+    children:
+      - coil:
+          id: crossLayer
+          rhythm: DoLa
+          melody: [Do, Re, Mi, Fa]
+          harmony: [Do, So]

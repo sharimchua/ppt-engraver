@@ -1,0 +1,10 @@
+# No knot specified — tests fallback to default (Do = C4, tempo = 120).
+# Should produce a warning but not an error.
+tapestry:
+  weave:
+    id: fallback
+    layout: concatenate
+    children:
+      - coil:
+          id: motif
+          melody: [Do, Mi, So]

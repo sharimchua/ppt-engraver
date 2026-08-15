@@ -1,0 +1,12 @@
+# Simple melody only — no harmony, no rhythm label.
+# Tests: default harmony (Do major triad), onset count from melody length.
+tapestry:
+  knot:
+    do: C4
+  weave:
+    id: demo
+    layout: concatenate
+    children:
+      - coil:
+          id: simpleMelody
+          melody: [Do, Re, Mi]
