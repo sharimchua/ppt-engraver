@@ -208,25 +208,23 @@ export function midiToPitchName(midi: number): string {
  * Resolves a solfège syllable + octave shift to an absolute pitch,
  * given a Knot's Do anchor.
  * 
- * Used in absolute melodic mode (no axis marker on first syllable).
- * 
- * The octave placement rule: resolved pitch is placed in the octave of Do,
- * with octave shifts applied additively. Scale degrees that fall below Do
- * in the chromatic scale (e.g. Ti when Do=C → B) are placed in the octave
- * below Do's octave unless shifted.
+ * In PPT, the octave is centered on Do spanning down to So (-5)
+ * and up to Fi (+6):
+ * - Ra through Fi (+1 to +6) are ascending from Do (sharp-side)
+ * - Ti through So (-1 to -5) are descending from Do (flat-side)
+ * - Octave shifts (^ / _) shift by ±12 semitones
  */
 export function resolveAbsolutePitch(
   syllable: string,
   octaveShift: number,
   doMidi: number,
 ): number {
-  const semitones = solfegeToSemitone(syllable);
-  // Base pitch: Do's MIDI + semitone offset
+  const semitones = solfegeToNearestAddress(syllable);
   let midi = doMidi + semitones;
-  // Apply octave shifts
   midi += octaveShift * 12;
   return midi;
 }
+
 
 /**
  * Resolves an interval-mode solfège syllable to a signed semitone offset.

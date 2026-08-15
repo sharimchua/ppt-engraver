@@ -12,10 +12,11 @@ tapestry:
       - coil:
           id: introMotif
           rhythm: DoLa
-          melody: [Do, Mi, So, "Do^"]
+          melody: [Do, Mi, "So^", "Do^"]
           harmony: [Do]
       - coil:
           id: cadence
           rhythm: DoSo
-          melody: [Ti, "Do^"]
+          melody: ["Ti^", "Do^"]
           harmony: [So]
+

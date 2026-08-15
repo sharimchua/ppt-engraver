@@ -124,22 +124,35 @@ describe('resolveAbsolutePitch', () => {
     expect(resolveAbsolutePitch('Do', 0, doC4)).toBe(60);
   });
 
-  it('resolves Mi to E4', () => {
+  it('resolves Mi to E4 (+4 semitones from Do)', () => {
     expect(resolveAbsolutePitch('Mi', 0, doC4)).toBe(64);
   });
 
-  it('resolves So to G4', () => {
-    expect(resolveAbsolutePitch('So', 0, doC4)).toBe(67);
+  it('resolves So to G3 (-5 semitones from Do)', () => {
+    expect(resolveAbsolutePitch('So', 0, doC4)).toBe(55);
+  });
+
+  it('resolves So^ to G4 (+7 semitones from Do with octave mark)', () => {
+    expect(resolveAbsolutePitch('So', 1, doC4)).toBe(67);
+  });
+
+  it('resolves Te to Bb3 (-2 semitones from Do)', () => {
+    expect(resolveAbsolutePitch('Te', 0, doC4)).toBe(58);
+  });
+
+  it('resolves Ti to B3 (-1 semitone from Do)', () => {
+    expect(resolveAbsolutePitch('Ti', 0, doC4)).toBe(59);
+  });
+
+  it('resolves Ti^ to B4 (+11 semitones from Do with octave mark)', () => {
+    expect(resolveAbsolutePitch('Ti', 1, doC4)).toBe(71);
   });
 
   it('resolves Do^ to C5', () => {
     expect(resolveAbsolutePitch('Do', 1, doC4)).toBe(72);
   });
-
-  it('resolves Ti to B4', () => {
-    expect(resolveAbsolutePitch('Ti', 0, doC4)).toBe(71);
-  });
 });
+
 
 describe('resolveInterval', () => {
   it('ascending intervals', () => {

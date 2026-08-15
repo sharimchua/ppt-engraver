@@ -22,7 +22,8 @@ tapestry:
       - coil:
           id: childCoil
           parents: [rhythmParent, harmonyParent]
-          melody: [Do, Mi, So, "Do^"]
+          melody: [Do, Mi, "So^", "Do^"]
+
 `;
     const { onsets } = resolveYaml(yaml);
     expect(onsets).toHaveLength(4);

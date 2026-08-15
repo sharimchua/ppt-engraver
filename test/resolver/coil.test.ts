@@ -7,8 +7,8 @@ const knotC4: ResolvedKnot = { doMidi: 60, tempo: 120 };
 
 describe('resolveCoil', () => {
   describe('absolute mode melody', () => {
-    it('resolves simple melody (Do, Mi, So)', () => {
-      const coil: Coil = { id: 'test', melody: ['Do', 'Mi', 'So'] };
+    it('resolves simple melody (Do, Mi, So^)', () => {
+      const coil: Coil = { id: 'test', melody: ['Do', 'Mi', 'So^'] };
       const { onsets } = resolveCoil(coil, knotC4);
       expect(onsets).toHaveLength(3);
       expect(onsets[0].melodyMidi).toBe(60); // C4
@@ -17,10 +17,11 @@ describe('resolveCoil', () => {
     });
 
     it('resolves melody with octave up (Do^)', () => {
-      const coil: Coil = { id: 'test', melody: ['Do', 'Mi', 'So', 'Do^'] };
+      const coil: Coil = { id: 'test', melody: ['Do', 'Mi', 'So^', 'Do^'] };
       const { onsets } = resolveCoil(coil, knotC4);
       expect(onsets[3].melodyMidi).toBe(72); // C5
     });
+
 
     it('preserves scale degree names', () => {
       const coil: Coil = { id: 'test', melody: ['Do', 'Ti', 'Do^'] };

@@ -156,12 +156,13 @@ tapestry:
     children:
       - coil:
           id: test
-          melody: [Do, So]
+          melody: [Do, "So^"]
 `;
       const { onsets } = resolveYaml(yaml);
       expect(onsets).toHaveLength(2);
       expect(onsets[0].pitch).toBe('C4');
       expect(onsets[1].pitch).toBe('G4');
+
     });
   });
 });
