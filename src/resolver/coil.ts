@@ -38,36 +38,62 @@ export interface CoilResolutionResult {
 /**
  * Resolves a Coil's layers into an ordered array of onsets.
  * 
+ * Supports Priority-Fill Inheritance:
+ * 1. Explicit local layer definition wins outright.
+ * 2. Unfilled layers inherit from the ordered list of parent coils in `parents`.
+ * 3. Unfilled layers inherit from the enclosing Weave's `defaultCoil`.
+ * 4. Fallback defaults (e.g. Harmony defaults to ['Do']).
+ * 
  * @param coil - The Coil definition from the Tapestry IR
  * @param knot - The resolved Knot providing the Do anchor
+ * @param coilLibrary - Map of named Coil definitions available for inheritance
+ * @param defaultCoil - Optional default Coil from enclosing Weave
  * @returns Array of resolved onsets + warnings
  */
-export function resolveCoil(coil: Coil, knot: ResolvedKnot): CoilResolutionResult {
+export function resolveCoil(
+  coil: Coil,
+  knot: ResolvedKnot,
+  coilLibrary: Map<string, Coil> = new Map(),
+  defaultCoil?: Coil,
+): CoilResolutionResult {
   const warnings: string[] = [];
   
+  // 1. Resolve layers through priority-fill inheritance
+  const resolvedLayers = inheritCoilLayers(coil, coilLibrary, defaultCoil);
+  
+  const melody = resolvedLayers.melody;
+  if (!melody || melody.length === 0) {
+    throw new Error(
+      `Coil "${coil.id}": melody layer is required (not defined locally, in parents, or in default coil)`
+    );
+  }
+  
+  const harmony = resolvedLayers.harmony ?? ['Do'];
+  const rhythm = resolvedLayers.rhythm;
+  
   // --- Rhythm validation ---
-  if (coil.rhythm) {
-    const expectedCount = RHYTHM_BLOCK_LENGTHS[coil.rhythm];
+  if (rhythm) {
+    const expectedCount = RHYTHM_BLOCK_LENGTHS[rhythm];
     if (expectedCount === undefined) {
       throw new Error(
-        `Coil "${coil.id}": unknown rhythm label "${coil.rhythm}"`
+        `Coil "${coil.id}": unknown rhythm label "${rhythm}"`
       );
     }
-    if (coil.melody.length !== expectedCount) {
+    if (melody.length !== expectedCount) {
       throw new Error(
-        `Coil "${coil.id}": rhythm label "${coil.rhythm}" declares ${expectedCount} onsets, ` +
-        `but melody has ${coil.melody.length} entries`
+        `Coil "${coil.id}": rhythm label "${rhythm}" declares ${expectedCount} onsets, ` +
+        `but melody has ${melody.length} entries`
       );
     }
   }
   
   // --- Melody resolution ---
-  const melodyPitches = resolveMelody(coil.melody, knot);
+  const melodyPitches = resolveMelody(melody, knot);
   
   // --- Harmony resolution ---
   const harmonyChords = resolveHarmony(
-    coil.harmony ?? ['Do'], // Default: Do chord held across entire coil
-    coil.melody.length,
+    harmony,
+    melody.length,
     knot,
   );
   
@@ -81,6 +107,65 @@ export function resolveCoil(coil: Coil, knot: ResolvedKnot): CoilResolutionResul
   
   return { onsets, warnings };
 }
+
+interface ResolvedLayers {
+  melody?: string[];
+  harmony?: string[];
+  rhythm?: string;
+}
+
+/**
+ * Resolves M, H, R layers using the priority-fill rule across parents and default coil.
+ */
+function inheritCoilLayers(
+  coil: Coil,
+  library: Map<string, Coil>,
+  defaultCoil?: Coil,
+): ResolvedLayers {
+  const result: ResolvedLayers = {};
+  
+  // 1. Explicit local definition
+  if (coil.melody && coil.melody.length > 0) result.melody = coil.melody;
+  if (coil.harmony && coil.harmony.length > 0) result.harmony = coil.harmony;
+  if (coil.rhythm) result.rhythm = coil.rhythm;
+  
+  // 2. Parents in priority order
+  if (coil.parents && coil.parents.length > 0) {
+    for (const parentId of coil.parents) {
+      const parent = library.get(parentId);
+      if (!parent) {
+        throw new Error(
+          `Coil "${coil.id}" references unknown parent coil "${parentId}"`
+        );
+      }
+      if (!result.melody && parent.melody && parent.melody.length > 0) {
+        result.melody = parent.melody;
+      }
+      if (!result.harmony && parent.harmony && parent.harmony.length > 0) {
+        result.harmony = parent.harmony;
+      }
+      if (!result.rhythm && parent.rhythm) {
+        result.rhythm = parent.rhythm;
+      }
+    }
+  }
+  
+  // 3. Default coil from Weave scope
+  if (defaultCoil) {
+    if (!result.melody && defaultCoil.melody && defaultCoil.melody.length > 0) {
+      result.melody = defaultCoil.melody;
+    }
+    if (!result.harmony && defaultCoil.harmony && defaultCoil.harmony.length > 0) {
+      result.harmony = defaultCoil.harmony;
+    }
+    if (!result.rhythm && defaultCoil.rhythm) {
+      result.rhythm = defaultCoil.rhythm;
+    }
+  }
+  
+  return result;
+}
+
 
 /** Internal: resolved melody pitch info */
 interface MelodyPitch {

@@ -48,36 +48,41 @@ export const KnotSchema = z.object({
 
 /**
  * Coil: the atomic composable unit with up to three layers.
- * V1: melody required, harmony and rhythm optional.
+ * Supports priority-based inheritance from parent coils.
  */
 export const CoilSchema = z.object({
   /** Unique identifier for this coil (camelCase) */
   id: z.string().min(1),
+  /** Ordered list of parent Coil IDs to inherit layers from */
+  parents: z.array(z.string()).optional(),
   /** Rhythm block-length label — determines expected onset count */
   rhythm: RhythmLabel.optional(),
-  /** Melody layer: array of solfège pitch tokens */
-  melody: z.array(SolfegePitchToken).min(1),
+  /** Melody layer: array of solfège pitch tokens (optional if inherited, min 1 if specified) */
+  melody: z.array(SolfegePitchToken).min(1).optional(),
   /** Harmony layer: array of chord root solfège syllables */
-  harmony: z.array(SolfegeHarmonyRoot).optional(),
+  harmony: z.array(SolfegeHarmonyRoot).min(1).optional(),
+
 });
 
 /**
- * A child entry within a Weave — wraps a Coil.
- * Future: may also wrap nested Weaves.
+ * A child entry within a Weave — wraps an inline Coil or references a Coil by ID.
  */
 export const WeaveChildSchema = z.object({
-  coil: CoilSchema,
+  /** Inline coil definition */
+  coil: CoilSchema.or(z.string()),
 });
 
 /**
  * Weave: ordered sequence container for Coils.
- * V1: concatenate layout only.
+ * V1: concatenate layout only, supports Default-Coil injection.
  */
 export const WeaveSchema = z.object({
   /** Unique identifier for this weave (camelCase) */
   id: z.string().min(1),
   /** Layout mode — v1 supports only 'concatenate' */
   layout: z.enum(['concatenate']).default('concatenate'),
+  /** Default coil ID or inline Coil providing fallback layers for child coils */
+  defaultCoil: z.string().or(CoilSchema).optional(),
   /** Ordered list of child coils */
   children: z.array(WeaveChildSchema).min(1),
 });
@@ -89,6 +94,8 @@ export const TapestrySchema = z.object({
   tapestry: z.object({
     /** Optional absolute anchor (defaults to C4/120 if absent) */
     knot: KnotSchema.optional(),
+    /** Optional library of reusable named Coils */
+    coils: z.record(z.string(), CoilSchema).or(z.array(CoilSchema)).optional(),
     /** The top-level weave containing all coils */
     weave: WeaveSchema,
   }),
@@ -100,3 +107,4 @@ export type Coil = z.infer<typeof CoilSchema>;
 export type WeaveChild = z.infer<typeof WeaveChildSchema>;
 export type Weave = z.infer<typeof WeaveSchema>;
 export type Tapestry = z.infer<typeof TapestrySchema>;
+

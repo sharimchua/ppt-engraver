@@ -1,0 +1,122 @@
+[
+  {
+    "tag": "ppt_verse_introMotif_1",
+    "pitch": "C4",
+    "midiNote": 60,
+    "scaleDegree": "Do",
+    "chordTones": [
+      "C4",
+      "E4",
+      "G4"
+    ],
+    "chordMidi": [
+      60,
+      64,
+      67
+    ],
+    "chordRoot": "Do",
+    "coilId": "introMotif",
+    "weaveId": "verse",
+    "onsetIndex": 1
+  },
+  {
+    "tag": "ppt_verse_introMotif_2",
+    "pitch": "E4",
+    "midiNote": 64,
+    "scaleDegree": "Mi",
+    "chordTones": [
+      "C4",
+      "E4",
+      "G4"
+    ],
+    "chordMidi": [
+      60,
+      64,
+      67
+    ],
+    "chordRoot": "Do",
+    "coilId": "introMotif",
+    "weaveId": "verse",
+    "onsetIndex": 2
+  },
+  {
+    "tag": "ppt_verse_introMotif_3",
+    "pitch": "G4",
+    "midiNote": 67,
+    "scaleDegree": "So",
+    "chordTones": [
+      "C4",
+      "E4",
+      "G4"
+    ],
+    "chordMidi": [
+      60,
+      64,
+      67
+    ],
+    "chordRoot": "Do",
+    "coilId": "introMotif",
+    "weaveId": "verse",
+    "onsetIndex": 3
+  },
+  {
+    "tag": "ppt_verse_introMotif_4",
+    "pitch": "C5",
+    "midiNote": 72,
+    "scaleDegree": "Do",
+    "chordTones": [
+      "C4",
+      "E4",
+      "G4"
+    ],
+    "chordMidi": [
+      60,
+      64,
+      67
+    ],
+    "chordRoot": "Do",
+    "coilId": "introMotif",
+    "weaveId": "verse",
+    "onsetIndex": 4
+  },
+  {
+    "tag": "ppt_verse_cadence_1",
+    "pitch": "B4",
+    "midiNote": 71,
+    "scaleDegree": "Ti",
+    "chordTones": [
+      "G4",
+      "B4",
+      "D5"
+    ],
+    "chordMidi": [
+      67,
+      71,
+      74
+    ],
+    "chordRoot": "So",
+    "coilId": "cadence",
+    "weaveId": "verse",
+    "onsetIndex": 1
+  },
+  {
+    "tag": "ppt_verse_cadence_2",
+    "pitch": "C5",
+    "midiNote": 72,
+    "scaleDegree": "Do",
+    "chordTones": [
+      "G4",
+      "B4",
+      "D5"
+    ],
+    "chordMidi": [
+      67,
+      71,
+      74
+    ],
+    "chordRoot": "So",
+    "coilId": "cadence",
+    "weaveId": "verse",
+    "onsetIndex": 2
+  }
+]
