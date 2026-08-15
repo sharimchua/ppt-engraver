@@ -1,0 +1,23 @@
+# The §5.1 / §6.2 worked example from the design document.
+# Two coils in a verse weave: introMotif (4 onsets) + cadence (2 onsets).
+# Do = C4, harmony is root-position major triads.
+#
+# Run: npx tsx src/index.ts examples/verse.ppt.yaml
+tapestry:
+  knot:
+    do: C4
+    tempo: 120
+  weave:
+    id: verse
+    layout: concatenate
+    children:
+      - coil:
+          id: introMotif
+          rhythm: DoLa
+          melody: [Do, Mi, So, "Do^"]
+          harmony: [Do]
+      - coil:
+          id: cadence
+          rhythm: DoSo
+          melody: [Ti, "Do^"]
+          harmony: [So]
