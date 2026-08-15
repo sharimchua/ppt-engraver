@@ -14,9 +14,11 @@ import {
   solfegeToSemitone,
   resolveAbsolutePitch,
   resolveInterval,
-  buildMajorTriad,
+  buildChordFromToken,
+  parseHarmonyChord,
   midiToPitchName,
 } from '../solfege/pitch.js';
+
 
 /** A single resolved onset from a coil (before tagging) */
 export interface ResolvedOnset {
@@ -24,11 +26,12 @@ export interface ResolvedOnset {
   melodyMidi: number;
   /** The solfège scale degree of the melody note (base syllable, no axis/octave) */
   scaleDegree: string;
-  /** Chord tones as MIDI notes [root, third, fifth] */
-  chordMidi: [number, number, number];
-  /** Solfège syllable of the chord root */
+  /** Chord tones as MIDI notes */
+  chordMidi: number[];
+  /** Solfège syllable of the chord root / token */
   chordRoot: string;
 }
+
 
 export interface CoilResolutionResult {
   onsets: ResolvedOnset[];
@@ -228,7 +231,7 @@ function resolveMelody(melody: string[], knot: ResolvedKnot): MelodyPitch[] {
 
 /** Internal: resolved harmony chord info */
 interface HarmonyChord {
-  triad: [number, number, number];
+  triad: number[];
   root: string;
 }
 
@@ -245,14 +248,16 @@ function resolveHarmony(
   knot: ResolvedKnot,
 ): HarmonyChord[] {
   // Resolve each chord root to a triad
-  const chords: HarmonyChord[] = harmony.map(root => {
-    const semitone = solfegeToSemitone(root);
+  const chords: HarmonyChord[] = harmony.map(token => {
+    const parsed = parseHarmonyChord(token);
+    const semitone = solfegeToSemitone(parsed.rootSyllable);
     const rootMidi = knot.doMidi + semitone;
     return {
-      triad: buildMajorTriad(rootMidi),
-      root,
+      triad: buildChordFromToken(rootMidi, token),
+      root: token,
     };
   });
+
   
   // Distribute chords across melody onsets (stretch mode)
   const result: HarmonyChord[] = [];

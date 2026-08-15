@@ -27,6 +27,7 @@ melodyVoice = {
 }
 
 harmonyVoice = {
+  \\clef bass
   \\cadenzaOn
   \\tag #'ppt_verse_introMotif_1 <c e g>4
   \\tag #'ppt_verse_introMotif_2 <c e g>4

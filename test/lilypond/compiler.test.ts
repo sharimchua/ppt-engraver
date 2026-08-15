@@ -51,11 +51,17 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('\\remove "Time_signature_engraver"');
   });
 
+  it('emits bass clef on harmonyVoice by default', () => {
+    const ly = compileToLilyPond(sampleOnsets);
+    expect(ly).toContain('harmonyVoice = {\n  \\clef bass');
+  });
+
   it('emits cadenzaOn and cadenzaOff in voices', () => {
     const ly = compileToLilyPond(sampleOnsets);
     expect(ly).toContain('\\cadenzaOn');
     expect(ly).toContain('\\cadenzaOff');
   });
+
 
   it('emits tags with native LilyPond tag syntax', () => {
     const ly = compileToLilyPond(sampleOnsets);

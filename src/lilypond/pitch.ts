@@ -62,17 +62,18 @@ export function midiToLilyPondPitch(midi: number): string {
 }
 
 /**
- * Formats a triad chord into a LilyPond chord token `<pitch1 pitch2 pitch3>`.
+ * Formats a chord into a LilyPond chord token `<pitch1 pitch2 ...>`.
  * 
- * @param triadMidi - Array of 3 MIDI note numbers [root, third, fifth]
+ * @param chordMidi - Array of MIDI note numbers
  * @param octaveShift - Optional octave transposition (e.g. -1 to place in bass register for PianoStaff)
  * @returns Formatted LilyPond chord token, e.g. "<c e g>" or "<g b d'>"
  */
 export function chordMidiToLilyPond(
-  triadMidi: [number, number, number],
+  chordMidi: number[],
   octaveShift: number = 0,
 ): string {
-  const shifted = triadMidi.map(m => m + octaveShift * 12);
+  const shifted = chordMidi.map(m => m + octaveShift * 12);
   const notes = shifted.map(m => midiToLilyPondPitch(m)).join(' ');
   return `<${notes}>`;
 }
+

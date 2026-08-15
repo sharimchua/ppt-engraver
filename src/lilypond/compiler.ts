@@ -17,6 +17,10 @@ import { midiToLilyPondPitch, chordMidiToLilyPond } from './pitch.js';
 export interface CompileOptions {
   /** LilyPond version string to emit (default: "2.24.4") */
   lilypondVersion?: string;
+  /** Clef for the melody staff (default: "treble", omitted if treble) */
+  melodyClef?: string;
+  /** Clef for the harmony staff (default: "bass") */
+  harmonyClef?: string;
   /** Octave transposition for harmony triads (default: -1 for lower staff register) */
   harmonyOctaveShift?: number;
   /** Note duration placeholder string (default: "4" for quarter notes) */
@@ -37,9 +41,20 @@ export function compileToLilyPond(
   const version = options.lilypondVersion ?? '2.24.4';
   const harmShift = options.harmonyOctaveShift ?? -1;
   const dur = options.durationToken ?? '4';
+  const harmClef = options.harmonyClef ?? 'bass';
 
-  const melodyLines: string[] = ['  \\cadenzaOn'];
-  const harmonyLines: string[] = ['  \\cadenzaOn'];
+  const melodyLines: string[] = [];
+  if (options.melodyClef && options.melodyClef !== 'treble') {
+    melodyLines.push(`  \\clef ${options.melodyClef}`);
+  }
+  melodyLines.push('  \\cadenzaOn');
+
+  const harmonyLines: string[] = [];
+  if (harmClef) {
+    harmonyLines.push(`  \\clef ${harmClef}`);
+  }
+  harmonyLines.push('  \\cadenzaOn');
+
 
   let lastCoilId: string | null = null;
 
@@ -57,12 +72,13 @@ export function compileToLilyPond(
     const melPitch = midiToLilyPondPitch(onset.midiNote);
     melodyLines.push(`  \\tag #'${onset.tag} ${melPitch}${dur}`);
 
-    // Harmony: \tag #'tag <triad>4
+    // Harmony: \tag #'tag <chord>4
     const chord = chordMidiToLilyPond(
-      [onset.chordMidi[0], onset.chordMidi[1], onset.chordMidi[2]],
+      onset.chordMidi,
       harmShift,
     );
     harmonyLines.push(`  \\tag #'${onset.tag} ${chord}${dur}`);
+
   }
 
   melodyLines.push('  \\cadenzaOff');

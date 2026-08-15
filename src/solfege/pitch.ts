@@ -249,3 +249,66 @@ export function resolveInterval(syllable: string, octaveShift: number): number {
 export function buildMajorTriad(rootMidi: number): [number, number, number] {
   return [rootMidi, rootMidi + 4, rootMidi + 7];
 }
+
+/**
+ * Parsed representation of a harmony chord token.
+ * E.g. "Do" (major triad), "DoMe" (minor triad), "DoTe" (dominant 7th), "So"
+ */
+export interface ParsedHarmonyChord {
+  rootSyllable: string;
+  modifiers: string[];
+  quality: 'major' | 'minor' | 'dominant7' | 'minor7' | 'diminished' | 'augmented' | 'custom';
+}
+
+/**
+ * Parses a harmony chord token like "Do", "DoMe", "So", "DoTe".
+ * The first solfège syllable is the root; any trailing syllables are modifier/alteration subscripts.
+ */
+export function parseHarmonyChord(token: string): ParsedHarmonyChord {
+  const match = token.match(/^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(.*)$/);
+  if (!match) {
+    throw new Error(`Invalid harmony chord token: "${token}"`);
+  }
+  const rootSyllable = match[1];
+  const rest = match[2];
+  
+  // Extract modifier syllables (e.g. "Me", "Te", "MeTe")
+  const modifierMatches = rest.match(/(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)/g) ?? [];
+  
+  let quality: ParsedHarmonyChord['quality'] = 'major';
+  const hasMe = modifierMatches.some(m => m === 'Me' || m === 'Ri');
+  const hasTe = modifierMatches.some(m => m === 'Te' || m === 'Li');
+  const hasFi = modifierMatches.some(m => m === 'Fi' || m === 'Se');
+
+  if (hasMe && hasTe) {
+    quality = 'minor7';
+  } else if (hasMe) {
+    quality = 'minor';
+  } else if (hasTe) {
+    quality = 'dominant7';
+  } else if (hasFi) {
+    quality = 'diminished';
+  }
+
+  return { rootSyllable, modifiers: modifierMatches, quality };
+}
+
+/**
+ * Builds chord tones (MIDI notes) for a harmony token relative to root MIDI.
+ * Default is a major triad [root, root+4, root+7].
+ * If minor (e.g. "DoMe"), builds [root, root+3, root+7].
+ */
+export function buildChordFromToken(rootMidi: number, chordToken: string): number[] {
+  const parsed = parseHarmonyChord(chordToken);
+  if (parsed.quality === 'minor') {
+    return [rootMidi, rootMidi + 3, rootMidi + 7];
+  } else if (parsed.quality === 'minor7') {
+    return [rootMidi, rootMidi + 3, rootMidi + 7, rootMidi + 10];
+  } else if (parsed.quality === 'dominant7') {
+    return [rootMidi, rootMidi + 4, rootMidi + 7, rootMidi + 10];
+  } else if (parsed.quality === 'diminished') {
+    return [rootMidi, rootMidi + 3, rootMidi + 6];
+  }
+  return [rootMidi, rootMidi + 4, rootMidi + 7];
+}
+

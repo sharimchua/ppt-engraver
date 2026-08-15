@@ -25,12 +25,13 @@ const SolfegePitchToken = z.string().refine(
 );
 
 /**
- * Solfège syllable for harmony roots (no axis marker or octave shifts).
+ * Solfège syllable for harmony roots and chord alterations (e.g. "Do", "DoMe", "So", "DoTe").
  */
 const SolfegeHarmonyRoot = z.string().regex(
-  /^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)$/,
-  'Must be a valid solfège syllable for a chord root (e.g. "Do", "So")'
+  /^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(?:(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti))*$/,
+  'Must be a valid solfège harmony token (e.g. "Do", "DoMe", "So")'
 );
+
 
 /**
  * Rhythm block-length label: a named pair of solfège syllables.
