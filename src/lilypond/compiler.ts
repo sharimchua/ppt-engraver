@@ -12,7 +12,12 @@
  */
 import { writeFileSync } from 'node:fs';
 import type { OnsetStream } from '../schema/onset.js';
-import { midiToLilyPondPitch, chordMidiToLilyPond } from './pitch.js';
+import {
+  midiToLilyPondPitch,
+  chordMidiToLilyPond,
+  chordToLilyPondChordMode,
+} from './pitch.js';
+import { parseHarmonyChord } from '../solfege/pitch.js';
 
 export interface CompileOptions {
   /** LilyPond version string to emit (default: "2.24.4") */
@@ -21,6 +26,8 @@ export interface CompileOptions {
   melodyClef?: string;
   /** Clef for the harmony staff (default: "treble") */
   harmonyClef?: string;
+  /** Whether to show chord names above the staff (default: true) */
+  showChordNames?: boolean;
   /** Accidental spelling mode ('sharps' or 'flats', auto-detected if omitted) */
   accidentalMode?: 'sharps' | 'flats';
   /** Accidental style for unmetered notation (default: "forget" so all accidentals are explicitly engraved) */
@@ -45,6 +52,7 @@ export function compileToLilyPond(
   const version = options.lilypondVersion ?? '2.24.4';
   const melClef = options.melodyClef ?? 'treble';
   const harmClef = options.harmonyClef ?? 'treble';
+  const showChordNames = options.showChordNames ?? true;
   const accStyle = options.accidentalStyle ?? 'forget';
   const harmShift = options.harmonyOctaveShift ?? (harmClef === 'bass' ? -1 : 0);
   const dur = options.durationToken ?? '4';
@@ -58,6 +66,10 @@ export function compileToLilyPond(
     )
       ? 'flats'
       : 'sharps');
+
+  const chordLines: string[] = showChordNames
+    ? ['  \\set chordChanges = ##t', '  \\cadenzaOn']
+    : [];
 
   const melodyLines: string[] = [
     `  \\clef ${melClef}`,
@@ -80,6 +92,9 @@ export function compileToLilyPond(
     if (lastCoilId !== null && onset.coilId !== lastCoilId) {
       melodyLines.push('  \\bar "|"');
       harmonyLines.push('  \\bar "|"');
+      if (showChordNames) {
+        chordLines.push('  \\bar "|"');
+      }
     }
     lastCoilId = onset.coilId;
 
@@ -94,18 +109,39 @@ export function compileToLilyPond(
       accMode,
     );
     harmonyLines.push(`  \\tag #'${onset.tag} ${chord}${dur}`);
-  }
 
+    // ChordNames: \tag #'tag c4:m
+    if (showChordNames) {
+      const parsedChord = parseHarmonyChord(onset.chordRoot);
+      const rootMidi = onset.chordMidi[0];
+      const chordModeToken = chordToLilyPondChordMode(rootMidi, parsedChord.quality, dur, accMode);
+      chordLines.push(`  \\tag #'${onset.tag} ${chordModeToken}`);
+    }
+  }
 
   melodyLines.push('  \\cadenzaOff');
   harmonyLines.push('  \\cadenzaOff');
+  if (showChordNames) {
+    chordLines.push('  \\cadenzaOff');
+  }
 
   const melodyVoiceStr = melodyLines.join('\n');
   const harmonyVoiceStr = harmonyLines.join('\n');
+  const chordVoiceStr = showChordNames ? chordLines.join('\n') : '';
+
+  const chordVoiceDef = showChordNames
+    ? `chordVoice = \\chordmode {
+${chordVoiceStr}
+}
+
+`
+    : '';
+
+  const chordStaffDef = showChordNames ? '    \\new ChordNames \\chordVoice\n' : '';
 
   return `\\version "${version}"
 
-melodyVoice = {
+${chordVoiceDef}melodyVoice = {
 ${melodyVoiceStr}
 }
 
@@ -114,9 +150,11 @@ ${harmonyVoiceStr}
 }
 
 \\score {
-  \\new PianoStaff <<
-    \\new Staff \\melodyVoice
-    \\new Staff \\harmonyVoice
+  <<
+${chordStaffDef}    \\new PianoStaff <<
+      \\new Staff \\melodyVoice
+      \\new Staff \\harmonyVoice
+    >>
   >>
   \\layout {
     \\context {
@@ -127,6 +165,7 @@ ${harmonyVoiceStr}
 }
 `;
 }
+
 
 /**
  * Compiles an onset stream and writes the `.ly` file to disk.

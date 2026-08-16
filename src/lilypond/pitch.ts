@@ -99,4 +99,39 @@ export function chordMidiToLilyPond(
   return `<${notes}>`;
 }
 
+/**
+ * Converts a chord root MIDI note + quality into a LilyPond chordmode token.
+ * E.g. (69, 'minor', '4', 'sharps') -> "a4:m"
+ * E.g. (63, 'major', '4', 'flats')  -> "ees4"
+ * E.g. (67, 'dominant7', '4', 'sharps') -> "g4:7"
+ * E.g. (71, 'diminished', '4', 'sharps') -> "b4:dim"
+ */
+export function chordToLilyPondChordMode(
+  rootMidi: number,
+  quality: string = 'major',
+  durationToken: string = '4',
+  accidentalMode: 'sharps' | 'flats' = 'sharps',
+): string {
+  const noteIndex = ((rootMidi % 12) + 12) % 12;
+  const baseNote = accidentalMode === 'flats'
+    ? LILYPOND_FLAT_NOTES[noteIndex]
+    : LILYPOND_SHARP_NOTES[noteIndex];
+
+  let qualitySuffix = '';
+  if (quality === 'minor') {
+    qualitySuffix = ':m';
+  } else if (quality === 'minor7') {
+    qualitySuffix = ':m7';
+  } else if (quality === 'dominant7') {
+    qualitySuffix = ':7';
+  } else if (quality === 'diminished') {
+    qualitySuffix = ':dim';
+  } else if (quality === 'augmented') {
+    qualitySuffix = ':aug';
+  }
+
+  return `${baseNote}${durationToken}${qualitySuffix}`;
+}
+
+
 
