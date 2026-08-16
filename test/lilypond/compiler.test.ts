@@ -94,14 +94,12 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('\\bar "|"');
   });
 
-  it('emits ChordNames above the staff with chordChanges enabled by default', () => {
+  it('emits ChordNames reading directly from harmonyVoice with chordChanges enabled by default', () => {
     const ly = compileToLilyPond(sampleOnsets);
-    expect(ly).toContain('chordVoice = \\chordmode {');
-    expect(ly).toContain('\\set chordChanges = ##t');
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 c4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 g4");
-    expect(ly).toContain('\\new ChordNames \\chordVoice');
+    expect(ly).toContain('\\new ChordNames {\n      \\set chordChanges = ##t\n      \\harmonyVoice\n    }');
+    expect(ly).not.toContain('chordVoice'); // No duplication!
   });
+
 
   it('emits coil boundary barline when repeating the same coil', () => {
     const repeatedCoilOnsets: OnsetStream = [

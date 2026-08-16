@@ -12,12 +12,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import type { OnsetStream } from '../schema/onset.js';
-import {
-  midiToLilyPondPitch,
-  chordMidiToLilyPond,
-  chordToLilyPondChordMode,
-} from './pitch.js';
-import { parseHarmonyChord } from '../solfege/pitch.js';
+import { midiToLilyPondPitch, chordMidiToLilyPond } from './pitch.js';
 
 export interface CompileOptions {
   /** LilyPond version string to emit (default: "2.24.4") */
@@ -26,7 +21,7 @@ export interface CompileOptions {
   melodyClef?: string;
   /** Clef for the harmony staff (default: "treble") */
   harmonyClef?: string;
-  /** Whether to show chord names above the staff (default: true) */
+  /** Whether to show chord names above the staff (default: true, reads directly from harmonyVoice) */
   showChordNames?: boolean;
   /** Accidental spelling mode ('sharps' or 'flats', auto-detected if omitted) */
   accidentalMode?: 'sharps' | 'flats';
@@ -67,10 +62,6 @@ export function compileToLilyPond(
       ? 'flats'
       : 'sharps');
 
-  const chordLines: string[] = showChordNames
-    ? ['  \\set chordChanges = ##t', '  \\cadenzaOn']
-    : [];
-
   const melodyLines: string[] = [
     `  \\clef ${melClef}`,
     `  \\accidentalStyle ${accStyle}`,
@@ -96,13 +87,9 @@ export function compileToLilyPond(
     ) {
       melodyLines.push('  \\bar "|"');
       harmonyLines.push('  \\bar "|"');
-      if (showChordNames) {
-        chordLines.push('  \\bar "|"');
-      }
     }
     lastCoilId = onset.coilId;
     lastWeaveId = onset.weaveId;
-
 
     // Melody: \tag #'tag pitch4
     const melPitch = midiToLilyPondPitch(onset.midiNote, accMode);
@@ -115,39 +102,33 @@ export function compileToLilyPond(
       accMode,
     );
     harmonyLines.push(`  \\tag #'${onset.tag} ${chord}${dur}`);
-
-    // ChordNames: \tag #'tag c4:m
-    if (showChordNames) {
-      const parsedChord = parseHarmonyChord(onset.chordRoot);
-      const rootMidi = onset.chordMidi[0];
-      const chordModeToken = chordToLilyPondChordMode(rootMidi, parsedChord.quality, dur, accMode);
-      chordLines.push(`  \\tag #'${onset.tag} ${chordModeToken}`);
-    }
   }
 
   melodyLines.push('  \\cadenzaOff');
   harmonyLines.push('  \\cadenzaOff');
-  if (showChordNames) {
-    chordLines.push('  \\cadenzaOff');
-  }
 
   const melodyVoiceStr = melodyLines.join('\n');
   const harmonyVoiceStr = harmonyLines.join('\n');
-  const chordVoiceStr = showChordNames ? chordLines.join('\n') : '';
 
-  const chordVoiceDef = showChordNames
-    ? `chordVoice = \\chordmode {
-${chordVoiceStr}
-}
-
-`
-    : '';
-
-  const chordStaffDef = showChordNames ? '    \\new ChordNames \\chordVoice\n' : '';
+  const scoreBody = showChordNames
+    ? `  <<
+    \\new ChordNames {
+      \\set chordChanges = ##t
+      \\harmonyVoice
+    }
+    \\new PianoStaff <<
+      \\new Staff \\melodyVoice
+      \\new Staff \\harmonyVoice
+    >>
+  >>`
+    : `  \\new PianoStaff <<
+    \\new Staff \\melodyVoice
+    \\new Staff \\harmonyVoice
+  >>`;
 
   return `\\version "${version}"
 
-${chordVoiceDef}melodyVoice = {
+melodyVoice = {
 ${melodyVoiceStr}
 }
 
@@ -156,12 +137,7 @@ ${harmonyVoiceStr}
 }
 
 \\score {
-  <<
-${chordStaffDef}    \\new PianoStaff <<
-      \\new Staff \\melodyVoice
-      \\new Staff \\harmonyVoice
-    >>
-  >>
+${scoreBody}
   \\layout {
     \\context {
       \\Staff
@@ -171,6 +147,7 @@ ${chordStaffDef}    \\new PianoStaff <<
 }
 `;
 }
+
 
 
 /**

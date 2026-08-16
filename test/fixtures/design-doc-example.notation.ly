@@ -1,18 +1,5 @@
 \version "2.24.4"
 
-chordVoice = \chordmode {
-  \set chordChanges = ##t
-  \cadenzaOn
-  \tag #'ppt_verse_introMotif_1 c4
-  \tag #'ppt_verse_introMotif_2 c4
-  \tag #'ppt_verse_introMotif_3 c4
-  \tag #'ppt_verse_introMotif_4 c4
-  \bar "|"
-  \tag #'ppt_verse_cadence_1 g4
-  \tag #'ppt_verse_cadence_2 g4
-  \cadenzaOff
-}
-
 melodyVoice = {
   \clef treble
   \accidentalStyle forget
@@ -43,7 +30,10 @@ harmonyVoice = {
 
 \score {
   <<
-    \new ChordNames \chordVoice
+    \new ChordNames {
+      \set chordChanges = ##t
+      \harmonyVoice
+    }
     \new PianoStaff <<
       \new Staff \melodyVoice
       \new Staff \harmonyVoice
