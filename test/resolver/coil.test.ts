@@ -33,14 +33,18 @@ describe('resolveCoil', () => {
   });
 
   describe('interval mode melody', () => {
-    it('resolves interval melody (Dox, Re, Mi, Ti)', () => {
+    it('resolves interval melody (Dox, Re, Mi, Ti) with tonic-relative scale degrees', () => {
       const coil: Coil = { id: 'test', melody: ['Dox', 'Re', 'Mi', 'Ti'] };
       const { onsets } = resolveCoil(coil, knotC4);
       // Dox = C4 (60), Re = +2 → D4 (62), Mi = +4 → F#4 (66), Ti = -1 → F4 (65)
       expect(onsets[0].melodyMidi).toBe(60); // C4
+      expect(onsets[0].scaleDegree).toBe('Do');
       expect(onsets[1].melodyMidi).toBe(62); // D4
+      expect(onsets[1].scaleDegree).toBe('Re');
       expect(onsets[2].melodyMidi).toBe(66); // F#4
+      expect(onsets[2].scaleDegree).toBe('Fi'); // F# relative to C is Fi (tritone)
       expect(onsets[3].melodyMidi).toBe(65); // F4
+      expect(onsets[3].scaleDegree).toBe('Fa'); // F relative to C is Fa (fourth)
     });
 
     it('resolves ascending perfect fifth with octave mark', () => {
@@ -48,9 +52,12 @@ describe('resolveCoil', () => {
       const coil: Coil = { id: 'test', melody: ['Dox', 'So^'] };
       const { onsets } = resolveCoil(coil, knotC4);
       expect(onsets[0].melodyMidi).toBe(60); // C4
+      expect(onsets[0].scaleDegree).toBe('Do');
       expect(onsets[1].melodyMidi).toBe(67); // G4 (+7)
+      expect(onsets[1].scaleDegree).toBe('So'); // G relative to C is So (fifth)
     });
   });
+
 
   describe('harmony resolution', () => {
     it('defaults to Do major triad when no harmony specified', () => {

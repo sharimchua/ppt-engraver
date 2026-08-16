@@ -20,7 +20,9 @@ import {
   buildChordFromToken,
   parseHarmonyChord,
   midiToPitchName,
+  getScaleDegreeFromDo,
 } from '../solfege/pitch.js';
+
 
 
 
@@ -221,7 +223,8 @@ function resolveMelody(melody: string[], knot: ResolvedKnot): MelodyPitch[] {
         );
       }
       const midi = resolveAbsolutePitch(parsed.syllable, parsed.octaveShift, knot.doMidi);
-      return { midi, scaleDegree: parsed.syllable };
+      const scaleDegree = getScaleDegreeFromDo(midi, knot.doMidi);
+      return { midi, scaleDegree };
     });
   } else {
     // === Interval mode ===
@@ -233,19 +236,26 @@ function resolveMelody(melody: string[], knot: ResolvedKnot): MelodyPitch[] {
       firstParsed.octaveShift,
       knot.doMidi,
     );
-    result.push({ midi: currentMidi, scaleDegree: firstParsed.syllable });
+    result.push({
+      midi: currentMidi,
+      scaleDegree: getScaleDegreeFromDo(currentMidi, knot.doMidi),
+    });
     
     // Subsequent notes: intervals from previous pitch
     for (let i = 1; i < melody.length; i++) {
       const parsed = parsePitch(melody[i]);
       const interval = resolveInterval(parsed.syllable, parsed.octaveShift);
       currentMidi = currentMidi + interval;
-      result.push({ midi: currentMidi, scaleDegree: parsed.syllable });
+      result.push({
+        midi: currentMidi,
+        scaleDegree: getScaleDegreeFromDo(currentMidi, knot.doMidi),
+      });
     }
     
     return result;
   }
 }
+
 
 /**
  * Expands a harmony array supporting repeat padding numbers.

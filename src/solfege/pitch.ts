@@ -414,4 +414,18 @@ export function buildChordFromToken(rootMidi: number, chordToken: string): numbe
   return [shiftedRoot, shiftedRoot + 4, shiftedRoot + 7];
 }
 
+/**
+ * Calculates the primary solfège scale degree of a MIDI pitch relative to Do (tonic).
+ * 
+ * @param midi - The concrete MIDI pitch
+ * @param doMidi - The concrete MIDI pitch of Do
+ * @returns The canonical solfège scale degree syllable (e.g. "Do", "Ra", "Re", "Me", "Mi", "Fa", "Fi", "So", "Le", "La", "Te", "Ti")
+ */
+export function getScaleDegreeFromDo(midi: number, doMidi: number): string {
+  const semitoneOffset = ((midi - doMidi) % 12 + 12) % 12;
+  return SOLFEGE_POSITIONS[semitoneOffset];
+}
+
+
+
 
