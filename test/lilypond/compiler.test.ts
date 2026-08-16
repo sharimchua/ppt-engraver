@@ -62,6 +62,18 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('harmonyVoice = {\n  \\clef bass\n  \\accidentalStyle forget\n  \\cadenzaOn');
   });
 
+  it('formats octave-marked clefs (e.g. bass_8, treble_8) with quotes and applies bass octave shift', () => {
+    const ly = compileToLilyPond(sampleOnsets, {
+      harmonyClef: 'bass_8',
+      melodyClef: 'treble_8',
+    });
+    expect(ly).toContain('melodyVoice = {\n  \\clef "treble_8"');
+    expect(ly).toContain('harmonyVoice = {\n  \\clef "bass_8"');
+    // Bass octave shift automatically applied to chords
+    expect(ly).toContain("<c e g>4");
+  });
+
+
 
   it('emits cadenzaOn and cadenzaOff in voices', () => {
     const ly = compileToLilyPond(sampleOnsets);

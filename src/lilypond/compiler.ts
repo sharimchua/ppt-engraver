@@ -258,7 +258,9 @@ export function compileToLilyPond(
   const harmClef = options.harmonyClef ?? 'treble';
   const showChordNames = options.showChordNames ?? true;
   const accStyle = options.accidentalStyle ?? 'forget';
-  const harmShift = options.harmonyOctaveShift ?? (harmClef === 'bass' ? -1 : 0);
+  const harmShift =
+    options.harmonyOctaveShift ??
+    (harmClef.startsWith('bass') || harmClef.startsWith('"bass') ? -1 : 0);
   const dur = options.durationToken ?? '4';
   const noteheadStyle = options.noteheadStyle ?? 'default';
   const omitStem = options.omitStem ?? false;
@@ -268,6 +270,13 @@ export function compileToLilyPond(
   const isShapeNoteMode = noteheadStyle === 'ppt' || isTraditionalShapeNote;
   const omitNaturals = options.omitNaturals ?? isShapeNoteMode;
   const forceAccidentals = isShapeNoteMode;
+
+  const formatClef = (c: string) =>
+    c.includes('_') || c.includes('^') || c.includes(' ') || c.startsWith('"')
+      ? c.startsWith('"')
+        ? c
+        : `"${c}"`
+      : c;
 
   const accMode =
     options.accidentalMode ??
@@ -281,9 +290,10 @@ export function compileToLilyPond(
       : 'sharps');
 
   const melodyLines: string[] = [
-    `  \\clef ${melClef}`,
+    `  \\clef ${formatClef(melClef)}`,
     `  \\accidentalStyle ${accStyle}`,
   ];
+
 
   // Configure shape noteheads aligned with Do (tonic)
   if (isTraditionalShapeNote) {
@@ -321,9 +331,10 @@ export function compileToLilyPond(
   melodyLines.push('  \\cadenzaOn');
 
   const harmonyLines: string[] = [
-    `  \\clef ${harmClef}`,
+    `  \\clef ${formatClef(harmClef)}`,
     `  \\accidentalStyle ${accStyle}`,
   ];
+
 
   if (omitStem) {
     harmonyLines.push('  \\omit Stem');

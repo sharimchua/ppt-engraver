@@ -124,6 +124,10 @@ export interface ResolvedKnot {
   copyright?: string;
   /** Custom tagline or boolean (false suppresses LilyPond default footer) */
   tagline?: string | boolean;
+  /** Clef for the melody staff (e.g. "treble", "treble_8", "bass") */
+  melodyClef?: string;
+  /** Clef for the harmony staff (e.g. "treble", "bass", "bass_8", "bass_15") */
+  harmonyClef?: string;
   /** Accidental spelling preference ('sharps' or 'flats') */
   accidentalMode?: AccidentalMode;
   /** Notehead style for melody engraving */
@@ -135,6 +139,7 @@ export interface ResolvedKnot {
   /** Whether to draw a dark outline around colored noteheads for contrast */
   noteheadOutline?: boolean;
 }
+
 
 
 

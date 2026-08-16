@@ -58,6 +58,8 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
       poet: knotDef.poet ?? knotDef.lyricist,
       copyright: knotDef.copyright,
       tagline: knotDef.tagline,
+      melodyClef: knotDef.melodyClef,
+      harmonyClef: knotDef.harmonyClef,
       accidentalMode,
       noteheadStyle: knotDef.noteheadStyle,
       omitStem: knotDef.omitStem,
@@ -67,6 +69,7 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
     warnings,
   };
 }
+
 
 
 
