@@ -88,7 +88,34 @@ describe('resolveCoil', () => {
       expect(onsets[2].chordRoot).toBe('So');
       expect(onsets[3].chordRoot).toBe('So');
     });
+
+    it('supports repeat padding numbers for explicit onset alignment', () => {
+      const coil: Coil = {
+        id: 'test',
+        melody: ['Do', 'Re', 'Mi', 'Fa', 'So', 'La', 'Ti'], // 7 onsets
+        harmony: ['Do', 2, 'Fa', 1, 'So'], // Do x 3, Fa x 2, So x 1 + remainder So = 7 onsets
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(7);
+      expect(onsets[0].chordRoot).toBe('Do');
+      expect(onsets[1].chordRoot).toBe('Do');
+      expect(onsets[2].chordRoot).toBe('Do');
+      expect(onsets[3].chordRoot).toBe('Fa');
+      expect(onsets[4].chordRoot).toBe('Fa');
+      expect(onsets[5].chordRoot).toBe('So');
+      expect(onsets[6].chordRoot).toBe('So'); // Remainder filled with last chord
+    });
+
+    it('throws when harmony starts with a repeat number', () => {
+      const coil: Coil = {
+        id: 'test',
+        melody: ['Do', 'Re'],
+        harmony: [2, 'So'],
+      };
+      expect(() => resolveCoil(coil, knotC4)).toThrow(/Harmony array cannot start with a repeat padding number/);
+    });
   });
+
 
   describe('rhythm validation', () => {
     it('accepts matching rhythm label and melody length', () => {

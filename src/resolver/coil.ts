@@ -121,10 +121,11 @@ export function resolveCoil(
 
 interface ResolvedLayers {
   melody?: string[];
-  harmony?: string[];
+  harmony?: (string | number)[];
   rhythm?: string;
   harmonyOctave?: number;
 }
+
 
 /**
  * Resolves M, H, R layers using the priority-fill rule across parents and default coil.
@@ -246,6 +247,42 @@ function resolveMelody(melody: string[], knot: ResolvedKnot): MelodyPitch[] {
   }
 }
 
+/**
+ * Expands a harmony array supporting repeat padding numbers.
+ * E.g. [DoMe, 1, Te, 1, Le, 1, So] -> [DoMe, DoMe, Te, Te, Le, Le, So]
+ * E.g. [Do, 3] -> [Do, Do, Do, Do]
+ */
+export function expandHarmonyArray(
+  harmony: (string | number)[],
+): { expanded: string[]; hasExplicitCounts: boolean } {
+  const expanded: string[] = [];
+  let lastChord: string | null = null;
+  let hasExplicitCounts = false;
+
+  for (const item of harmony) {
+    const isNum =
+      typeof item === 'number' ||
+      (typeof item === 'string' && /^\d+$/.test(item.trim()));
+
+    if (isNum) {
+      hasExplicitCounts = true;
+      const count = typeof item === 'number' ? item : parseInt(item.trim(), 10);
+      if (lastChord === null) {
+        throw new Error(`Harmony array cannot start with a repeat padding number: ${item}`);
+      }
+      for (let k = 0; k < count; k++) {
+        expanded.push(lastChord);
+      }
+    } else {
+      const chordStr = String(item).trim();
+      expanded.push(chordStr);
+      lastChord = chordStr;
+    }
+  }
+
+  return { expanded, hasExplicitCounts };
+}
+
 /** Internal: resolved harmony chord info */
 interface HarmonyChord {
   triad: number[];
@@ -255,18 +292,19 @@ interface HarmonyChord {
 /**
  * Resolves harmony chord roots into triads, distributed across melody onsets.
  * 
- * Cross-layer alignment (stretch mode):
- * - Each chord is held for ceil(melodyLength / harmonyLength) onsets
- * - Last chord fills any remainder
+ * Supports:
+ * - Direct padded indexing when numbers are provided (e.g. [Do, 1, So, 2])
+ * - Cross-layer alignment (stretch mode) when unpadded (e.g. [Do, So])
  */
 function resolveHarmony(
-  harmony: string[],
+  harmony: (string | number)[],
   melodyLength: number,
   knot: ResolvedKnot,
   harmonyOctave: number = 0,
 ): HarmonyChord[] {
-  // Resolve each chord root to a pure root-position block triad clustered around Do (-7 to +4)
-  const chords: HarmonyChord[] = harmony.map(token => {
+  const { expanded, hasExplicitCounts } = expandHarmonyArray(harmony);
+
+  const getChordForToken = (token: string): HarmonyChord => {
     const parsed = parseHarmonyChord(token);
     const semitone = solfegeToHarmonyRootOffset(parsed.rootSyllable);
     const rootMidi = knot.doMidi + semitone + (harmonyOctave * 12);
@@ -274,32 +312,38 @@ function resolveHarmony(
       triad: buildChordFromToken(rootMidi, token),
       root: token,
     };
-  });
+  };
 
-
-
-
-
-
-  
-  // Distribute chords across melody onsets (stretch mode)
   const result: HarmonyChord[] = [];
-  if (chords.length === 1) {
-    // Single chord held across all onsets
+
+  if (hasExplicitCounts) {
+    // Explicit padding/indexing provided: align 1:1, pad remainder with last chord
     for (let i = 0; i < melodyLength; i++) {
-      result.push(chords[0]);
+      if (i < expanded.length) {
+        result.push(getChordForToken(expanded[i]));
+      } else {
+        const lastToken = expanded[expanded.length - 1] ?? 'Do';
+        result.push(getChordForToken(lastToken));
+      }
     }
   } else {
-    // Multiple chords: distribute evenly
-    const onsetsPerChord = Math.ceil(melodyLength / chords.length);
-    for (let i = 0; i < melodyLength; i++) {
-      const chordIndex = Math.min(
-        Math.floor(i / onsetsPerChord),
-        chords.length - 1,
-      );
-      result.push(chords[chordIndex]);
+    // Default stretch mode across melody onsets
+    if (expanded.length === 1) {
+      const chord = getChordForToken(expanded[0]);
+      for (let i = 0; i < melodyLength; i++) {
+        result.push(chord);
+      }
+    } else {
+      const onsetsPerChord = Math.ceil(melodyLength / expanded.length);
+      for (let i = 0; i < melodyLength; i++) {
+        const chordIndex = Math.min(
+          Math.floor(i / onsetsPerChord),
+          expanded.length - 1,
+        );
+        result.push(getChordForToken(expanded[chordIndex]));
+      }
     }
   }
-  
+
   return result;
 }

@@ -32,6 +32,17 @@ const SolfegeHarmonyRoot = z.string().regex(
   'Must be a valid solfège harmony token (e.g. "Do", "DoMe", "So^", "Do_")'
 );
 
+/**
+ * A harmony entry: either a solfège harmony token (e.g. "Do", "DoMe")
+ * or a repeat padding count (e.g. 2 or "2") repeating the previous harmony.
+ */
+export const HarmonyEntrySchema = z.union([
+  SolfegeHarmonyRoot,
+  z.number().int().nonnegative(),
+  z.string().regex(/^\d+$/),
+]);
+
+export type HarmonyEntry = z.infer<typeof HarmonyEntrySchema>;
 
 /**
  * Rhythm block-length label: a named pair of solfège syllables.
@@ -69,11 +80,12 @@ export const CoilSchema = z.object({
   rhythm: RhythmLabel.optional(),
   /** Melody layer: array of solfège pitch tokens (optional if inherited, min 1 if specified) */
   melody: z.array(SolfegePitchToken).min(1).optional(),
-  /** Harmony layer: array of chord root solfège syllables */
-  harmony: z.array(SolfegeHarmonyRoot).min(1).optional(),
+  /** Harmony layer: array of chord root solfège syllables and/or repeat padding counts */
+  harmony: z.array(HarmonyEntrySchema).min(1).optional(),
   /** Optional octave shift for this coil's harmony layer (e.g. 0, -1, 1) */
   harmonyOctave: z.number().int().optional(),
 });
+
 
 export type Coil = z.infer<typeof CoilSchema>;
 
