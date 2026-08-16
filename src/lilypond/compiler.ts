@@ -23,6 +23,20 @@ import { pitchNameToMidi, getAccidentalModeFromPitchName } from '../solfege/pitc
 export interface CompileOptions {
   /** LilyPond version string to emit (default: "2.24.4") */
   lilypondVersion?: string;
+  /** Piece title */
+  title?: string;
+  /** Subtitle or secondary description */
+  subtitle?: string;
+  /** Composer or Artist name */
+  composer?: string;
+  /** Arranger */
+  arranger?: string;
+  /** Poet or lyricist */
+  poet?: string;
+  /** Copyright statement */
+  copyright?: string;
+  /** Custom tagline or boolean (false suppresses LilyPond default footer, default: false) */
+  tagline?: string | boolean;
   /** Clef for the melody staff (default: "treble") */
   melodyClef?: string;
   /** Clef for the harmony staff (default: "treble") */
@@ -50,6 +64,7 @@ export interface CompileOptions {
   /** Whether to omit natural accidental signs on unmetered staves with hidden key signatures (default: true in shape-note mode) */
   omitNaturals?: boolean;
 }
+
 
 /**
  * Scheme definitions for PPT Solfège Interval Palette, Notehead Outline Stencil,
@@ -329,6 +344,27 @@ export function compileToLilyPond(
     \\new Staff \\harmonyVoice
   >>`;
 
+  // Generate \header block
+  const headerLines: string[] = [];
+  if (options.title) headerLines.push(`  title = "${options.title.replace(/"/g, '\\"')}"`);
+  if (options.subtitle) headerLines.push(`  subtitle = "${options.subtitle.replace(/"/g, '\\"')}"`);
+  if (options.composer) headerLines.push(`  composer = "${options.composer.replace(/"/g, '\\"')}"`);
+  if (options.arranger) headerLines.push(`  arranger = "${options.arranger.replace(/"/g, '\\"')}"`);
+  if (options.poet) headerLines.push(`  poet = "${options.poet.replace(/"/g, '\\"')}"`);
+  if (options.copyright) headerLines.push(`  copyright = "${options.copyright.replace(/"/g, '\\"')}"`);
+
+  // Tagline handling: default to false (suppresses "Music engraving by LilyPond")
+  const tagline = options.tagline ?? false;
+  if (tagline === false) {
+    headerLines.push('  tagline = ##f');
+  } else if (typeof tagline === 'string') {
+    headerLines.push(`  tagline = "${tagline.replace(/"/g, '\\"')}"`);
+  }
+
+  const headerBlock = headerLines.length > 0
+    ? `\n\\header {\n${headerLines.join('\n')}\n}\n`
+    : '';
+
   let preambles = '';
   if (colorNotes || noteheadStyle === 'ppt') {
     preambles += `\n${PPT_SCHEME_COLOR_DEFINITIONS}`;
@@ -336,7 +372,6 @@ export function compileToLilyPond(
   if (omitNaturals) {
     preambles += `\n${DROP_NATURALS_SCHEME_DEFINITION}`;
   }
-
 
   const outlineLayoutContext = noteheadOutline
     ? `    \\context {
@@ -350,7 +385,7 @@ export function compileToLilyPond(
     : '';
 
   return `\\version "${version}"
-${preambles}
+${headerBlock}${preambles}
 melodyVoice = {
 ${melodyVoiceStr}
 }
@@ -369,6 +404,7 @@ ${dropNaturalsContext}    }
   }
 }
 `;
+
 }
 
 

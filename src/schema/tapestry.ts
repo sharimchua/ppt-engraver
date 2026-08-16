@@ -58,23 +58,44 @@ const RhythmLabel = z.enum(['DoSo', 'DoRe', 'DoLa', 'DoMi', 'DoSi', 'DoFi']);
 export const KnotSchema = z.object({
   /** Absolute pitch anchor for Do, e.g. "C4", "Eb4", "F#3" */
   do: z.string().regex(
+
     /^[A-G](#|b|♭)?\d+$/,
     'Must be a pitch name like "C4", "Eb4", or "F#3"'
   ),
   /** Tempo in BPM — accepted but unused in v1 */
   tempo: z.number().positive().optional(),
+  /** Piece title */
+  title: z.string().optional(),
+  /** Subtitle or secondary description */
+  subtitle: z.string().optional(),
+  /** Composer name */
+  composer: z.string().optional(),
+  /** Artist name (alias for composer) */
+  artist: z.string().optional(),
+  /** Author or creator */
+  author: z.string().optional(),
+  /** Arranger */
+  arranger: z.string().optional(),
+  /** Poet or lyricist */
+  poet: z.string().optional(),
+  /** Lyricist (alias for poet) */
+  lyricist: z.string().optional(),
+  /** Copyright statement */
+  copyright: z.string().optional(),
+  /** Custom tagline or boolean (false suppresses LilyPond default footer) */
+  tagline: z.union([z.string(), z.boolean()]).optional(),
   /** Global octave shift for harmony layer (e.g. 0 for treble register, -1 for bass register) */
   harmonyOctave: z.number().int().optional(),
   /** Notehead style: 'ppt' | 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default' */
   noteheadStyle: z.enum(['ppt', 'sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default']).optional(),
   /** Whether to omit stems on noteheads for unmetered notation */
-
   omitStem: z.boolean().optional(),
   /** Whether to colorize melody noteheads according to the PPT Solfège palette */
   colorNotes: z.boolean().optional(),
   /** Whether to draw a dark outline around colored noteheads for contrast */
   noteheadOutline: z.boolean().optional(),
 });
+
 
 
 

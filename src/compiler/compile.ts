@@ -46,6 +46,13 @@ export function compileFile(
 ): CompileResult {
   const { onsets, warnings, knot } = resolveFile(yamlFilePath);
   const effectiveOptions: CompileFileOptions = {
+    title: knot?.title,
+    subtitle: knot?.subtitle,
+    composer: knot?.composer,
+    arranger: knot?.arranger,
+    poet: knot?.poet,
+    copyright: knot?.copyright,
+    tagline: knot?.tagline,
     noteheadStyle: knot?.noteheadStyle,
     omitStem: knot?.omitStem,
     colorNotes: knot?.colorNotes,
@@ -100,6 +107,13 @@ export function compileYamlString(
 ): CompileResult {
   const { onsets, warnings, knot } = resolveYaml(yamlContent);
   const effectiveOptions: CompileOptions = {
+    title: knot?.title,
+    subtitle: knot?.subtitle,
+    composer: knot?.composer,
+    arranger: knot?.arranger,
+    poet: knot?.poet,
+    copyright: knot?.copyright,
+    tagline: knot?.tagline,
     noteheadStyle: knot?.noteheadStyle,
     omitStem: knot?.omitStem,
     colorNotes: knot?.colorNotes,
@@ -108,6 +122,7 @@ export function compileYamlString(
     accidentalMode: knot?.accidentalMode,
     ...options,
   };
+
   const lilypondSource = compileToLilyPond(onsets, effectiveOptions);
   const sidecarMap = generateSidecarMap(onsets);
 

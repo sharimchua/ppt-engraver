@@ -110,6 +110,20 @@ export interface ResolvedKnot {
   tempo: number;
   /** Declared pitch name string for Do (e.g. "C4", "Eb4", "D#4") */
   doName?: string;
+  /** Piece title */
+  title?: string;
+  /** Subtitle or secondary description */
+  subtitle?: string;
+  /** Composer / Artist / Author */
+  composer?: string;
+  /** Arranger */
+  arranger?: string;
+  /** Poet or lyricist */
+  poet?: string;
+  /** Copyright statement */
+  copyright?: string;
+  /** Custom tagline or boolean (false suppresses LilyPond default footer) */
+  tagline?: string | boolean;
   /** Accidental spelling preference ('sharps' or 'flats') */
   accidentalMode?: AccidentalMode;
   /** Notehead style for melody engraving */
@@ -121,6 +135,7 @@ export interface ResolvedKnot {
   /** Whether to draw a dark outline around colored noteheads for contrast */
   noteheadOutline?: boolean;
 }
+
 
 
 

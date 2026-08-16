@@ -51,6 +51,13 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
       doMidi,
       tempo,
       doName: knotDef.do,
+      title: knotDef.title,
+      subtitle: knotDef.subtitle,
+      composer: knotDef.composer ?? knotDef.artist ?? knotDef.author,
+      arranger: knotDef.arranger,
+      poet: knotDef.poet ?? knotDef.lyricist,
+      copyright: knotDef.copyright,
+      tagline: knotDef.tagline,
       accidentalMode,
       noteheadStyle: knotDef.noteheadStyle,
       omitStem: knotDef.omitStem,
@@ -60,6 +67,7 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
     warnings,
   };
 }
+
 
 
 

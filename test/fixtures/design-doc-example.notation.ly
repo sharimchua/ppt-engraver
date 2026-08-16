@@ -1,5 +1,9 @@
 \version "2.24.4"
 
+\header {
+  tagline = ##f
+}
+
 melodyVoice = {
   \clef treble
   \accidentalStyle forget

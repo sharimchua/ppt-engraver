@@ -213,7 +213,24 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain("\\tag #'ppt_verse_introMotif_2 \\tweak NoteHead.stencil #stencilMi \\tweak color #colorMi e'4");
     expect(ly).toContain("\\tag #'ppt_verse_cadence_1 \\tweak NoteHead.stencil #stencilTi \\tweak color #colorTi b'4");
   });
+
+  it('emits header block with metadata and suppresses tagline by default', () => {
+    const ly = compileToLilyPond(sampleOnsets, {
+      title: 'Dracula',
+      composer: 'Midlife Muso',
+    });
+    expect(ly).toContain('\\header {\n  title = "Dracula"\n  composer = "Midlife Muso"\n  tagline = ##f\n}');
+  });
+
+  it('allows custom tagline string in header block', () => {
+    const ly = compileToLilyPond(sampleOnsets, {
+      title: 'Dracula',
+      tagline: 'Custom PPT Engraver',
+    });
+    expect(ly).toContain('tagline = "Custom PPT Engraver"');
+  });
 });
+
 
 
 
