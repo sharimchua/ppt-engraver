@@ -117,6 +117,24 @@ export function solfegeToNearestAddress(syllable: string): number {
 }
 
 /**
+ * Maps a harmony chord root syllable to its semitone offset from Do (-7 to +4).
+ * Clusters chord roots into a single continuous octave below/around Do:
+ * Fa (-7), Fi (-6), So (-5), Le (-4), La (-3), Te (-2), Ti (-1),
+ * Do (0), Ra (+1), Re (+2), Me (+3), Mi (+4).
+ * 
+ * This ensures IV (Fa) sits directly below V (So), VI (Le), VII (Te), and I (Do)
+ * keeping the entire chord progression within the staff lines.
+ */
+export function solfegeToHarmonyRootOffset(syllable: string): number {
+  const semitone = solfegeToSemitone(syllable);
+  if (semitone >= 5) {
+    return semitone - 12;
+  }
+  return semitone;
+}
+
+
+/**
  * Parses a solfège pitch token string into its components.
  * 
  * Supported formats:

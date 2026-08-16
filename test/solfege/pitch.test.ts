@@ -2,13 +2,17 @@ import { describe, it, expect } from 'vitest';
 import {
   solfegeToSemitone,
   solfegeToNearestAddress,
+  solfegeToHarmonyRootOffset,
   parsePitch,
   pitchNameToMidi,
   midiToPitchName,
   resolveAbsolutePitch,
   resolveInterval,
   buildMajorTriad,
+  parseHarmonyChord,
+  buildChordFromToken,
 } from '../../src/solfege/pitch.js';
+
 
 describe('solfegeToSemitone', () => {
   it('maps all 12 primary syllables correctly', () => {
@@ -190,3 +194,48 @@ describe('buildMajorTriad', () => {
     expect(buildMajorTriad(67)).toEqual([67, 71, 74]); // G4, B4, D5
   });
 });
+
+describe('solfegeToHarmonyRootOffset', () => {
+  it('maps roots to single octave around Do (-7 to +4)', () => {
+    expect(solfegeToHarmonyRootOffset('Do')).toBe(0);
+    expect(solfegeToHarmonyRootOffset('Ra')).toBe(1);
+    expect(solfegeToHarmonyRootOffset('Re')).toBe(2);
+    expect(solfegeToHarmonyRootOffset('Me')).toBe(3);
+    expect(solfegeToHarmonyRootOffset('Mi')).toBe(4);
+    expect(solfegeToHarmonyRootOffset('Fa')).toBe(-7); // D4 when Do=A4
+    expect(solfegeToHarmonyRootOffset('Fi')).toBe(-6); // Eb4 when Do=A4
+    expect(solfegeToHarmonyRootOffset('So')).toBe(-5); // E4 when Do=A4
+    expect(solfegeToHarmonyRootOffset('Le')).toBe(-4); // F4 when Do=A4
+    expect(solfegeToHarmonyRootOffset('La')).toBe(-3); // F#4 when Do=A4
+    expect(solfegeToHarmonyRootOffset('Te')).toBe(-2); // G4 when Do=A4
+    expect(solfegeToHarmonyRootOffset('Ti')).toBe(-1); // G#4 when Do=A4
+  });
+});
+
+describe('buildChordFromToken & parseHarmonyChord', () => {
+  it('parses chord qualities', () => {
+    expect(parseHarmonyChord('Do')).toMatchObject({ rootSyllable: 'Do', quality: 'major', octaveShift: 0 });
+    expect(parseHarmonyChord('FaMe')).toMatchObject({ rootSyllable: 'Fa', quality: 'minor', octaveShift: 0 });
+    expect(parseHarmonyChord('DoMe')).toMatchObject({ rootSyllable: 'Do', quality: 'minor', octaveShift: 0 });
+    expect(parseHarmonyChord('SoTe')).toMatchObject({ rootSyllable: 'So', quality: 'dominant7', octaveShift: 0 });
+    expect(parseHarmonyChord('So^')).toMatchObject({ rootSyllable: 'So', quality: 'major', octaveShift: 1 });
+    expect(parseHarmonyChord('Fa_')).toMatchObject({ rootSyllable: 'Fa', quality: 'major', octaveShift: -1 });
+  });
+
+  it('builds FaMe minor triad (D-F-A) with Do as A4', () => {
+    const doA4 = 69; // A4
+    const faRootMidi = doA4 + solfegeToHarmonyRootOffset('Fa'); // 69 - 7 = 62 (D4)
+    const chord = buildChordFromToken(faRootMidi, 'FaMe');
+    // D4 (62), F4 (65), A4 (69) -> D minor
+    expect(chord).toEqual([62, 65, 69]);
+  });
+
+  it('builds Fa major triad (D-F#-A) with Do as A4', () => {
+    const doA4 = 69; // A4
+    const faRootMidi = doA4 + solfegeToHarmonyRootOffset('Fa'); // 69 - 7 = 62 (D4)
+    const chord = buildChordFromToken(faRootMidi, 'Fa');
+    // D4 (62), F#4 (66), A4 (69) -> D major
+    expect(chord).toEqual([62, 66, 69]);
+  });
+});
+
