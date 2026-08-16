@@ -84,12 +84,16 @@ export function compileToLilyPond(
   ];
 
   let lastCoilId: string | null = null;
+  let lastWeaveId: string | null = null;
 
   for (let i = 0; i < onsets.length; i++) {
     const onset = onsets[i];
 
-    // Emit coil boundary barline when transitioning between distinct coils
-    if (lastCoilId !== null && onset.coilId !== lastCoilId) {
+    // Emit coil boundary barline when transitioning between distinct coils or repeating a coil
+    if (
+      i > 0 &&
+      (onset.onsetIndex === 1 || onset.coilId !== lastCoilId || onset.weaveId !== lastWeaveId)
+    ) {
       melodyLines.push('  \\bar "|"');
       harmonyLines.push('  \\bar "|"');
       if (showChordNames) {
@@ -97,6 +101,8 @@ export function compileToLilyPond(
       }
     }
     lastCoilId = onset.coilId;
+    lastWeaveId = onset.weaveId;
+
 
     // Melody: \tag #'tag pitch4
     const melPitch = midiToLilyPondPitch(onset.midiNote, accMode);

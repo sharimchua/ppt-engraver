@@ -103,10 +103,55 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('\\new ChordNames \\chordVoice');
   });
 
+  it('emits coil boundary barline when repeating the same coil', () => {
+    const repeatedCoilOnsets: OnsetStream = [
+      {
+        tag: 'ppt_verse_motif_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'motif',
+        weaveId: 'verse',
+        onsetIndex: 1,
+      },
+      {
+        tag: 'ppt_verse_motif_2',
+        pitch: 'E4',
+        midiNote: 64,
+        scaleDegree: 'Mi',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'motif',
+        weaveId: 'verse',
+        onsetIndex: 2,
+      },
+      {
+        tag: 'ppt_verse_motif_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'motif',
+        weaveId: 'verse',
+        onsetIndex: 1, // Repeated coil starting at onset 1
+      },
+    ];
+
+    const ly = compileToLilyPond(repeatedCoilOnsets);
+    expect(ly).toContain("\\tag #'ppt_verse_motif_2 e'4\n  \\bar \"|\"\n  \\tag #'ppt_verse_motif_1 c'4");
+  });
+
   it('allows disabling chord names via showChordNames: false', () => {
     const ly = compileToLilyPond(sampleOnsets, { showChordNames: false });
     expect(ly).not.toContain('chordVoice');
     expect(ly).not.toContain('\\new ChordNames');
   });
 });
+
 
