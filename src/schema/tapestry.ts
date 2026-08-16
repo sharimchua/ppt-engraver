@@ -75,28 +75,60 @@ export const CoilSchema = z.object({
   harmonyOctave: z.number().int().optional(),
 });
 
-/**
- * A child entry within a Weave — wraps an inline Coil or references a Coil by ID.
- */
-export const WeaveChildSchema = z.object({
-  /** Inline coil definition */
-  coil: CoilSchema.or(z.string()),
-});
+export type Coil = z.infer<typeof CoilSchema>;
 
 /**
- * Weave: ordered sequence container for Coils.
- * V1: concatenate layout only, supports Default-Coil injection.
+ * Weave interface for TypeScript typing with recursive children.
  */
-export const WeaveSchema = z.object({
+export interface Weave {
+
   /** Unique identifier for this weave (camelCase) */
-  id: z.string().min(1),
+  id: string;
   /** Layout mode — v1 supports only 'concatenate' */
-  layout: z.enum(['concatenate']).default('concatenate'),
+  layout?: 'concatenate';
   /** Default coil ID or inline Coil providing fallback layers for child coils */
-  defaultCoil: z.string().or(CoilSchema).optional(),
-  /** Ordered list of child coils */
-  children: z.array(WeaveChildSchema).min(1),
-});
+  defaultCoil?: string | Coil;
+  /** Ordered list of child coils and/or child weaves */
+  children: WeaveChild[];
+}
+
+/**
+ * A child entry within a Weave — wraps an inline Coil/Weave or references one by ID.
+ */
+export type WeaveChild =
+  | { coil: Coil | string; weave?: never }
+  | { weave: Weave | string; coil?: never };
+
+/**
+ * Zod schema for WeaveChild (supports both coil and nested weave).
+ */
+export const WeaveChildSchema: z.ZodType<WeaveChild> = z.lazy(() =>
+  z.union([
+    z.object({
+      coil: CoilSchema.or(z.string()),
+    }),
+    z.object({
+      weave: WeaveSchema.or(z.string()),
+    }),
+  ])
+);
+
+/**
+ * Weave: ordered sequence container for Coils and nested Weaves.
+ * V1: concatenate layout only, supports Default-Coil injection and recursive composition.
+ */
+export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
+  z.object({
+    /** Unique identifier for this weave (camelCase) */
+    id: z.string().min(1),
+    /** Layout mode — v1 supports only 'concatenate' */
+    layout: z.enum(['concatenate']).default('concatenate'),
+    /** Default coil ID or inline Coil providing fallback layers for child coils */
+    defaultCoil: z.string().or(CoilSchema).optional(),
+    /** Ordered list of child coils and/or child weaves */
+    children: z.array(WeaveChildSchema).min(1),
+  })
+);
 
 /**
  * Top-level Tapestry IR schema.
@@ -107,15 +139,13 @@ export const TapestrySchema = z.object({
     knot: KnotSchema.optional(),
     /** Optional library of reusable named Coils */
     coils: z.record(z.string(), CoilSchema).or(z.array(CoilSchema)).optional(),
-    /** The top-level weave containing all coils */
+    /** The top-level weave containing all coils and nested weaves */
     weave: WeaveSchema,
   }),
 });
 
 /** TypeScript types inferred from schemas */
 export type Knot = z.infer<typeof KnotSchema>;
-export type Coil = z.infer<typeof CoilSchema>;
-export type WeaveChild = z.infer<typeof WeaveChildSchema>;
-export type Weave = z.infer<typeof WeaveSchema>;
 export type Tapestry = z.infer<typeof TapestrySchema>;
+
 

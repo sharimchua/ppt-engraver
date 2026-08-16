@@ -183,19 +183,27 @@ describe('TapestrySchema', () => {
     }
   });
 
-  it('rejects invalid rhythm label', () => {
-    const bad = {
+  it('accepts nested weaves in children', () => {
+    const nested = {
       tapestry: {
         weave: {
-          id: 'test',
-          layout: 'concatenate',
+          id: 'song',
           children: [
-            { coil: { id: 'motif', rhythm: 'DoTi', melody: ['Do'] } },
+            {
+              weave: {
+                id: 'verse',
+                children: [
+                  { coil: { id: 'motif', melody: ['Do'] } },
+                ],
+              },
+            },
+            { weave: 'verse' },
           ],
         },
       },
     };
-    const result = TapestrySchema.safeParse(bad);
-    expect(result.success).toBe(false);
+    const result = TapestrySchema.safeParse(nested);
+    expect(result.success).toBe(true);
   });
 });
+

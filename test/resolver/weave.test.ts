@@ -72,4 +72,103 @@ describe('resolveWeave', () => {
     expect(onsets[1].pitch).toBe('E4');
     expect(onsets[1].midiNote).toBe(64);
   });
+
+  it('supports composition with nested weaves for different song sections', () => {
+    const songWeave: Weave = {
+      id: 'song',
+      layout: 'concatenate',
+      children: [
+        {
+          weave: {
+            id: 'verse',
+            children: [
+              { coil: { id: 'motif', melody: ['Do', 'Re'] } },
+            ],
+          },
+        },
+        {
+          weave: {
+            id: 'chorus',
+            children: [
+              { coil: { id: 'climax', melody: ['So', 'Do^'] } },
+            ],
+          },
+        },
+        { weave: 'verse' },  // Re-use verse section by ID
+        { weave: 'chorus' }, // Re-use chorus section by ID
+      ],
+    };
+
+    const { onsets } = resolveWeave(songWeave, knotC4);
+    expect(onsets).toHaveLength(8);
+    // Verse 1
+    expect(onsets[0].tag).toBe('ppt_verse_motif_1');
+    expect(onsets[1].tag).toBe('ppt_verse_motif_2');
+    // Chorus 1
+    expect(onsets[2].tag).toBe('ppt_chorus_climax_1');
+    expect(onsets[3].tag).toBe('ppt_chorus_climax_2');
+    // Verse 2 (re-used)
+    expect(onsets[4].tag).toBe('ppt_verse_motif_1');
+    expect(onsets[5].tag).toBe('ppt_verse_motif_2');
+    // Chorus 2 (re-used)
+    expect(onsets[6].tag).toBe('ppt_chorus_climax_1');
+    expect(onsets[7].tag).toBe('ppt_chorus_climax_2');
+  });
+
+  it('detects circular weave references and throws an informative error', () => {
+    const cyclicWeave: Weave = {
+      id: 'A',
+      children: [
+        {
+          weave: {
+            id: 'B',
+            children: [
+              { weave: 'A' },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(() => resolveWeave(cyclicWeave, knotC4)).toThrow(
+      'Circular weave reference detected: A -> B -> A'
+    );
+  });
+
+  it('throws an informative error when referencing an unknown weave ID', () => {
+    const brokenWeave: Weave = {
+      id: 'song',
+      children: [
+        { weave: 'nonExistentSection' },
+      ],
+    };
+
+    expect(() => resolveWeave(brokenWeave, knotC4)).toThrow(
+      'Weave "song" child references unknown weave "nonExistentSection"'
+    );
+  });
+
+  it('inherits defaultCoil down nested weave hierarchy', () => {
+    const parentWeave: Weave = {
+      id: 'song',
+      defaultCoil: {
+        id: 'default',
+        harmony: ['So'],
+      },
+      children: [
+        {
+          weave: {
+            id: 'verse',
+            children: [
+              { coil: { id: 'motif', melody: ['Do'] } },
+            ],
+          },
+        },
+      ],
+    };
+
+    const { onsets } = resolveWeave(parentWeave, knotC4);
+    expect(onsets[0].chordRoot).toBe('So');
+  });
 });
+
