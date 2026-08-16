@@ -52,7 +52,8 @@ const RhythmLabel = z.enum(['DoSo', 'DoRe', 'DoLa', 'DoMi', 'DoSi', 'DoFi']);
 
 /**
  * Knot: absolute pitch/tempo anchor.
- * Provides the concrete value for Do and an optional tempo and default harmony octave offset.
+ * Provides the concrete value for Do and optional tempo, default harmony octave offset,
+ * and notation styling (e.g. solfege shape noteheads, stemless cadenza onsets).
  */
 export const KnotSchema = z.object({
   /** Absolute pitch anchor for Do, e.g. "C4", "Eb4", "F#3" */
@@ -64,7 +65,12 @@ export const KnotSchema = z.object({
   tempo: z.number().positive().optional(),
   /** Global octave shift for harmony layer (e.g. 0 for treble register, -1 for bass register) */
   harmonyOctave: z.number().int().optional(),
+  /** Notehead style: 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default' */
+  noteheadStyle: z.enum(['sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default']).optional(),
+  /** Whether to omit stems on noteheads for unmetered notation */
+  omitStem: z.boolean().optional(),
 });
+
 
 
 /**

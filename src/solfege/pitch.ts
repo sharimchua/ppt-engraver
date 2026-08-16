@@ -97,6 +97,8 @@ export interface ParsedPitch {
   hasAxis: boolean;
 }
 
+export type NoteheadStyle = 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default';
+
 /**
  * Resolved knot providing absolute pitch context.
  */
@@ -109,7 +111,12 @@ export interface ResolvedKnot {
   doName?: string;
   /** Accidental spelling preference ('sharps' or 'flats') */
   accidentalMode?: AccidentalMode;
+  /** Notehead style for melody engraving */
+  noteheadStyle?: NoteheadStyle;
+  /** Whether to omit stems in notation */
+  omitStem?: boolean;
 }
+
 
 
 /**

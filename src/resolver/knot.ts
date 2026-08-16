@@ -47,8 +47,16 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
   const accidentalMode = getAccidentalModeFromPitchName(knotDef.do);
   
   return {
-    knot: { doMidi, tempo, doName: knotDef.do, accidentalMode },
+    knot: {
+      doMidi,
+      tempo,
+      doName: knotDef.do,
+      accidentalMode,
+      noteheadStyle: knotDef.noteheadStyle,
+      omitStem: knotDef.omitStem,
+    },
     warnings,
   };
 }
+
 

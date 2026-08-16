@@ -150,6 +150,29 @@ describe('compileToLilyPond', () => {
     expect(ly).not.toContain('chordVoice');
     expect(ly).not.toContain('\\new ChordNames');
   });
+
+  it('engraves sacredHarp shape noteheads aligned with Do anchor', () => {
+    const ly = compileToLilyPond(sampleOnsets, {
+      noteheadStyle: 'sacredHarp',
+      doPitch: 'Eb4',
+      omitStem: true,
+    });
+    expect(ly).toContain('\\key ees \\major');
+    expect(ly).toContain('\\omit Staff.KeySignature');
+    expect(ly).toContain('\\sacredHarpHeads');
+    expect(ly).toContain('\\omit Stem');
+  });
+
+  it('engraves aiken shape noteheads aligned with Do anchor', () => {
+    const ly = compileToLilyPond(sampleOnsets, {
+      noteheadStyle: 'aiken',
+      doPitch: 'C4',
+    });
+    expect(ly).toContain('\\key c \\major');
+    expect(ly).toContain('\\omit Staff.KeySignature');
+    expect(ly).toContain('\\aikenHeads');
+  });
 });
+
 
 

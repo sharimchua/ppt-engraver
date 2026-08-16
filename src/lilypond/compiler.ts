@@ -12,7 +12,14 @@
  */
 import { writeFileSync } from 'node:fs';
 import type { OnsetStream } from '../schema/onset.js';
-import { midiToLilyPondPitch, chordMidiToLilyPond } from './pitch.js';
+import {
+  midiToLilyPondPitch,
+  chordMidiToLilyPond,
+  LILYPOND_FLAT_NOTES,
+  LILYPOND_SHARP_NOTES,
+} from './pitch.js';
+import { pitchNameToMidi, getAccidentalModeFromPitchName } from '../solfege/pitch.js';
+
 
 export interface CompileOptions {
   /** LilyPond version string to emit (default: "2.24.4") */
@@ -31,6 +38,12 @@ export interface CompileOptions {
   harmonyOctaveShift?: number;
   /** Note duration placeholder string (default: "4" for quarter notes) */
   durationToken?: string;
+  /** Notehead style: 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default' */
+  noteheadStyle?: 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default';
+  /** Pitch name of Do anchor (e.g. "Eb4", "C4") to align shape note heads to Do */
+  doPitch?: string;
+  /** Whether to omit stems on noteheads */
+  omitStem?: boolean;
 }
 
 /**
@@ -51,6 +64,8 @@ export function compileToLilyPond(
   const accStyle = options.accidentalStyle ?? 'forget';
   const harmShift = options.harmonyOctaveShift ?? (harmClef === 'bass' ? -1 : 0);
   const dur = options.durationToken ?? '4';
+  const noteheadStyle = options.noteheadStyle ?? 'default';
+  const omitStem = options.omitStem ?? false;
   const accMode =
     options.accidentalMode ??
     (onsets.some(
@@ -65,14 +80,54 @@ export function compileToLilyPond(
   const melodyLines: string[] = [
     `  \\clef ${melClef}`,
     `  \\accidentalStyle ${accStyle}`,
-    '  \\cadenzaOn',
   ];
+
+  // Configure shape noteheads aligned with Do (tonic)
+  if (['sacredHarp', 'aiken', 'funk', 'walker'].includes(noteheadStyle)) {
+    let tonicDutch = 'c';
+    if (options.doPitch) {
+      try {
+        const midi = pitchNameToMidi(options.doPitch);
+        const pc = ((midi % 12) + 12) % 12;
+        const tonicAccMode = getAccidentalModeFromPitchName(options.doPitch);
+        tonicDutch = (tonicAccMode === 'flats' ? LILYPOND_FLAT_NOTES : LILYPOND_SHARP_NOTES)[pc];
+      } catch {
+        tonicDutch = 'c';
+      }
+    }
+
+    melodyLines.push(`  \\key ${tonicDutch} \\major`);
+    melodyLines.push('  \\omit Staff.KeySignature');
+    if (noteheadStyle === 'sacredHarp') {
+      melodyLines.push('  \\sacredHarpHeads');
+    } else if (noteheadStyle === 'aiken') {
+      melodyLines.push('  \\aikenHeads');
+    } else if (noteheadStyle === 'funk') {
+      melodyLines.push('  \\funkHeads');
+    } else if (noteheadStyle === 'walker') {
+      melodyLines.push('  \\walkerHeads');
+    }
+  } else if (noteheadStyle === 'diamond') {
+    melodyLines.push("  \\override NoteHead.style = #'diamond");
+  }
+
+  if (omitStem) {
+    melodyLines.push('  \\omit Stem');
+  }
+
+  melodyLines.push('  \\cadenzaOn');
 
   const harmonyLines: string[] = [
     `  \\clef ${harmClef}`,
     `  \\accidentalStyle ${accStyle}`,
-    '  \\cadenzaOn',
   ];
+
+  if (omitStem) {
+    harmonyLines.push('  \\omit Stem');
+  }
+
+  harmonyLines.push('  \\cadenzaOn');
+
 
   let lastCoilId: string | null = null;
   let lastWeaveId: string | null = null;

@@ -19,11 +19,12 @@ import { resolveTapestry, type ResolutionResult } from './graph.js';
  */
 export function resolveFile(filePath: string): ResolutionResult {
   const { tapestry, warnings: loadWarnings } = loadTapestryFile(filePath);
-  const { onsets, warnings: resolveWarnings } = resolveTapestry(tapestry);
+  const { onsets, warnings: resolveWarnings, knot } = resolveTapestry(tapestry);
   
   return {
     onsets,
     warnings: [...loadWarnings, ...resolveWarnings],
+    knot,
   };
 }
 
@@ -37,13 +38,15 @@ export function resolveFile(filePath: string): ResolutionResult {
  */
 export function resolveYaml(yamlContent: string): ResolutionResult {
   const { tapestry, warnings: loadWarnings } = parseTapestryYaml(yamlContent);
-  const { onsets, warnings: resolveWarnings } = resolveTapestry(tapestry);
+  const { onsets, warnings: resolveWarnings, knot } = resolveTapestry(tapestry);
   
   return {
     onsets,
     warnings: [...loadWarnings, ...resolveWarnings],
+    knot,
   };
 }
+
 
 // Re-export for convenience
 export type { ResolutionResult } from './graph.js';

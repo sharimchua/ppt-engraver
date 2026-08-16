@@ -10,7 +10,7 @@
  * - Octave 2 (MIDI 36-47, great octave): c,, d,, ...
  */
 
-const LILYPOND_SHARP_NOTES = [
+export const LILYPOND_SHARP_NOTES = [
   'c',   // 0: C
   'cis', // 1: C#
   'd',   // 2: D
@@ -25,7 +25,7 @@ const LILYPOND_SHARP_NOTES = [
   'b',   // 11: B
 ] as const;
 
-const LILYPOND_FLAT_NOTES = [
+export const LILYPOND_FLAT_NOTES = [
   'c',   // 0: C
   'des', // 1: Db
   'd',   // 2: D
@@ -39,6 +39,7 @@ const LILYPOND_FLAT_NOTES = [
   'bes', // 10: Bb
   'b',   // 11: B
 ] as const;
+
 
 /**
  * Converts a MIDI note number to LilyPond absolute pitch syntax.

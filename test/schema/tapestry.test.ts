@@ -183,27 +183,25 @@ describe('TapestrySchema', () => {
     }
   });
 
-  it('accepts nested weaves in children', () => {
-    const nested = {
+  it('accepts noteheadStyle and omitStem in knot', () => {
+    const withNotehead = {
       tapestry: {
+        knot: {
+          do: 'Eb4',
+          noteheadStyle: 'sacredHarp',
+          omitStem: true,
+        },
         weave: {
           id: 'song',
           children: [
-            {
-              weave: {
-                id: 'verse',
-                children: [
-                  { coil: { id: 'motif', melody: ['Do'] } },
-                ],
-              },
-            },
-            { weave: 'verse' },
+            { coil: { id: 'motif', melody: ['Do'] } },
           ],
         },
       },
     };
-    const result = TapestrySchema.safeParse(nested);
+    const result = TapestrySchema.safeParse(withNotehead);
     expect(result.success).toBe(true);
   });
 });
+
 

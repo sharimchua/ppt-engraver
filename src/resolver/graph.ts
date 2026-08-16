@@ -9,14 +9,18 @@
  */
 import type { Tapestry, Coil } from '../schema/tapestry.js';
 import type { OnsetStream } from '../schema/onset.js';
+import type { ResolvedKnot } from '../solfege/pitch.js';
 import { resolveKnot } from './knot.js';
 import { resolveWeave } from './weave.js';
+
 
 export interface ResolutionResult {
   /** The resolved onset stream */
   onsets: OnsetStream;
   /** All warnings accumulated during resolution */
   warnings: string[];
+  /** The resolved Knot context */
+  knot: ResolvedKnot;
 }
 
 /**
@@ -61,6 +65,7 @@ export function resolveTapestry(tapestry: Tapestry): ResolutionResult {
   );
   allWarnings.push(...weaveWarnings);
   
-  return { onsets, warnings: allWarnings };
+  return { onsets, warnings: allWarnings, knot };
 }
+
 

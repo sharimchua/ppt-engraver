@@ -44,8 +44,15 @@ export function compileFile(
   yamlFilePath: string,
   options: CompileFileOptions = {},
 ): CompileResult {
-  const { onsets, warnings } = resolveFile(yamlFilePath);
-  const lilypondSource = compileToLilyPond(onsets, options);
+  const { onsets, warnings, knot } = resolveFile(yamlFilePath);
+  const effectiveOptions: CompileFileOptions = {
+    noteheadStyle: knot?.noteheadStyle,
+    omitStem: knot?.omitStem,
+    doPitch: knot?.doName,
+    accidentalMode: knot?.accidentalMode,
+    ...options,
+  };
+  const lilypondSource = compileToLilyPond(onsets, effectiveOptions);
   const sidecarMap = generateSidecarMap(onsets);
 
   // Determine output file paths if saving
@@ -89,8 +96,15 @@ export function compileYamlString(
   yamlContent: string,
   options: CompileOptions = {},
 ): CompileResult {
-  const { onsets, warnings } = resolveYaml(yamlContent);
-  const lilypondSource = compileToLilyPond(onsets, options);
+  const { onsets, warnings, knot } = resolveYaml(yamlContent);
+  const effectiveOptions: CompileOptions = {
+    noteheadStyle: knot?.noteheadStyle,
+    omitStem: knot?.omitStem,
+    doPitch: knot?.doName,
+    accidentalMode: knot?.accidentalMode,
+    ...options,
+  };
+  const lilypondSource = compileToLilyPond(onsets, effectiveOptions);
   const sidecarMap = generateSidecarMap(onsets);
 
   return {
@@ -100,3 +114,4 @@ export function compileYamlString(
     warnings,
   };
 }
+
