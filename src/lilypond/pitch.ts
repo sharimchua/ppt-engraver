@@ -46,21 +46,23 @@ export const LILYPOND_FLAT_NOTES = [
  * 
  * Examples (sharps):
  * - 60 (C4)  -> "c'"
- * - 63 (D#4) -> "dis'"
+ * - 63 (D#4) -> "dis'" (or "dis'!" if forced)
  * - 67 (G4)  -> "g'"
  * 
  * Examples (flats):
- * - 63 (Eb4) -> "ees'"
- * - 70 (Bb4) -> "bes'"
- * - 68 (Ab4) -> "aes'"
+ * - 63 (Eb4) -> "ees'" (or "ees'!" if forced)
+ * - 70 (Bb4) -> "bes'" (or "bes'!" if forced)
+ * - 68 (Ab4) -> "aes'" (or "aes'!" if forced)
  * 
  * @param midi - MIDI note number (0-127)
  * @param accidentalMode - 'sharps' or 'flats' (default: 'sharps')
+ * @param forceAccidentals - Whether to append '!' to explicitly force accidental printing
  * @returns LilyPond pitch token
  */
 export function midiToLilyPondPitch(
   midi: number,
   accidentalMode: 'sharps' | 'flats' = 'sharps',
+  forceAccidentals: boolean = false,
 ): string {
   const noteIndex = ((midi % 12) + 12) % 12;
   const baseNote = accidentalMode === 'flats'
@@ -73,13 +75,18 @@ export function midiToLilyPondPitch(
   const octave = Math.floor(midi / 12) - 1; // e.g. 60 -> 4, 48 -> 3
   const octaveDiff = octave - 3;
   
+  let ticks = '';
   if (octaveDiff > 0) {
-    return `${baseNote}${`'`.repeat(octaveDiff)}`;
+    ticks = `'`.repeat(octaveDiff);
   } else if (octaveDiff < 0) {
-    return `${baseNote}${`,`.repeat(Math.abs(octaveDiff))}`;
+    ticks = `,`.repeat(Math.abs(octaveDiff));
   }
   
-  return baseNote;
+  const isAltered = baseNote.endsWith('es') || baseNote.endsWith('is');
+  const forceMark = (forceAccidentals && isAltered) ? '!' : '';
+
+  
+  return `${baseNote}${ticks}${forceMark}`;
 }
 
 /**
@@ -175,16 +182,24 @@ function getTertianChordSpelling(
 /**
  * Formats a chord note into LilyPond syntax with correct octave ticks.
  */
-function formatChordNote(baseName: string, midi: number, nominalClass: number): string {
+function formatChordNote(
+  baseName: string,
+  midi: number,
+  nominalClass: number,
+  forceAccidentals: boolean = false,
+): string {
   // Octave calculation based on nominal note class (e.g. Cb4 = MIDI 59 -> octave 4 -> 1 tick)
   const octave = Math.floor((midi - nominalClass + 6) / 12) - 1;
   const octaveDiff = octave - 3;
+  let ticks = '';
   if (octaveDiff > 0) {
-    return `${baseName}${`'`.repeat(octaveDiff)}`;
+    ticks = `'`.repeat(octaveDiff);
   } else if (octaveDiff < 0) {
-    return `${baseName}${`,`.repeat(Math.abs(octaveDiff))}`;
+    ticks = `,`.repeat(Math.abs(octaveDiff));
   }
-  return baseName;
+  const isAltered = baseName.endsWith('es') || baseName.endsWith('is') || baseName === 'ces';
+  const forceMark = (forceAccidentals && isAltered) ? '!' : '';
+  return `${baseName}${ticks}${forceMark}`;
 }
 
 /**
@@ -194,12 +209,14 @@ function formatChordNote(baseName: string, midi: number, nominalClass: number): 
  * @param chordMidi - Array of MIDI note numbers
  * @param octaveShift - Optional octave transposition
  * @param accidentalMode - 'sharps' or 'flats' (default: 'sharps')
- * @returns Formatted LilyPond chord token, e.g. "<c e g>" or "<ees' g' bes'>"
+ * @param forceAccidentals - Whether to append '!' to altered chord notes
+ * @returns Formatted LilyPond chord token, e.g. "<c e g>" or "<ees'! g' bes'!>"
  */
 export function chordMidiToLilyPond(
   chordMidi: number[],
   octaveShift: number = 0,
   accidentalMode: 'sharps' | 'flats' = 'sharps',
+  forceAccidentals: boolean = false,
 ): string {
   if (chordMidi.length === 0) return '<>';
   const rootMidi = chordMidi[0] + (octaveShift * 12);
@@ -209,11 +226,12 @@ export function chordMidiToLilyPond(
     const shiftedMidi = m + (octaveShift * 12);
     const semitoneOffset = shiftedMidi - rootMidi;
     const spelling = getTertianChordSpelling(rootPc, semitoneOffset, accidentalMode);
-    return formatChordNote(spelling.baseName, shiftedMidi, spelling.nominalNoteClass);
+    return formatChordNote(spelling.baseName, shiftedMidi, spelling.nominalNoteClass, forceAccidentals);
   }).join(' ');
 
   return `<${notes}>`;
 }
+
 
 
 /**

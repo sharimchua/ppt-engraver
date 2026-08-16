@@ -132,6 +132,9 @@ export function compileToLilyPond(
   let lastCoilId: string | null = null;
   let lastWeaveId: string | null = null;
 
+  const isShapeNoteMode = ['sacredHarp', 'aiken', 'funk', 'walker'].includes(noteheadStyle);
+  const forceAccidentals = isShapeNoteMode;
+
   for (let i = 0; i < onsets.length; i++) {
     const onset = onsets[i];
 
@@ -147,7 +150,7 @@ export function compileToLilyPond(
     lastWeaveId = onset.weaveId;
 
     // Melody: \tag #'tag pitch4
-    const melPitch = midiToLilyPondPitch(onset.midiNote, accMode);
+    const melPitch = midiToLilyPondPitch(onset.midiNote, accMode, forceAccidentals);
     melodyLines.push(`  \\tag #'${onset.tag} ${melPitch}${dur}`);
 
     // Harmony: \tag #'tag <chord>4
@@ -155,9 +158,11 @@ export function compileToLilyPond(
       onset.chordMidi,
       harmShift,
       accMode,
+      forceAccidentals,
     );
     harmonyLines.push(`  \\tag #'${onset.tag} ${chord}${dur}`);
   }
+
 
   melodyLines.push('  \\cadenzaOff');
   harmonyLines.push('  \\cadenzaOff');
