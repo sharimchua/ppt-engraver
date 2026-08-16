@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { compileFile, compileYamlString } from '../../src/compiler/compile.js';
 
 const FIXTURES = resolve(import.meta.dirname, '..', 'fixtures');
@@ -12,59 +13,11 @@ describe('compileFile & compileYamlString (Phase 2)', () => {
     expect(result.warnings).toHaveLength(0);
     expect(result.onsets).toHaveLength(6);
 
-    const expectedLy = `\\version "2.24.4"
+    const expectedLy = readFileSync(
+      resolve(FIXTURES, 'design-doc-example.notation.ly'),
+      'utf-8',
+    );
 
-\\header {
-  tagline = ##f
-}
-
-melodyVoice = {
-  \\clef treble
-  \\accidentalStyle forget
-  \\cadenzaOn
-  \\tag #'ppt_verse_introMotif_1 c'4
-  \\tag #'ppt_verse_introMotif_2 e'4
-  \\tag #'ppt_verse_introMotif_3 g'4
-  \\tag #'ppt_verse_introMotif_4 c''4
-  \\bar "|"
-  \\tag #'ppt_verse_cadence_1 b'4
-  \\tag #'ppt_verse_cadence_2 c''4
-  \\cadenzaOff
-}
-
-harmonyVoice = {
-  \\clef treble
-  \\accidentalStyle forget
-  \\cadenzaOn
-  \\tag #'ppt_verse_introMotif_1 <c' e' g'>4
-  \\tag #'ppt_verse_introMotif_2 <c' e' g'>4
-  \\tag #'ppt_verse_introMotif_3 <c' e' g'>4
-  \\tag #'ppt_verse_introMotif_4 <c' e' g'>4
-  \\bar "|"
-  \\tag #'ppt_verse_cadence_1 <g b d'>4
-  \\tag #'ppt_verse_cadence_2 <g b d'>4
-  \\cadenzaOff
-}
-
-\\score {
-  <<
-    \\new ChordNames {
-      \\set chordChanges = ##t
-      \\harmonyVoice
-    }
-    \\new PianoStaff <<
-      \\new Staff \\melodyVoice
-      \\new Staff \\harmonyVoice
-    >>
-  >>
-  \\layout {
-    \\context {
-      \\Staff
-      \\remove "Time_signature_engraver"
-    }
-  }
-}
-`;
 
 
 

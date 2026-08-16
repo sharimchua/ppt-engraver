@@ -229,7 +229,18 @@ describe('compileToLilyPond', () => {
     });
     expect(ly).toContain('tagline = "Custom PPT Engraver"');
   });
+
+  it('emits Do key anchor with SVG/vector glyph and pitch class in header block', () => {
+    const ly = compileToLilyPond(sampleOnsets, {
+      title: 'Dracula',
+      doPitch: 'Eb4',
+    });
+    expect(ly).toContain('#(define pptGlyphDo');
+    expect(ly).toContain('#(define pptGlyphDoOutlined (make-outlined-glyph pptGlyphDo colorDo))');
+    expect(ly).toContain('piece = \\markup \\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = Eb" }');
+  });
 });
+
 
 
 

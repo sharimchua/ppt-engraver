@@ -35,8 +35,13 @@ export interface CompileOptions {
   poet?: string;
   /** Copyright statement */
   copyright?: string;
+  /** Piece or top-left section label (defaults to Do key anchor [Do Glyph] = PitchClass if doPitch is present) */
+  piece?: string;
+  /** Whether to show the Do key anchor symbol at the top of the engraving (default: true if doPitch is present) */
+  showKeyAnchor?: boolean;
   /** Custom tagline or boolean (false suppresses LilyPond default footer, default: false) */
   tagline?: string | boolean;
+
   /** Clef for the melody staff (default: "treble") */
   melodyClef?: string;
   /** Clef for the harmony staff (default: "treble") */
@@ -124,6 +129,49 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 #(define stencilLa (make-ppt-stencil (make-path-stencil '(moveto -0.58 -0.48 lineto 0.58 -0.48 lineto 0.0 0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilTe (make-ppt-stencil (make-path-stencil '(moveto -0.62 0.0 lineto 0.0 0.52 lineto 0.62 0.0 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilTi (make-ppt-stencil (make-path-stencil '(moveto -0.62 0.0 lineto 0.0 0.52 lineto 0.62 0.0 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
+
+#(define pptGlyphDo
+   (make-path-stencil
+     '(moveto 0.29 0.502
+       lineto 0.50 0.866
+       lineto 0.866 0.50
+       lineto 1.00 0.00
+       lineto 0.866 -0.50
+       lineto 0.50 -0.866
+       lineto -0.50 -0.866
+       lineto -0.866 -0.50
+       lineto -1.00 0.00
+       lineto -0.866 0.50
+       lineto -0.50 0.866
+       lineto -0.29 0.502
+       lineto -0.502 0.29
+       lineto -0.58 0.00
+       lineto -0.502 -0.29
+       lineto -0.29 -0.502
+       lineto 0.29 -0.502
+       lineto 0.502 -0.29
+       lineto 0.58 0.00
+       lineto 0.502 0.29
+       closepath)
+     0.0 0.9 0.9 #t))
+
+#(define (make-outlined-glyph base-stencil fill-col)
+   (let* ((orig (if fill-col (stencil-with-color base-stencil fill-col) base-stencil))
+          (black-stencil (stencil-with-color base-stencil black))
+          (d 0.07))
+     (ly:stencil-add
+       (ly:stencil-translate black-stencil (cons (- d) 0))
+       (ly:stencil-translate black-stencil (cons d 0))
+       (ly:stencil-translate black-stencil (cons 0 (- d)))
+       (ly:stencil-translate black-stencil (cons 0 d))
+       (ly:stencil-translate black-stencil (cons (- d) (- d)))
+       (ly:stencil-translate black-stencil (cons d d))
+       (ly:stencil-translate black-stencil (cons (- d) d))
+       (ly:stencil-translate black-stencil (cons d (- d)))
+       orig)))
+
+#(define pptGlyphDoOutlined (make-outlined-glyph pptGlyphDo colorDo))
+
 
 
 
@@ -353,6 +401,16 @@ export function compileToLilyPond(
   if (options.poet) headerLines.push(`  poet = "${options.poet.replace(/"/g, '\\"')}"`);
   if (options.copyright) headerLines.push(`  copyright = "${options.copyright.replace(/"/g, '\\"')}"`);
 
+  // Key anchor or piece header line
+  if (options.piece) {
+    headerLines.push(`  piece = "${options.piece.replace(/"/g, '\\"')}"`);
+  } else if (options.doPitch && options.showKeyAnchor !== false) {
+    const doPitchClass = options.doPitch.replace(/\d+$/, '');
+    headerLines.push(
+      `  piece = \\markup \\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = ${doPitchClass}" }`,
+    );
+  }
+
   // Tagline handling: default to false (suppresses "Music engraving by LilyPond")
   const tagline = options.tagline ?? false;
   if (tagline === false) {
@@ -366,12 +424,17 @@ export function compileToLilyPond(
     : '';
 
   let preambles = '';
-  if (colorNotes || noteheadStyle === 'ppt') {
+  if (
+    colorNotes ||
+    noteheadStyle === 'ppt' ||
+    (options.doPitch && options.showKeyAnchor !== false)
+  ) {
     preambles += `\n${PPT_SCHEME_COLOR_DEFINITIONS}`;
   }
   if (omitNaturals) {
     preambles += `\n${DROP_NATURALS_SCHEME_DEFINITION}`;
   }
+
 
   const outlineLayoutContext = noteheadOutline
     ? `    \\context {
