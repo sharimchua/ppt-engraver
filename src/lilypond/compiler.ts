@@ -450,9 +450,9 @@ export function compileToLilyPond(
   return `\\version "${version}"
 ${preambles}${headerBlock}
 melodyVoice = {
-
 ${melodyVoiceStr}
 }
+
 
 harmonyVoice = {
 ${harmonyVoiceStr}

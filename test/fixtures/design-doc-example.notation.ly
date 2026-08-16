@@ -1,10 +1,5 @@
 \version "2.24.4"
 
-\header {
-  piece = \markup \line \vcenter { \stencil #pptGlyphDoOutlined \fontsize #1.5 \bold " = C" }
-  tagline = ##f
-}
-
 #(define colorDo (rgb-color (/ #xE1 255.0) (/ #x36 255.0) (/ #x10 255.0)))
 #(define colorRe (rgb-color (/ #xF9 255.0) (/ #x80 255.0) (/ #x16 255.0)))
 #(define colorMi (rgb-color (/ #xF5 255.0) (/ #xD4 255.0) (/ #x32 255.0)))
@@ -116,6 +111,11 @@
              colored-stencil))
          orig)))
 
+\header {
+  piece = \markup \line \vcenter { \stencil #pptGlyphDoOutlined \fontsize #1.5 \bold " = C" }
+  tagline = ##f
+}
+
 melodyVoice = {
   \clef treble
   \accidentalStyle forget
@@ -129,6 +129,7 @@ melodyVoice = {
   \tag #'ppt_verse_cadence_2 c''4
   \cadenzaOff
 }
+
 
 harmonyVoice = {
   \clef treble
