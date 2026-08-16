@@ -113,14 +113,14 @@
       "root": "So",
       "quality": "major",
       "chordTones": [
-        "G4",
-        "B4",
-        "D5"
+        "G3",
+        "B3",
+        "D4"
       ],
       "chordMidi": [
-        67,
-        71,
-        74
+        55,
+        59,
+        62
       ]
     }
   },
@@ -138,14 +138,14 @@
       "root": "So",
       "quality": "major",
       "chordTones": [
-        "G4",
-        "B4",
-        "D5"
+        "G3",
+        "B3",
+        "D4"
       ],
       "chordMidi": [
-        67,
-        71,
-        74
+        55,
+        59,
+        62
       ]
     }
   }

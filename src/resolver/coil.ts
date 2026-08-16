@@ -12,6 +12,7 @@ import type { ResolvedKnot } from '../solfege/pitch.js';
 import {
   parsePitch,
   solfegeToSemitone,
+  solfegeToHarmonyRootOffset,
   solfegeToNearestAddress,
   fitRootToClefRegister,
   resolveAbsolutePitch,
@@ -20,6 +21,7 @@ import {
   parseHarmonyChord,
   midiToPitchName,
 } from '../solfege/pitch.js';
+
 
 
 
@@ -263,18 +265,17 @@ function resolveHarmony(
   knot: ResolvedKnot,
   harmonyOctave: number = 0,
 ): HarmonyChord[] {
-  // Resolve each chord root to a triad, dynamically fitting to staff lines
+  // Resolve each chord root to a pure root-position block triad clustered around Do (-7 to +4)
   const chords: HarmonyChord[] = harmony.map(token => {
     const parsed = parseHarmonyChord(token);
-    const semitone = solfegeToSemitone(parsed.rootSyllable);
-    const rawRoot = knot.doMidi + semitone;
-    const fittedRoot = fitRootToClefRegister(rawRoot, 'treble');
-    const finalRoot = fittedRoot + (harmonyOctave * 12);
+    const semitone = solfegeToHarmonyRootOffset(parsed.rootSyllable);
+    const rootMidi = knot.doMidi + semitone + (harmonyOctave * 12);
     return {
-      triad: buildChordFromToken(finalRoot, token),
+      triad: buildChordFromToken(rootMidi, token),
       root: token,
     };
   });
+
 
 
 

@@ -66,7 +66,7 @@ describe('end-to-end resolution', () => {
         pitch: 'B4',
         midiNote: 71,
         scaleDegree: 'Ti',
-        chordTones: ['G4', 'B4', 'D5'],
+        chordTones: ['G3', 'B3', 'D4'],
         chordRoot: 'So',
         coilId: 'cadence',
         onsetIndex: 1,
@@ -78,11 +78,12 @@ describe('end-to-end resolution', () => {
         pitch: 'C5',
         midiNote: 72,
         scaleDegree: 'Do',
-        chordTones: ['G4', 'B4', 'D5'],
+        chordTones: ['G3', 'B3', 'D4'],
         chordRoot: 'So',
         coilId: 'cadence',
         onsetIndex: 2,
       });
+
 
 
     });

@@ -23,8 +23,8 @@ harmonyVoice = {
   \tag #'ppt_verse_introMotif_3 <c' e' g'>4
   \tag #'ppt_verse_introMotif_4 <c' e' g'>4
   \bar "|"
-  \tag #'ppt_verse_cadence_1 <g' b' d''>4
-  \tag #'ppt_verse_cadence_2 <g' b' d''>4
+  \tag #'ppt_verse_cadence_1 <g b d'>4
+  \tag #'ppt_verse_cadence_2 <g b d'>4
   \cadenzaOff
 }
 

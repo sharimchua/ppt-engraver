@@ -37,8 +37,8 @@ harmonyVoice = {
   \\tag #'ppt_verse_introMotif_3 <c' e' g'>4
   \\tag #'ppt_verse_introMotif_4 <c' e' g'>4
   \\bar "|"
-  \\tag #'ppt_verse_cadence_1 <g' b' d''>4
-  \\tag #'ppt_verse_cadence_2 <g' b' d''>4
+  \\tag #'ppt_verse_cadence_1 <g b d'>4
+  \\tag #'ppt_verse_cadence_2 <g b d'>4
   \\cadenzaOff
 }
 
@@ -116,10 +116,11 @@ tapestry:
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_2 des'4");
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_3 bes4");
 
-    // Harmony: Do (Eb major) -> <ees' g' bes'>, Fa (Ab major) -> <aes' c'' ees''>
+    // Harmony: Do (Eb major) -> <ees' g' bes'>, Fa (Ab major) -> <aes c' ees'>
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_1 <ees' g' bes'>4");
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_2 <ees' g' bes'>4");
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_3 <aes' c'' ees''>4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_3 <aes c' ees'>4");
+
   });
 
   it('compiles sharp-keyed scores using sharp accidental spelling (dis, ais, etc.)', () => {
