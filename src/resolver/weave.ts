@@ -74,16 +74,17 @@ export function resolveWeave(
       
       allOnsets.push({
         tag,
-        pitch: midiToPitchName(onset.melodyMidi),
+        pitch: midiToPitchName(onset.melodyMidi, knot.accidentalMode),
         midiNote: onset.melodyMidi,
         scaleDegree: onset.scaleDegree,
-        chordTones: onset.chordMidi.map(m => midiToPitchName(m)),
+        chordTones: onset.chordMidi.map(m => midiToPitchName(m, knot.accidentalMode)),
         chordMidi: [...onset.chordMidi],
         chordRoot: onset.chordRoot,
         coilId: coil.id,
         weaveId: weave.id,
         onsetIndex,
       });
+
     }
   }
   

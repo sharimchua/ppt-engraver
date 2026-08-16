@@ -87,4 +87,53 @@ tapestry:
     expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_1 <c' e' g'>4");
   });
 
+  it('compiles flat-keyed scores using flat accidental spelling (ees, bes, etc.)', () => {
+
+    const yaml = `
+tapestry:
+  knot:
+    do: Eb4
+  weave:
+    id: song
+    layout: concatenate
+    children:
+      - coil:
+          id: motif
+          melody: [Do, Te, So]
+          harmony: [Do, Fa]
+`;
+    const result = compileYamlString(yaml);
+    // Melody: Do (Eb4) -> ees', Te (Db4) -> des', So (Bb3) -> bes
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_1 ees'4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_2 des'4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_3 bes4");
+
+    // Harmony: Do (Eb major) -> <ees' g' bes'>, Fa (Ab major) -> <aes' c'' ees''>
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_1 <ees' g' bes'>4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_2 <ees' g' bes'>4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_3 <aes' c'' ees''>4");
+  });
+
+  it('compiles sharp-keyed scores using sharp accidental spelling (dis, ais, etc.)', () => {
+    const yaml = `
+tapestry:
+  knot:
+    do: "D#4"
+  weave:
+    id: song
+    layout: concatenate
+    children:
+      - coil:
+          id: motif
+          melody: [Do, Te]
+          harmony: [Do]
+`;
+    const result = compileYamlString(yaml);
+    // Melody: Do (D#4) -> dis', Te (C#4) -> cis'
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_1 dis'4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_2 cis'4");
+    // Harmony: Do (D# major) -> <dis' g' ais'>
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_1 <dis' g' ais'>4");
+  });
 });
+

@@ -42,6 +42,14 @@ describe('midiToLilyPondPitch', () => {
     expect(midiToLilyPondPitch(68)).toBe("gis'"); // G#4
     expect(midiToLilyPondPitch(70)).toBe("ais'"); // A#4
   });
+
+  it('formats accidentals using Dutch flat names (es/ees for flat) when accidentalMode is flats', () => {
+    expect(midiToLilyPondPitch(61, 'flats')).toBe("des'"); // Db4
+    expect(midiToLilyPondPitch(63, 'flats')).toBe("ees'"); // Eb4
+    expect(midiToLilyPondPitch(66, 'flats')).toBe("ges'"); // Gb4
+    expect(midiToLilyPondPitch(68, 'flats')).toBe("aes'"); // Ab4
+    expect(midiToLilyPondPitch(70, 'flats')).toBe("bes'"); // Bb4
+  });
 });
 
 describe('chordMidiToLilyPond', () => {
@@ -54,4 +62,10 @@ describe('chordMidiToLilyPond', () => {
     // G4 triad [67, 71, 74] shifted -1 octave -> [55, 59, 62] -> <g b d'>
     expect(chordMidiToLilyPond([67, 71, 74], -1)).toBe("<g b d'>");
   });
+
+  it('formats Eb major triad with flat spelling', () => {
+    // Eb4 triad [63, 67, 70] -> <ees' g' bes'>
+    expect(chordMidiToLilyPond([63, 67, 70], 0, 'flats')).toBe("<ees' g' bes'>");
+  });
 });
+

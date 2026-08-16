@@ -10,7 +10,7 @@
  * - Octave 2 (MIDI 36-47, great octave): c,, d,, ...
  */
 
-const LILYPOND_BASE_NOTES = [
+const LILYPOND_SHARP_NOTES = [
   'c',   // 0: C
   'cis', // 1: C#
   'd',   // 2: D
@@ -25,26 +25,46 @@ const LILYPOND_BASE_NOTES = [
   'b',   // 11: B
 ] as const;
 
+const LILYPOND_FLAT_NOTES = [
+  'c',   // 0: C
+  'des', // 1: Db
+  'd',   // 2: D
+  'ees', // 3: Eb
+  'e',   // 4: E
+  'f',   // 5: F
+  'ges', // 6: Gb
+  'g',   // 7: G
+  'aes', // 8: Ab
+  'a',   // 9: A
+  'bes', // 10: Bb
+  'b',   // 11: B
+] as const;
+
 /**
  * Converts a MIDI note number to LilyPond absolute pitch syntax.
  * 
- * Examples:
+ * Examples (sharps):
  * - 60 (C4)  -> "c'"
- * - 64 (E4)  -> "e'"
+ * - 63 (D#4) -> "dis'"
  * - 67 (G4)  -> "g'"
- * - 72 (C5)  -> "c''"
- * - 71 (B4)  -> "b'"
- * - 48 (C3)  -> "c"
- * - 55 (G3)  -> "g"
- * - 62 (D4)  -> "d'"
- * - 54 (F#3) -> "fis"
+ * 
+ * Examples (flats):
+ * - 63 (Eb4) -> "ees'"
+ * - 70 (Bb4) -> "bes'"
+ * - 68 (Ab4) -> "aes'"
  * 
  * @param midi - MIDI note number (0-127)
+ * @param accidentalMode - 'sharps' or 'flats' (default: 'sharps')
  * @returns LilyPond pitch token
  */
-export function midiToLilyPondPitch(midi: number): string {
+export function midiToLilyPondPitch(
+  midi: number,
+  accidentalMode: 'sharps' | 'flats' = 'sharps',
+): string {
   const noteIndex = ((midi % 12) + 12) % 12;
-  const baseNote = LILYPOND_BASE_NOTES[noteIndex];
+  const baseNote = accidentalMode === 'flats'
+    ? LILYPOND_FLAT_NOTES[noteIndex]
+    : LILYPOND_SHARP_NOTES[noteIndex];
   
   // LilyPond reference octave is Octave 3 (MIDI 48-59 -> 0 ticks)
   // Octave 4 (MIDI 60-71) has 1 tick (')
@@ -66,14 +86,17 @@ export function midiToLilyPondPitch(midi: number): string {
  * 
  * @param chordMidi - Array of MIDI note numbers
  * @param octaveShift - Optional octave transposition (e.g. -1 to place in bass register for PianoStaff)
- * @returns Formatted LilyPond chord token, e.g. "<c e g>" or "<g b d'>"
+ * @param accidentalMode - 'sharps' or 'flats' (default: 'sharps')
+ * @returns Formatted LilyPond chord token, e.g. "<c e g>" or "<ees' g' bes'>"
  */
 export function chordMidiToLilyPond(
   chordMidi: number[],
   octaveShift: number = 0,
+  accidentalMode: 'sharps' | 'flats' = 'sharps',
 ): string {
   const shifted = chordMidi.map(m => m + octaveShift * 12);
-  const notes = shifted.map(m => midiToLilyPondPitch(m)).join(' ');
+  const notes = shifted.map(m => midiToLilyPondPitch(m, accidentalMode)).join(' ');
   return `<${notes}>`;
 }
+
 

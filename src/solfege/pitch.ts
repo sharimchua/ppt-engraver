@@ -62,7 +62,28 @@ const NEAREST_ADDRESS: Record<number, number> = {
 };
 
 /** Chromatic pitch names in order (using sharps) */
-const PITCH_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
+const PITCH_NAMES_SHARPS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
+
+/** Chromatic pitch names in order (using flats) */
+const PITCH_NAMES_FLATS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'] as const;
+
+export type AccidentalMode = 'sharps' | 'flats';
+
+/**
+ * Determines whether a given pitch name (or knot anchor) prefers flats or sharps.
+ * E.g. "Eb4", "Bb3", "Ab4", "Db5", "Gb4", "F4" -> 'flats'
+ * E.g. "D#4", "C4", "G4", "D4", "A4", "E4", "B4", "F#3" -> 'sharps'
+ */
+export function getAccidentalModeFromPitchName(pitchName: string): AccidentalMode {
+  if (
+    pitchName.includes('b') ||
+    pitchName.includes('♭') ||
+    (pitchName.startsWith('F') && !pitchName.startsWith('F#'))
+  ) {
+    return 'flats';
+  }
+  return 'sharps';
+}
 
 /**
  * Parsed representation of a solfège pitch token.
@@ -84,7 +105,12 @@ export interface ResolvedKnot {
   doMidi: number;
   /** Tempo in BPM (unused in v1 but carried through) */
   tempo: number;
+  /** Declared pitch name string for Do (e.g. "C4", "Eb4", "D#4") */
+  doName?: string;
+  /** Accidental spelling preference ('sharps' or 'flats') */
+  accidentalMode?: AccidentalMode;
 }
+
 
 /**
  * Maps a solfège syllable (including all variations) to its semitone offset from Do (0–11).
@@ -225,14 +251,19 @@ export function pitchNameToMidi(pitchName: string): number {
 
 
 /**
- * Converts a MIDI note number to a pitch name string (e.g. 60 → "C4").
- * Uses sharps for accidentals.
+ * Converts a MIDI note number to a pitch name string (e.g. 60 → "C4", 63 → "Eb4" or "D#4").
+ * Uses sharps or flats depending on accidentalMode.
  */
-export function midiToPitchName(midi: number): string {
+export function midiToPitchName(
+  midi: number,
+  accidentalMode: AccidentalMode = 'sharps',
+): string {
   const noteIndex = ((midi % 12) + 12) % 12;
   const octave = Math.floor(midi / 12) - 1;
-  return `${PITCH_NAMES[noteIndex]}${octave}`;
+  const names = accidentalMode === 'flats' ? PITCH_NAMES_FLATS : PITCH_NAMES_SHARPS;
+  return `${names[noteIndex]}${octave}`;
 }
+
 
 /**
  * Resolves a solfège syllable + octave shift to an absolute pitch,

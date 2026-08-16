@@ -5,7 +5,11 @@
  * If no Knot exists anywhere, falls back to C4 with a warning (per §5.2).
  */
 import { DEFAULT_DO, DEFAULT_TEMPO } from '../constants.js';
-import { pitchNameToMidi, type ResolvedKnot } from '../solfege/pitch.js';
+import {
+  pitchNameToMidi,
+  getAccidentalModeFromPitchName,
+  type ResolvedKnot,
+} from '../solfege/pitch.js';
 import type { Tapestry } from '../schema/tapestry.js';
 
 export interface KnotResolutionResult {
@@ -17,7 +21,7 @@ export interface KnotResolutionResult {
  * Resolves the Knot (absolute anchor) from a Tapestry.
  * 
  * @param tapestry - The validated Tapestry IR
- * @returns Resolved knot with MIDI note for Do, plus any warnings
+ * @returns Resolved knot with MIDI note for Do, accidentalMode, plus any warnings
  */
 export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
   const warnings: string[] = [];
@@ -31,6 +35,8 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
       knot: {
         doMidi: pitchNameToMidi(DEFAULT_DO),
         tempo: DEFAULT_TEMPO,
+        doName: DEFAULT_DO,
+        accidentalMode: 'sharps',
       },
       warnings,
     };
@@ -38,9 +44,11 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
   
   const doMidi = pitchNameToMidi(knotDef.do);
   const tempo = knotDef.tempo ?? DEFAULT_TEMPO;
+  const accidentalMode = getAccidentalModeFromPitchName(knotDef.do);
   
   return {
-    knot: { doMidi, tempo },
+    knot: { doMidi, tempo, doName: knotDef.do, accidentalMode },
     warnings,
   };
 }
+

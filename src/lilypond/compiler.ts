@@ -21,6 +21,8 @@ export interface CompileOptions {
   melodyClef?: string;
   /** Clef for the harmony staff (default: "treble") */
   harmonyClef?: string;
+  /** Accidental spelling mode ('sharps' or 'flats', auto-detected if omitted) */
+  accidentalMode?: 'sharps' | 'flats';
   /** Accidental style for unmetered notation (default: "forget" so all accidentals are explicitly engraved) */
   accidentalStyle?: string;
   /** Octave transposition for harmony triads (default: 0 for treble, -1 for bass) */
@@ -46,6 +48,16 @@ export function compileToLilyPond(
   const accStyle = options.accidentalStyle ?? 'forget';
   const harmShift = options.harmonyOctaveShift ?? (harmClef === 'bass' ? -1 : 0);
   const dur = options.durationToken ?? '4';
+  const accMode =
+    options.accidentalMode ??
+    (onsets.some(
+      o =>
+        o.pitch.includes('b') ||
+        o.pitch.includes('♭') ||
+        o.chordTones.some(ct => ct.includes('b')),
+    )
+      ? 'flats'
+      : 'sharps');
 
   const melodyLines: string[] = [
     `  \\clef ${melClef}`,
@@ -58,9 +70,6 @@ export function compileToLilyPond(
     `  \\accidentalStyle ${accStyle}`,
     '  \\cadenzaOn',
   ];
-
-
-
 
   let lastCoilId: string | null = null;
 
@@ -75,17 +84,18 @@ export function compileToLilyPond(
     lastCoilId = onset.coilId;
 
     // Melody: \tag #'tag pitch4
-    const melPitch = midiToLilyPondPitch(onset.midiNote);
+    const melPitch = midiToLilyPondPitch(onset.midiNote, accMode);
     melodyLines.push(`  \\tag #'${onset.tag} ${melPitch}${dur}`);
 
     // Harmony: \tag #'tag <chord>4
     const chord = chordMidiToLilyPond(
       onset.chordMidi,
       harmShift,
+      accMode,
     );
     harmonyLines.push(`  \\tag #'${onset.tag} ${chord}${dur}`);
-
   }
+
 
   melodyLines.push('  \\cadenzaOff');
   harmonyLines.push('  \\cadenzaOff');
