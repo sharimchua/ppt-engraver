@@ -16,6 +16,7 @@ describe('compileFile & compileYamlString (Phase 2)', () => {
 
 melodyVoice = {
   \\clef treble
+  \\accidentalStyle forget
   \\cadenzaOn
   \\tag #'ppt_verse_introMotif_1 c'4
   \\tag #'ppt_verse_introMotif_2 e'4
@@ -29,6 +30,7 @@ melodyVoice = {
 
 harmonyVoice = {
   \\clef treble
+  \\accidentalStyle forget
   \\cadenzaOn
   \\tag #'ppt_verse_introMotif_1 <c' e' g'>4
   \\tag #'ppt_verse_introMotif_2 <c' e' g'>4

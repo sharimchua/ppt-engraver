@@ -51,16 +51,17 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('\\remove "Time_signature_engraver"');
   });
 
-  it('emits explicit clefs on melodyVoice and harmonyVoice', () => {
+  it('emits explicit clefs and accidentalStyle forget on voices', () => {
     const ly = compileToLilyPond(sampleOnsets);
-    expect(ly).toContain('melodyVoice = {\n  \\clef treble\n  \\cadenzaOn');
-    expect(ly).toContain('harmonyVoice = {\n  \\clef treble\n  \\cadenzaOn');
+    expect(ly).toContain('melodyVoice = {\n  \\clef treble\n  \\accidentalStyle forget\n  \\cadenzaOn');
+    expect(ly).toContain('harmonyVoice = {\n  \\clef treble\n  \\accidentalStyle forget\n  \\cadenzaOn');
   });
 
   it('allows custom clef for harmonyVoice', () => {
     const ly = compileToLilyPond(sampleOnsets, { harmonyClef: 'bass' });
-    expect(ly).toContain('harmonyVoice = {\n  \\clef bass\n  \\cadenzaOn');
+    expect(ly).toContain('harmonyVoice = {\n  \\clef bass\n  \\accidentalStyle forget\n  \\cadenzaOn');
   });
+
 
   it('emits cadenzaOn and cadenzaOff in voices', () => {
     const ly = compileToLilyPond(sampleOnsets);

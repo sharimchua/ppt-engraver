@@ -21,6 +21,8 @@ export interface CompileOptions {
   melodyClef?: string;
   /** Clef for the harmony staff (default: "treble") */
   harmonyClef?: string;
+  /** Accidental style for unmetered notation (default: "forget" so all accidentals are explicitly engraved) */
+  accidentalStyle?: string;
   /** Octave transposition for harmony triads (default: 0 for treble, -1 for bass) */
   harmonyOctaveShift?: number;
   /** Note duration placeholder string (default: "4" for quarter notes) */
@@ -41,18 +43,22 @@ export function compileToLilyPond(
   const version = options.lilypondVersion ?? '2.24.4';
   const melClef = options.melodyClef ?? 'treble';
   const harmClef = options.harmonyClef ?? 'treble';
+  const accStyle = options.accidentalStyle ?? 'forget';
   const harmShift = options.harmonyOctaveShift ?? (harmClef === 'bass' ? -1 : 0);
   const dur = options.durationToken ?? '4';
 
   const melodyLines: string[] = [
     `  \\clef ${melClef}`,
+    `  \\accidentalStyle ${accStyle}`,
     '  \\cadenzaOn',
   ];
 
   const harmonyLines: string[] = [
     `  \\clef ${harmClef}`,
+    `  \\accidentalStyle ${accStyle}`,
     '  \\cadenzaOn',
   ];
+
 
 
 
