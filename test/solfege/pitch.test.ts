@@ -217,11 +217,20 @@ describe('fitRootToClefRegister', () => {
     expect(fitRootToClefRegister(63 + 7, 'treble')).toBe(70); // So = Bb4
   });
 
-  it('fits roots into bass staff register (A1..G4)', () => {
+  it('fits roots into bass staff register (C2..C4)', () => {
     expect(fitRootToClefRegister(60, 'bass')).toBe(48); // C4 -> C3 (48)
-    expect(fitRootToClefRegister(69, 'bass')).toBe(45); // A4 -> A2 (45) or A3 (57)
+    expect(fitRootToClefRegister(69, 'bass')).toBe(45); // A4 -> A2 (45)
+  });
+
+  it('fits roots into octave-transposed clef registers (bass_8, bass_15, treble_8)', () => {
+    expect(fitRootToClefRegister(60, 'bass_8')).toBe(36); // C4 -> C2 (36)
+    expect(fitRootToClefRegister(60, 'bass_15')).toBe(24); // C4 -> C1 (24)
+    expect(fitRootToClefRegister(72, 'treble_8')).toBe(60); // C5 -> C4 (60)
+    expect(fitRootToClefRegister(60, 'treble_8')).toBe(60); // C4 (60) stays within treble_8 register (45..67)
   });
 });
+
+
 
 describe('buildChordFromToken & parseHarmonyChord', () => {
   it('parses chord qualities', () => {

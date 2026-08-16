@@ -197,17 +197,37 @@ export function solfegeToHarmonyRootOffset(syllable: string): number {
 /**
  * Automatically fits a root MIDI pitch into the optimal staff register for readability.
  * - For treble clef, places the root so the triad sits comfortably within the 5 staff lines (A3..G5).
- * - For bass clef, places the root so the triad sits within the bass staff lines (A1..G4).
+ * - For bass clef, places the root so the triad sits within the bass staff lines (C2..C4).
+ * - For octave-transposed clefs (bass_8, bass_15, treble_8), offsets the register floor/ceiling
+ *   so the visual notation stays centered on the 5 staff lines.
  * 
  * This dynamically adapts to whatever pitch Do is (C4, Eb4, A4, etc.) so chord voicings
  * automatically maintain their block placement across the staff without ledger lines.
  */
 export function fitRootToClefRegister(
   rootMidi: number,
-  clef: 'treble' | 'bass' = 'treble',
+  clef: string = 'treble',
 ): number {
-  const minRoot = clef === 'bass' ? 36 : 57; // C2 for bass, A3 for treble
-  const maxTopNote = clef === 'bass' ? 60 : 79; // C4 for bass, G5 for treble
+  const clean = clef.replace(/"/g, '').trim();
+  let minRoot = 57; // A3 default for treble
+  let maxTopNote = 79; // G5 default for treble
+
+  if (clean === 'bass_15' || clean === 'F_15') {
+    minRoot = 12; // C0
+    maxTopNote = 36; // C2
+  } else if (clean === 'bass_8' || clean === 'F_8') {
+    minRoot = 24; // C1
+    maxTopNote = 48; // C3
+  } else if (clean.startsWith('bass') || clean.startsWith('F')) {
+    minRoot = 36; // C2 for bass
+    maxTopNote = 60; // C4 for bass
+  } else if (clean === 'treble_8' || clean === 'G_8') {
+    minRoot = 45; // A2
+    maxTopNote = 67; // G4
+  } else if (clean === 'treble^8' || clean === 'G^8') {
+    minRoot = 69; // A4
+    maxTopNote = 91; // G6
+  }
 
   let fitted = rootMidi;
   // If top note of root-position triad (root + 7) exceeds staff ceiling, shift down
@@ -220,6 +240,7 @@ export function fitRootToClefRegister(
   }
   return fitted;
 }
+
 
 
 

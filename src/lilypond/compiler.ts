@@ -249,6 +249,16 @@ export const SOLFEGE_TO_PPT_STENCIL: Record<string, string> = {
  * @param options - Compilation options
  * @returns Formatted LilyPond document string
  */
+export function getDefaultHarmonyOctaveShift(clef: string): number {
+  const clean = clef.replace(/"/g, '').trim();
+  if (clean === 'bass_15' || clean === 'F_15') return -3;
+  if (clean === 'bass_8' || clean === 'F_8') return -2;
+  if (clean.startsWith('bass') || clean.startsWith('F')) return -1;
+  if (clean === 'treble_8' || clean === 'G_8') return -1;
+  if (clean === 'treble^8' || clean === 'G^8') return 1;
+  return 0;
+}
+
 export function compileToLilyPond(
   onsets: OnsetStream,
   options: CompileOptions = {},
@@ -259,9 +269,9 @@ export function compileToLilyPond(
   const showChordNames = options.showChordNames ?? true;
   const accStyle = options.accidentalStyle ?? 'forget';
   const harmShift =
-    options.harmonyOctaveShift ??
-    (harmClef.startsWith('bass') || harmClef.startsWith('"bass') ? -1 : 0);
+    options.harmonyOctaveShift ?? getDefaultHarmonyOctaveShift(harmClef);
   const dur = options.durationToken ?? '4';
+
   const noteheadStyle = options.noteheadStyle ?? 'default';
   const omitStem = options.omitStem ?? false;
   const colorNotes = options.colorNotes ?? false;

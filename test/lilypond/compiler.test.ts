@@ -69,9 +69,10 @@ describe('compileToLilyPond', () => {
     });
     expect(ly).toContain('melodyVoice = {\n  \\clef "treble_8"');
     expect(ly).toContain('harmonyVoice = {\n  \\clef "bass_8"');
-    // Bass octave shift automatically applied to chords
-    expect(ly).toContain("<c e g>4");
+    // Bass_8 octave shift (-2) automatically places triads cleanly on the bass staff
+    expect(ly).toContain("<c, e, g,>4");
   });
+
 
 
 
