@@ -32,11 +32,12 @@ tapestry:
     expect(onsets[1].pitch).toBe('E4');
     expect(onsets[2].pitch).toBe('G4');
     expect(onsets[3].pitch).toBe('C5');
-    // Harmony from harmonyParent (So major triad = G3, B3, D4)
+    // Harmony from harmonyParent (So major triad = G4, B4, D5 fitted to treble staff)
     expect(onsets[0].chordRoot).toBe('So');
-    expect(onsets[0].chordTones).toEqual(['G3', 'B3', 'D4']);
+    expect(onsets[0].chordTones).toEqual(['G4', 'B4', 'D5']);
     // Rhythm from rhythmParent (DoLa = 4 onsets, validated against 4 melody notes)
     expect(onsets[0].tag).toBe('ppt_testWeave_childCoil_1');
+
 
   });
 

@@ -117,21 +117,33 @@ export function solfegeToNearestAddress(syllable: string): number {
 }
 
 /**
- * Maps a harmony chord root syllable to its semitone offset from Do (-7 to +4).
- * Clusters chord roots into a single continuous octave below/around Do:
- * Fa (-7), Fi (-6), So (-5), Le (-4), La (-3), Te (-2), Ti (-1),
- * Do (0), Ra (+1), Re (+2), Me (+3), Mi (+4).
+ * Automatically fits a root MIDI pitch into the optimal staff register for readability.
+ * - For treble clef, places the root so the triad sits comfortably within the 5 staff lines (A3..G5).
+ * - For bass clef, places the root so the triad sits within the bass staff lines (A1..G4).
  * 
- * This ensures IV (Fa) sits directly below V (So), VI (Le), VII (Te), and I (Do)
- * keeping the entire chord progression within the staff lines.
+ * This dynamically adapts to whatever pitch Do is (C4, Eb4, A4, etc.) so chord voicings
+ * automatically maintain their block placement across the staff without ledger lines.
  */
-export function solfegeToHarmonyRootOffset(syllable: string): number {
-  const semitone = solfegeToSemitone(syllable);
-  if (semitone >= 5) {
-    return semitone - 12;
+export function fitRootToClefRegister(
+  rootMidi: number,
+  clef: 'treble' | 'bass' = 'treble',
+): number {
+  const minRoot = clef === 'bass' ? 36 : 57; // C2 for bass, A3 for treble
+  const maxTopNote = clef === 'bass' ? 60 : 79; // C4 for bass, G5 for treble
+
+  let fitted = rootMidi;
+  // If top note of root-position triad (root + 7) exceeds staff ceiling, shift down
+  while (fitted + 7 > maxTopNote) {
+    fitted -= 12;
   }
-  return semitone;
+  // If root is below staff floor, shift up
+  while (fitted < minRoot) {
+    fitted += 12;
+  }
+  return fitted;
 }
+
+
 
 
 /**

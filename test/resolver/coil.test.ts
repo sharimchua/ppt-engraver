@@ -63,14 +63,15 @@ describe('resolveCoil', () => {
     });
 
     it('resolves single chord held across all onsets', () => {
-      const coil: Coil = { id: 'test', melody: ['Do', 'Mi', 'So^'], harmony: ['So^'] };
+      const coil: Coil = { id: 'test', melody: ['Do', 'Mi', 'So^'], harmony: ['So'] };
       const { onsets } = resolveCoil(coil, knotC4);
-      // So^ = G4 major triad: G4, B4, D5
+      // So = G4 major triad: G4, B4, D5 (fitted to treble register)
       const expected = [67, 71, 74];
       expect(onsets[0].chordMidi).toEqual(expected);
       expect(onsets[1].chordMidi).toEqual(expected);
       expect(onsets[2].chordMidi).toEqual(expected);
     });
+
 
 
     it('distributes multiple chords across melody (stretch)', () => {

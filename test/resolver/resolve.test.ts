@@ -60,14 +60,14 @@ describe('end-to-end resolution', () => {
         onsetIndex: 4,
       });
 
-      // Onset 5: cadence, Ti^ → B4, harmony So^ (G-B-D)
+      // Onset 5: cadence, Ti^ → B4, harmony So (G-B-D)
       expect(onsets[4]).toMatchObject({
         tag: 'ppt_verse_cadence_1',
         pitch: 'B4',
         midiNote: 71,
         scaleDegree: 'Ti',
         chordTones: ['G4', 'B4', 'D5'],
-        chordRoot: 'So^',
+        chordRoot: 'So',
         coilId: 'cadence',
         onsetIndex: 1,
       });
@@ -79,10 +79,11 @@ describe('end-to-end resolution', () => {
         midiNote: 72,
         scaleDegree: 'Do',
         chordTones: ['G4', 'B4', 'D5'],
-        chordRoot: 'So^',
+        chordRoot: 'So',
         coilId: 'cadence',
         onsetIndex: 2,
       });
+
 
     });
   });
