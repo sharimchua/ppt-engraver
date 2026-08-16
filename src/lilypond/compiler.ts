@@ -93,16 +93,17 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
            orig))))
 
 #(define stencilDo (make-ppt-stencil (make-circle-stencil 0.52 0.0 #t)))
-#(define stencilRe (make-ppt-stencil (make-polygon-stencil '((-0.46 . -0.46) (0.46 . -0.46) (0.46 . 0.46) (-0.46 . 0.46)) 0.0 1 #t)))
-#(define stencilMe (make-ppt-stencil (make-polygon-stencil '((-0.56 . 0.48) (0.56 . 0.48) (0.0 . -0.52)) 0.0 1 #t)))
-#(define stencilMi (make-ppt-stencil (make-polygon-stencil '((-0.56 . -0.48) (0.56 . -0.48) (0.0 . 0.52)) 0.0 1 #t)))
+#(define stencilRe (make-ppt-stencil (make-path-stencil '(moveto -0.46 -0.46 lineto 0.46 -0.46 lineto 0.46 0.46 lineto -0.46 0.46 closepath) 0.0 1.0 1.0 #t)))
+#(define stencilMe (make-ppt-stencil (make-path-stencil '(moveto -0.56 0.48 lineto 0.56 0.48 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
+#(define stencilMi (make-ppt-stencil (make-path-stencil '(moveto -0.56 -0.48 lineto 0.56 -0.48 lineto 0.0 0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilFa (make-ppt-stencil (make-path-stencil '(moveto 0.0 -0.52 lineto 0.0 0.52 curveto -0.65 0.52 -0.65 -0.52 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilFi (make-ppt-stencil (ly:stencil-add (make-line-stencil 0.20 -0.42 -0.42 0.42 0.42) (make-line-stencil 0.20 -0.42 0.42 0.42 -0.42))))
 #(define stencilSo (make-ppt-stencil (make-path-stencil '(moveto 0.0 -0.52 lineto 0.0 0.52 curveto 0.65 0.52 0.65 -0.52 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
-#(define stencilLe (make-ppt-stencil (make-polygon-stencil '((-0.56 . 0.48) (0.56 . 0.48) (0.0 . -0.52)) 0.0 1 #t)))
-#(define stencilLa (make-ppt-stencil (make-polygon-stencil '((-0.56 . -0.48) (0.56 . -0.48) (0.0 . 0.52)) 0.0 1 #t)))
-#(define stencilTe (make-ppt-stencil (make-polygon-stencil '((0.0 . -0.58) (0.58 . 0.0) (0.0 . 0.58) (-0.58 . 0.0)) 0.0 1 #t)))
-#(define stencilTi (make-ppt-stencil (make-polygon-stencil '((0.0 . -0.58) (0.58 . 0.0) (0.0 . 0.58) (-0.58 . 0.0)) 0.0 1 #t)))
+#(define stencilLe (make-ppt-stencil (make-path-stencil '(moveto -0.56 0.48 lineto 0.56 0.48 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
+#(define stencilLa (make-ppt-stencil (make-path-stencil '(moveto -0.56 -0.48 lineto 0.56 -0.48 lineto 0.0 0.52 closepath) 0.0 1.0 1.0 #t)))
+#(define stencilTe (make-ppt-stencil (make-path-stencil '(moveto 0.0 -0.58 lineto 0.58 0.0 lineto 0.0 0.58 lineto -0.58 0.0 closepath) 0.0 1.0 1.0 #t)))
+#(define stencilTi (make-ppt-stencil (make-path-stencil '(moveto 0.0 -0.58 lineto 0.58 0.0 lineto 0.0 0.58 lineto -0.58 0.0 closepath) 0.0 1.0 1.0 #t)))
+
 
 #(define (color-notehead-with-outline grob)
    (let* ((orig (ly:note-head::print grob))
@@ -322,12 +323,13 @@ export function compileToLilyPond(
   >>`;
 
   let preambles = '';
-  if (colorNotes) {
+  if (colorNotes || noteheadStyle === 'ppt') {
     preambles += `\n${PPT_SCHEME_COLOR_DEFINITIONS}`;
   }
   if (omitNaturals) {
     preambles += `\n${DROP_NATURALS_SCHEME_DEFINITION}`;
   }
+
 
   const outlineLayoutContext = noteheadOutline
     ? `    \\context {
