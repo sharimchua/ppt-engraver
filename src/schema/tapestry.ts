@@ -92,7 +92,8 @@ export const KnotSchema = z.object({
   harmonyClef: z.string().optional(),
   /** Notehead style: 'ppt' | 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default' */
   noteheadStyle: z.enum(['ppt', 'sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default']).optional(),
-
+  /** Whether to show harmony chords only when changed and at bar starts with whole noteheads (default: true) */
+  harmonyChangesOnly: z.boolean().optional(),
   /** Whether to omit stems on noteheads for unmetered notation */
   omitStem: z.boolean().optional(),
   /** Whether to colorize melody noteheads according to the PPT Solfège palette */

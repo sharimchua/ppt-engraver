@@ -62,6 +62,7 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
       harmonyClef: knotDef.harmonyClef,
       accidentalMode,
       noteheadStyle: knotDef.noteheadStyle,
+      harmonyChangesOnly: knotDef.harmonyChangesOnly,
       omitStem: knotDef.omitStem,
       colorNotes: knotDef.colorNotes,
       noteheadOutline: knotDef.noteheadOutline,
@@ -69,6 +70,7 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
     warnings,
   };
 }
+
 
 
 

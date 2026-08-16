@@ -70,8 +70,9 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('melodyVoice = {\n  \\clef "treble_8"');
     expect(ly).toContain('harmonyVoice = {\n  \\clef "bass_8"');
     // Bass_8 octave shift (-2) automatically places triads cleanly on the bass staff
-    expect(ly).toContain("<c, e, g,>4");
+    expect(ly).toContain("<c, e, g,>1*2/4");
   });
+
 
 
 
@@ -91,15 +92,24 @@ describe('compileToLilyPond', () => {
 
   it('emits harmony chords in treble register by default (octave 0)', () => {
     const ly = compileToLilyPond(sampleOnsets);
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c' e' g'>4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g' b' d''>4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c' e' g'>1*2/4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g' b' d''>1*1/4");
   });
 
   it('emits harmony chords in bass register when bass clef selected', () => {
     const ly = compileToLilyPond(sampleOnsets, { harmonyClef: 'bass' });
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c e g>4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g b d'>4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c e g>1*2/4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g b d'>1*1/4");
   });
+
+  it('allows repeating chord on every onset via harmonyChangesOnly: false', () => {
+    const ly = compileToLilyPond(sampleOnsets, { harmonyChangesOnly: false });
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c' e' g'>4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_2 <c' e' g'>4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g' b' d''>4");
+  });
+
+
 
 
   it('emits coil boundary barline between coils', () => {

@@ -132,8 +132,11 @@ export interface ResolvedKnot {
   accidentalMode?: AccidentalMode;
   /** Notehead style for melody engraving */
   noteheadStyle?: NoteheadStyle;
+  /** Whether to show harmony chords only when changed and at bar starts (default: true) */
+  harmonyChangesOnly?: boolean;
   /** Whether to omit stems in notation */
   omitStem?: boolean;
+
   /** Whether to colorize melody noteheads according to PPT Solfège palette */
   colorNotes?: boolean;
   /** Whether to draw a dark outline around colored noteheads for contrast */

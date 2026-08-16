@@ -62,6 +62,8 @@ export interface CompileOptions {
   doPitch?: string;
   /** Whether to omit stems on noteheads */
   omitStem?: boolean;
+  /** Whether to show harmony chords only when changed and at bar starts, using whole notehead durations (default: true) */
+  harmonyChangesOnly?: boolean;
   /** Whether to colorize melody noteheads according to the PPT Solfège palette */
   colorNotes?: boolean;
   /** Whether to draw a dark outline around colored noteheads for contrast (default: true when colorNotes is true) */
@@ -69,6 +71,7 @@ export interface CompileOptions {
   /** Whether to omit natural accidental signs on unmetered staves with hidden key signatures (default: true in shape-note mode) */
   omitNaturals?: boolean;
 }
+
 
 
 /**
@@ -352,8 +355,10 @@ export function compileToLilyPond(
 
   harmonyLines.push('  \\cadenzaOn');
 
-  let lastCoilId: string | null = null;
-  let lastWeaveId: string | null = null;
+  const harmonyChangesOnly = options.harmonyChangesOnly ?? true;
+
+  let lastMelodyCoilId: string | null = null;
+  let lastMelodyWeaveId: string | null = null;
 
   for (let i = 0; i < onsets.length; i++) {
     const onset = onsets[i];
@@ -361,13 +366,14 @@ export function compileToLilyPond(
     // Emit coil boundary barline when transitioning between distinct coils or repeating a coil
     if (
       i > 0 &&
-      (onset.onsetIndex === 1 || onset.coilId !== lastCoilId || onset.weaveId !== lastWeaveId)
+      (onset.onsetIndex === 1 ||
+        onset.coilId !== lastMelodyCoilId ||
+        onset.weaveId !== lastMelodyWeaveId)
     ) {
       melodyLines.push('  \\bar "|"');
-      harmonyLines.push('  \\bar "|"');
     }
-    lastCoilId = onset.coilId;
-    lastWeaveId = onset.weaveId;
+    lastMelodyCoilId = onset.coilId;
+    lastMelodyWeaveId = onset.weaveId;
 
     // Melody: \tag #'tag pitch4
     const melPitch = midiToLilyPondPitch(onset.midiNote, accMode, forceAccidentals);
@@ -378,19 +384,104 @@ export function compileToLilyPond(
       ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[onset.scaleDegree] ?? 'colorDo'} `
       : '';
     melodyLines.push(`  \\tag #'${onset.tag} ${stencilTweak}${colorTweak}${melPitch}${dur}`);
+  }
 
-    // Harmony: \tag #'tag <chord>4
-    const chord = chordMidiToLilyPond(
-      onset.chordMidi,
-      harmShift,
-      accMode,
-      forceAccidentals,
-    );
-    harmonyLines.push(`  \\tag #'${onset.tag} ${chord}${dur}`);
+  if (harmonyChangesOnly) {
+    // Group consecutive onsets within the same coil that share the same chord
+    const harmonyChunks: Array<{
+      tag: string;
+      chordMidi: number[];
+      spanCount: number;
+      isBarStart: boolean;
+    }> = [];
+
+    let currentChunk: {
+      tag: string;
+      chordMidi: number[];
+      spanCount: number;
+      isBarStart: boolean;
+      coilId: string;
+      weaveId: string;
+    } | null = null;
+
+    for (let i = 0; i < onsets.length; i++) {
+      const onset = onsets[i];
+      const isNewCoil =
+        i > 0 &&
+        (onset.onsetIndex === 1 ||
+          onset.coilId !== onsets[i - 1].coilId ||
+          onset.weaveId !== onsets[i - 1].weaveId);
+
+      const isSameChord =
+        currentChunk &&
+        !isNewCoil &&
+        currentChunk.chordMidi.length === onset.chordMidi.length &&
+        currentChunk.chordMidi.every((m, idx) => m === onset.chordMidi[idx]);
+
+      if (isSameChord && currentChunk) {
+        currentChunk.spanCount++;
+      } else {
+        if (currentChunk) {
+          harmonyChunks.push(currentChunk);
+        }
+        currentChunk = {
+          tag: onset.tag,
+          chordMidi: onset.chordMidi,
+          spanCount: 1,
+          isBarStart: isNewCoil,
+          coilId: onset.coilId,
+          weaveId: onset.weaveId,
+        };
+      }
+    }
+    if (currentChunk) {
+      harmonyChunks.push(currentChunk);
+    }
+
+    for (const chunk of harmonyChunks) {
+      if (chunk.isBarStart) {
+        harmonyLines.push('  \\bar "|"');
+      }
+      const chord = chordMidiToLilyPond(
+        chunk.chordMidi,
+        harmShift,
+        accMode,
+        forceAccidentals,
+      );
+      const chordDuration =
+        chunk.spanCount === 4
+          ? '1'
+          : `1*${chunk.spanCount}/4`;
+      harmonyLines.push(`  \\tag #'${chunk.tag} ${chord}${chordDuration}`);
+    }
+  } else {
+    let lastCoilId: string | null = null;
+    let lastWeaveId: string | null = null;
+
+    for (let i = 0; i < onsets.length; i++) {
+      const onset = onsets[i];
+      if (
+        i > 0 &&
+        (onset.onsetIndex === 1 || onset.coilId !== lastCoilId || onset.weaveId !== lastWeaveId)
+      ) {
+        harmonyLines.push('  \\bar "|"');
+      }
+      lastCoilId = onset.coilId;
+      lastWeaveId = onset.weaveId;
+
+      const chord = chordMidiToLilyPond(
+        onset.chordMidi,
+        harmShift,
+        accMode,
+        forceAccidentals,
+      );
+      harmonyLines.push(`  \\tag #'${onset.tag} ${chord}${dur}`);
+    }
   }
 
   melodyLines.push('  \\cadenzaOff');
   harmonyLines.push('  \\cadenzaOff');
+
 
 
 

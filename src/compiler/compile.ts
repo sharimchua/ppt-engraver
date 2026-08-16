@@ -56,6 +56,7 @@ export function compileFile(
     melodyClef: knot?.melodyClef,
     harmonyClef: knot?.harmonyClef,
     noteheadStyle: knot?.noteheadStyle,
+    harmonyChangesOnly: knot?.harmonyChangesOnly,
     omitStem: knot?.omitStem,
     colorNotes: knot?.colorNotes,
     noteheadOutline: knot?.noteheadOutline,
@@ -119,6 +120,7 @@ export function compileYamlString(
     melodyClef: knot?.melodyClef,
     harmonyClef: knot?.harmonyClef,
     noteheadStyle: knot?.noteheadStyle,
+    harmonyChangesOnly: knot?.harmonyChangesOnly,
     omitStem: knot?.omitStem,
     colorNotes: knot?.colorNotes,
     noteheadOutline: knot?.noteheadOutline,
@@ -127,6 +129,7 @@ export function compileYamlString(
     ...options,
   };
   const lilypondSource = compileToLilyPond(onsets, effectiveOptions);
+
 
   const sidecarMap = generateSidecarMap(onsets);
 
