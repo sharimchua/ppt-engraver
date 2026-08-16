@@ -37,8 +37,8 @@ export interface CompileOptions {
   harmonyOctaveShift?: number;
   /** Note duration placeholder string (default: "4" for quarter notes) */
   durationToken?: string;
-  /** Notehead style: 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default' */
-  noteheadStyle?: 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default';
+  /** Notehead style: 'ppt' | 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default' */
+  noteheadStyle?: 'ppt' | 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default';
   /** Pitch name of Do anchor (e.g. "Eb4", "C4") to align shape note heads to Do */
   doPitch?: string;
   /** Whether to omit stems on noteheads */
@@ -52,7 +52,16 @@ export interface CompileOptions {
 }
 
 /**
- * Scheme definitions for PPT Solfège Interval Palette & Notehead Outline Stencil
+ * Scheme definitions for PPT Solfège Interval Palette, Notehead Outline Stencil,
+ * and standard PPT Geometric Notehead Stencils:
+ * - Do (Tonic): Circle
+ * - Ra/Re (2nds): Square
+ * - Me/Le (m3/m6): Triangle Down
+ * - Mi/La (M3/M6): Triangle Up
+ * - Fa (P4): Half Circle Left
+ * - Fi (Tritone): Cross
+ * - So (P5): Half Circle Right
+ * - Te/Ti (7ths): Diamond
  */
 export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1 255.0) (/ #x36 255.0) (/ #x10 255.0)))
 #(define colorRe (rgb-color (/ #xF9 255.0) (/ #x80 255.0) (/ #x16 255.0)))
@@ -62,6 +71,38 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 #(define colorSo (rgb-color (/ #x00 255.0) (/ #x32 255.0) (/ #xA4 255.0)))
 #(define colorLa (rgb-color (/ #x53 255.0) (/ #x00 255.0) (/ #xA4 255.0)))
 #(define colorTi (rgb-color (/ #xF1 255.0) (/ #x58 255.0) (/ #xA4 255.0)))
+
+#(define (make-ppt-stencil base-stencil)
+   (lambda (grob)
+     (let* ((orig base-stencil)
+            (col (ly:grob-property grob 'color #f)))
+       (if (and col (list? col))
+           (let* ((black-stencil (stencil-with-color orig black))
+                  (colored-stencil (stencil-with-color orig col))
+                  (d 0.08))
+             (ly:stencil-add
+               (ly:stencil-translate black-stencil (cons (- d) 0))
+               (ly:stencil-translate black-stencil (cons d 0))
+               (ly:stencil-translate black-stencil (cons 0 (- d)))
+               (ly:stencil-translate black-stencil (cons 0 d))
+               (ly:stencil-translate black-stencil (cons (- d) (- d)))
+               (ly:stencil-translate black-stencil (cons d d))
+               (ly:stencil-translate black-stencil (cons (- d) d))
+               (ly:stencil-translate black-stencil (cons d (- d)))
+               colored-stencil))
+           orig))))
+
+#(define stencilDo (make-ppt-stencil (make-circle-stencil 0.52 0.0 #t)))
+#(define stencilRe (make-ppt-stencil (make-polygon-stencil '((-0.46 . -0.46) (0.46 . -0.46) (0.46 . 0.46) (-0.46 . 0.46)) 0.0 1 #t)))
+#(define stencilMe (make-ppt-stencil (make-polygon-stencil '((-0.56 . 0.48) (0.56 . 0.48) (0.0 . -0.52)) 0.0 1 #t)))
+#(define stencilMi (make-ppt-stencil (make-polygon-stencil '((-0.56 . -0.48) (0.56 . -0.48) (0.0 . 0.52)) 0.0 1 #t)))
+#(define stencilFa (make-ppt-stencil (make-path-stencil '(moveto 0.0 -0.52 lineto 0.0 0.52 curveto -0.65 0.52 -0.65 -0.52 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
+#(define stencilFi (make-ppt-stencil (ly:stencil-add (make-line-stencil 0.20 -0.42 -0.42 0.42 0.42) (make-line-stencil 0.20 -0.42 0.42 0.42 -0.42))))
+#(define stencilSo (make-ppt-stencil (make-path-stencil '(moveto 0.0 -0.52 lineto 0.0 0.52 curveto 0.65 0.52 0.65 -0.52 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
+#(define stencilLe (make-ppt-stencil (make-polygon-stencil '((-0.56 . 0.48) (0.56 . 0.48) (0.0 . -0.52)) 0.0 1 #t)))
+#(define stencilLa (make-ppt-stencil (make-polygon-stencil '((-0.56 . -0.48) (0.56 . -0.48) (0.0 . 0.52)) 0.0 1 #t)))
+#(define stencilTe (make-ppt-stencil (make-polygon-stencil '((0.0 . -0.58) (0.58 . 0.0) (0.0 . 0.58) (-0.58 . 0.0)) 0.0 1 #t)))
+#(define stencilTi (make-ppt-stencil (make-polygon-stencil '((0.0 . -0.58) (0.58 . 0.0) (0.0 . 0.58) (-0.58 . 0.0)) 0.0 1 #t)))
 
 #(define (color-notehead-with-outline grob)
    (let* ((orig (ly:note-head::print grob))
@@ -110,6 +151,26 @@ export const SOLFEGE_TO_SCHEME_COLOR: Record<string, string> = {
   Ti: 'colorTi',
 };
 
+export const SOLFEGE_TO_PPT_STENCIL: Record<string, string> = {
+  Do: 'stencilDo',
+  Ra: 'stencilRe',
+  Di: 'stencilRe',
+  Re: 'stencilRe',
+  Me: 'stencilMe',
+  Ri: 'stencilMe',
+  Mi: 'stencilMi',
+  Fa: 'stencilFa',
+  Se: 'stencilFa',
+  Fi: 'stencilFi',
+  So: 'stencilSo',
+  Le: 'stencilLe',
+  Si: 'stencilLe',
+  La: 'stencilLa',
+  Te: 'stencilTe',
+  Li: 'stencilTe',
+  Ti: 'stencilTi',
+};
+
 /**
  * Compiles an onset stream into a complete LilyPond source string (.ly).
  * 
@@ -132,9 +193,11 @@ export function compileToLilyPond(
   const omitStem = options.omitStem ?? false;
   const colorNotes = options.colorNotes ?? false;
   const noteheadOutline = options.noteheadOutline ?? (colorNotes ? true : false);
-  const isShapeNoteMode = ['sacredHarp', 'aiken', 'funk', 'walker'].includes(noteheadStyle);
+  const isTraditionalShapeNote = ['sacredHarp', 'aiken', 'funk', 'walker'].includes(noteheadStyle);
+  const isShapeNoteMode = noteheadStyle === 'ppt' || isTraditionalShapeNote;
   const omitNaturals = options.omitNaturals ?? isShapeNoteMode;
   const forceAccidentals = isShapeNoteMode;
+
   const accMode =
     options.accidentalMode ??
     (onsets.some(
@@ -152,7 +215,7 @@ export function compileToLilyPond(
   ];
 
   // Configure shape noteheads aligned with Do (tonic)
-  if (isShapeNoteMode) {
+  if (isTraditionalShapeNote) {
     let tonicDutch = 'c';
     if (options.doPitch) {
       try {
@@ -216,10 +279,13 @@ export function compileToLilyPond(
 
     // Melody: \tag #'tag pitch4
     const melPitch = midiToLilyPondPitch(onset.midiNote, accMode, forceAccidentals);
+    const stencilTweak = noteheadStyle === 'ppt'
+      ? `\\tweak NoteHead.stencil #${SOLFEGE_TO_PPT_STENCIL[onset.scaleDegree] ?? 'stencilDo'} `
+      : '';
     const colorTweak = colorNotes
       ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[onset.scaleDegree] ?? 'colorDo'} `
       : '';
-    melodyLines.push(`  \\tag #'${onset.tag} ${colorTweak}${melPitch}${dur}`);
+    melodyLines.push(`  \\tag #'${onset.tag} ${stencilTweak}${colorTweak}${melPitch}${dur}`);
 
     // Harmony: \tag #'tag <chord>4
     const chord = chordMidiToLilyPond(
@@ -233,6 +299,8 @@ export function compileToLilyPond(
 
   melodyLines.push('  \\cadenzaOff');
   harmonyLines.push('  \\cadenzaOff');
+
+
 
   const melodyVoiceStr = melodyLines.join('\n');
   const harmonyVoiceStr = harmonyLines.join('\n');

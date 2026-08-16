@@ -65,9 +65,10 @@ export const KnotSchema = z.object({
   tempo: z.number().positive().optional(),
   /** Global octave shift for harmony layer (e.g. 0 for treble register, -1 for bass register) */
   harmonyOctave: z.number().int().optional(),
-  /** Notehead style: 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default' */
-  noteheadStyle: z.enum(['sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default']).optional(),
+  /** Notehead style: 'ppt' | 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default' */
+  noteheadStyle: z.enum(['ppt', 'sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default']).optional(),
   /** Whether to omit stems on noteheads for unmetered notation */
+
   omitStem: z.boolean().optional(),
   /** Whether to colorize melody noteheads according to the PPT Solfège palette */
   colorNotes: z.boolean().optional(),

@@ -200,7 +200,21 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('#(define (drop-naturals-stencil grob)');
     expect(ly).toContain('\\override Accidental.stencil = #drop-naturals-stencil');
   });
+
+  it('engraves standard PPT geometric notehead shapes by default (noteheadStyle: ppt)', () => {
+    const ly = compileToLilyPond(sampleOnsets, {
+      noteheadStyle: 'ppt',
+      colorNotes: true,
+    });
+    expect(ly).toContain('#(define stencilDo');
+    expect(ly).toContain('#(define stencilMi');
+    expect(ly).toContain('#(define stencilTi');
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 \\tweak NoteHead.stencil #stencilDo \\tweak color #colorDo c'4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_2 \\tweak NoteHead.stencil #stencilMi \\tweak color #colorMi e'4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 \\tweak NoteHead.stencil #stencilTi \\tweak color #colorTi b'4");
+  });
 });
+
 
 
 
