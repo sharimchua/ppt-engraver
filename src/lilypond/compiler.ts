@@ -20,7 +20,6 @@ import {
 } from './pitch.js';
 import { pitchNameToMidi, getAccidentalModeFromPitchName } from '../solfege/pitch.js';
 
-
 export interface CompileOptions {
   /** LilyPond version string to emit (default: "2.24.4") */
   lilypondVersion?: string;
@@ -44,7 +43,52 @@ export interface CompileOptions {
   doPitch?: string;
   /** Whether to omit stems on noteheads */
   omitStem?: boolean;
+  /** Whether to colorize melody noteheads according to the PPT Solfège palette */
+  colorNotes?: boolean;
 }
+
+/**
+ * PPT Uniform Solfège Interval Palette
+ * Source: https://ppt.midlifemuso.com/reference/specifications/design-system/
+ * 
+ * - Do (Unison):     #E13610
+ * - Seconds (Ra, Re): #F98016
+ * - Thirds (Me, Mi):  #F5D432
+ * - Fourths (Fa):     #43A440
+ * - Tritone (Fi):     #141414
+ * - Fifths (So):      #0032A4
+ * - Sixths (Le, La):  #5300A4
+ * - Sevenths (Te, Ti):#F158A4
+ */
+export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1 255.0) (/ #x36 255.0) (/ #x10 255.0)))
+#(define colorRe (rgb-color (/ #xF9 255.0) (/ #x80 255.0) (/ #x16 255.0)))
+#(define colorMi (rgb-color (/ #xF5 255.0) (/ #xD4 255.0) (/ #x32 255.0)))
+#(define colorFa (rgb-color (/ #x43 255.0) (/ #xA4 255.0) (/ #x40 255.0)))
+#(define colorFi (rgb-color (/ #x14 255.0) (/ #x14 255.0) (/ #x14 255.0)))
+#(define colorSo (rgb-color (/ #x00 255.0) (/ #x32 255.0) (/ #xA4 255.0)))
+#(define colorLa (rgb-color (/ #x53 255.0) (/ #x00 255.0) (/ #xA4 255.0)))
+#(define colorTi (rgb-color (/ #xF1 255.0) (/ #x58 255.0) (/ #xA4 255.0)))
+`;
+
+export const SOLFEGE_TO_SCHEME_COLOR: Record<string, string> = {
+  Do: 'colorDo',
+  Ra: 'colorRe',
+  Di: 'colorRe',
+  Re: 'colorRe',
+  Me: 'colorMi',
+  Ri: 'colorMi',
+  Mi: 'colorMi',
+  Fa: 'colorFa',
+  Se: 'colorFa',
+  Fi: 'colorFi',
+  So: 'colorSo',
+  Le: 'colorLa',
+  Si: 'colorLa',
+  La: 'colorLa',
+  Te: 'colorTi',
+  Li: 'colorTi',
+  Ti: 'colorTi',
+};
 
 /**
  * Compiles an onset stream into a complete LilyPond source string (.ly).
@@ -66,6 +110,7 @@ export function compileToLilyPond(
   const dur = options.durationToken ?? '4';
   const noteheadStyle = options.noteheadStyle ?? 'default';
   const omitStem = options.omitStem ?? false;
+  const colorNotes = options.colorNotes ?? false;
   const accMode =
     options.accidentalMode ??
     (onsets.some(
@@ -128,7 +173,6 @@ export function compileToLilyPond(
 
   harmonyLines.push('  \\cadenzaOn');
 
-
   let lastCoilId: string | null = null;
   let lastWeaveId: string | null = null;
 
@@ -151,7 +195,10 @@ export function compileToLilyPond(
 
     // Melody: \tag #'tag pitch4
     const melPitch = midiToLilyPondPitch(onset.midiNote, accMode, forceAccidentals);
-    melodyLines.push(`  \\tag #'${onset.tag} ${melPitch}${dur}`);
+    const colorTweak = colorNotes
+      ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[onset.scaleDegree] ?? 'colorDo'} `
+      : '';
+    melodyLines.push(`  \\tag #'${onset.tag} ${colorTweak}${melPitch}${dur}`);
 
     // Harmony: \tag #'tag <chord>4
     const chord = chordMidiToLilyPond(
@@ -162,7 +209,6 @@ export function compileToLilyPond(
     );
     harmonyLines.push(`  \\tag #'${onset.tag} ${chord}${dur}`);
   }
-
 
   melodyLines.push('  \\cadenzaOff');
   harmonyLines.push('  \\cadenzaOff');
@@ -186,8 +232,10 @@ export function compileToLilyPond(
     \\new Staff \\harmonyVoice
   >>`;
 
-  return `\\version "${version}"
+  const colorPreamble = colorNotes ? `\n${PPT_SCHEME_COLOR_DEFINITIONS}\n` : '';
 
+  return `\\version "${version}"
+${colorPreamble}
 melodyVoice = {
 ${melodyVoiceStr}
 }
@@ -207,6 +255,8 @@ ${scoreBody}
 }
 `;
 }
+
+
 
 
 

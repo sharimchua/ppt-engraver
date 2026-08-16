@@ -48,6 +48,7 @@ export function compileFile(
   const effectiveOptions: CompileFileOptions = {
     noteheadStyle: knot?.noteheadStyle,
     omitStem: knot?.omitStem,
+    colorNotes: knot?.colorNotes,
     doPitch: knot?.doName,
     accidentalMode: knot?.accidentalMode,
     ...options,
@@ -100,6 +101,7 @@ export function compileYamlString(
   const effectiveOptions: CompileOptions = {
     noteheadStyle: knot?.noteheadStyle,
     omitStem: knot?.omitStem,
+    colorNotes: knot?.colorNotes,
     doPitch: knot?.doName,
     accidentalMode: knot?.accidentalMode,
     ...options,
@@ -114,4 +116,5 @@ export function compileYamlString(
     warnings,
   };
 }
+
 

@@ -172,7 +172,18 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('\\omit Staff.KeySignature');
     expect(ly).toContain('\\aikenHeads');
   });
+
+  it('engraves PPT Solfège colors on melody noteheads when colorNotes is true', () => {
+    const ly = compileToLilyPond(sampleOnsets, { colorNotes: true });
+    expect(ly).toContain('#(define colorDo');
+    expect(ly).toContain('#(define colorMi');
+    expect(ly).toContain('#(define colorTi');
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 \\tweak color #colorDo c'4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_2 \\tweak color #colorMi e'4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 \\tweak color #colorTi b'4");
+  });
 });
+
 
 
 

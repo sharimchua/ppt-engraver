@@ -54,9 +54,11 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
       accidentalMode,
       noteheadStyle: knotDef.noteheadStyle,
       omitStem: knotDef.omitStem,
+      colorNotes: knotDef.colorNotes,
     },
     warnings,
   };
 }
+
 
 
