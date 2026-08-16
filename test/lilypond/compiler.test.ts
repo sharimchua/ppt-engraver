@@ -178,11 +178,19 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('#(define colorDo');
     expect(ly).toContain('#(define colorMi');
     expect(ly).toContain('#(define colorTi');
+    expect(ly).toContain('#(define (color-notehead-with-outline grob)');
+    expect(ly).toContain('\\override NoteHead.stencil = #color-notehead-with-outline');
     expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 \\tweak color #colorDo c'4");
     expect(ly).toContain("\\tag #'ppt_verse_introMotif_2 \\tweak color #colorMi e'4");
     expect(ly).toContain("\\tag #'ppt_verse_cadence_1 \\tweak color #colorTi b'4");
   });
+
+  it('allows disabling noteheadOutline when colorNotes is true', () => {
+    const ly = compileToLilyPond(sampleOnsets, { colorNotes: true, noteheadOutline: false });
+    expect(ly).not.toContain('\\override NoteHead.stencil = #color-notehead-with-outline');
+  });
 });
+
 
 
 

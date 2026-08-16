@@ -71,7 +71,10 @@ export const KnotSchema = z.object({
   omitStem: z.boolean().optional(),
   /** Whether to colorize melody noteheads according to the PPT Solfège palette */
   colorNotes: z.boolean().optional(),
+  /** Whether to draw a dark outline around colored noteheads for contrast */
+  noteheadOutline: z.boolean().optional(),
 });
+
 
 
 

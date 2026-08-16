@@ -117,7 +117,10 @@ export interface ResolvedKnot {
   omitStem?: boolean;
   /** Whether to colorize melody noteheads according to PPT Solfège palette */
   colorNotes?: boolean;
+  /** Whether to draw a dark outline around colored noteheads for contrast */
+  noteheadOutline?: boolean;
 }
+
 
 
 

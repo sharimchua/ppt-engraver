@@ -49,6 +49,7 @@ export function compileFile(
     noteheadStyle: knot?.noteheadStyle,
     omitStem: knot?.omitStem,
     colorNotes: knot?.colorNotes,
+    noteheadOutline: knot?.noteheadOutline,
     doPitch: knot?.doName,
     accidentalMode: knot?.accidentalMode,
     ...options,
@@ -102,6 +103,7 @@ export function compileYamlString(
     noteheadStyle: knot?.noteheadStyle,
     omitStem: knot?.omitStem,
     colorNotes: knot?.colorNotes,
+    noteheadOutline: knot?.noteheadOutline,
     doPitch: knot?.doName,
     accidentalMode: knot?.accidentalMode,
     ...options,
@@ -116,5 +118,6 @@ export function compileYamlString(
     warnings,
   };
 }
+
 
 

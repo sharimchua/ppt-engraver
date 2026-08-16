@@ -45,6 +45,8 @@ export interface CompileOptions {
   omitStem?: boolean;
   /** Whether to colorize melody noteheads according to the PPT Solfège palette */
   colorNotes?: boolean;
+  /** Whether to draw a dark outline around colored noteheads for contrast (default: true when colorNotes is true) */
+  noteheadOutline?: boolean;
 }
 
 /**
@@ -68,7 +70,27 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 #(define colorSo (rgb-color (/ #x00 255.0) (/ #x32 255.0) (/ #xA4 255.0)))
 #(define colorLa (rgb-color (/ #x53 255.0) (/ #x00 255.0) (/ #xA4 255.0)))
 #(define colorTi (rgb-color (/ #xF1 255.0) (/ #x58 255.0) (/ #xA4 255.0)))
+
+#(define (color-notehead-with-outline grob)
+   (let* ((orig (ly:note-head::print grob))
+          (col (ly:grob-property grob 'color #f)))
+     (if (and col (list? col))
+         (let* ((black-stencil (stencil-with-color orig black))
+                (colored-stencil (stencil-with-color orig col))
+                (d 0.08))
+           (ly:stencil-add
+             (ly:stencil-translate black-stencil (cons (- d) 0))
+             (ly:stencil-translate black-stencil (cons d 0))
+             (ly:stencil-translate black-stencil (cons 0 (- d)))
+             (ly:stencil-translate black-stencil (cons 0 d))
+             (ly:stencil-translate black-stencil (cons (- d) (- d)))
+             (ly:stencil-translate black-stencil (cons d d))
+             (ly:stencil-translate black-stencil (cons (- d) d))
+             (ly:stencil-translate black-stencil (cons d (- d)))
+             colored-stencil))
+         orig)))
 `;
+
 
 export const SOLFEGE_TO_SCHEME_COLOR: Record<string, string> = {
   Do: 'colorDo',
@@ -111,6 +133,7 @@ export function compileToLilyPond(
   const noteheadStyle = options.noteheadStyle ?? 'default';
   const omitStem = options.omitStem ?? false;
   const colorNotes = options.colorNotes ?? false;
+  const noteheadOutline = options.noteheadOutline ?? (colorNotes ? true : false);
   const accMode =
     options.accidentalMode ??
     (onsets.some(
@@ -233,6 +256,12 @@ export function compileToLilyPond(
   >>`;
 
   const colorPreamble = colorNotes ? `\n${PPT_SCHEME_COLOR_DEFINITIONS}\n` : '';
+  const outlineLayoutContext = noteheadOutline
+    ? `    \\context {
+      \\Voice
+      \\override NoteHead.stencil = #color-notehead-with-outline
+    }\n`
+    : '';
 
   return `\\version "${version}"
 ${colorPreamble}
@@ -247,7 +276,7 @@ ${harmonyVoiceStr}
 \\score {
 ${scoreBody}
   \\layout {
-    \\context {
+${outlineLayoutContext}    \\context {
       \\Staff
       \\remove "Time_signature_engraver"
     }
@@ -255,6 +284,7 @@ ${scoreBody}
 }
 `;
 }
+
 
 
 
