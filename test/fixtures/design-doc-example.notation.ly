@@ -1,6 +1,7 @@
 \version "2.24.4"
 
 melodyVoice = {
+  \clef treble
   \cadenzaOn
   \tag #'ppt_verse_introMotif_1 c'4
   \tag #'ppt_verse_introMotif_2 e'4
@@ -13,15 +14,15 @@ melodyVoice = {
 }
 
 harmonyVoice = {
-  \clef bass
+  \clef treble
   \cadenzaOn
-  \tag #'ppt_verse_introMotif_1 <c e g>4
-  \tag #'ppt_verse_introMotif_2 <c e g>4
-  \tag #'ppt_verse_introMotif_3 <c e g>4
-  \tag #'ppt_verse_introMotif_4 <c e g>4
+  \tag #'ppt_verse_introMotif_1 <c' e' g'>4
+  \tag #'ppt_verse_introMotif_2 <c' e' g'>4
+  \tag #'ppt_verse_introMotif_3 <c' e' g'>4
+  \tag #'ppt_verse_introMotif_4 <c' e' g'>4
   \bar "|"
-  \tag #'ppt_verse_cadence_1 <g b d'>4
-  \tag #'ppt_verse_cadence_2 <g b d'>4
+  \tag #'ppt_verse_cadence_1 <g' b' d''>4
+  \tag #'ppt_verse_cadence_2 <g' b' d''>4
   \cadenzaOff
 }
 

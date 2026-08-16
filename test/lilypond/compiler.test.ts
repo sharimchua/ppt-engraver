@@ -51,9 +51,15 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('\\remove "Time_signature_engraver"');
   });
 
-  it('emits bass clef on harmonyVoice by default', () => {
+  it('emits explicit clefs on melodyVoice and harmonyVoice', () => {
     const ly = compileToLilyPond(sampleOnsets);
-    expect(ly).toContain('harmonyVoice = {\n  \\clef bass');
+    expect(ly).toContain('melodyVoice = {\n  \\clef treble\n  \\cadenzaOn');
+    expect(ly).toContain('harmonyVoice = {\n  \\clef treble\n  \\cadenzaOn');
+  });
+
+  it('allows custom clef for harmonyVoice', () => {
+    const ly = compileToLilyPond(sampleOnsets, { harmonyClef: 'bass' });
+    expect(ly).toContain('harmonyVoice = {\n  \\clef bass\n  \\cadenzaOn');
   });
 
   it('emits cadenzaOn and cadenzaOff in voices', () => {
@@ -62,7 +68,6 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('\\cadenzaOff');
   });
 
-
   it('emits tags with native LilyPond tag syntax', () => {
     const ly = compileToLilyPond(sampleOnsets);
     expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 c'4");
@@ -70,11 +75,18 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain("\\tag #'ppt_verse_cadence_1 b'4");
   });
 
-  it('emits harmony chords in lower staff register', () => {
+  it('emits harmony chords in treble register by default (octave 0)', () => {
     const ly = compileToLilyPond(sampleOnsets);
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c' e' g'>4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g' b' d''>4");
+  });
+
+  it('emits harmony chords in bass register when bass clef selected', () => {
+    const ly = compileToLilyPond(sampleOnsets, { harmonyClef: 'bass' });
     expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c e g>4");
     expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g b d'>4");
   });
+
 
   it('emits coil boundary barline between coils', () => {
     const ly = compileToLilyPond(sampleOnsets);

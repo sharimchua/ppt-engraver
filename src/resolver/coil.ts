@@ -98,6 +98,7 @@ export function resolveCoil(
     harmony,
     melody.length,
     knot,
+    resolvedLayers.harmonyOctave ?? 0,
   );
   
   // --- Pair melody + harmony into onsets ---
@@ -115,6 +116,7 @@ interface ResolvedLayers {
   melody?: string[];
   harmony?: string[];
   rhythm?: string;
+  harmonyOctave?: number;
 }
 
 /**
@@ -131,6 +133,7 @@ function inheritCoilLayers(
   if (coil.melody && coil.melody.length > 0) result.melody = coil.melody;
   if (coil.harmony && coil.harmony.length > 0) result.harmony = coil.harmony;
   if (coil.rhythm) result.rhythm = coil.rhythm;
+  if (coil.harmonyOctave !== undefined) result.harmonyOctave = coil.harmonyOctave;
   
   // 2. Parents in priority order
   if (coil.parents && coil.parents.length > 0) {
@@ -150,6 +153,9 @@ function inheritCoilLayers(
       if (!result.rhythm && parent.rhythm) {
         result.rhythm = parent.rhythm;
       }
+      if (result.harmonyOctave === undefined && parent.harmonyOctave !== undefined) {
+        result.harmonyOctave = parent.harmonyOctave;
+      }
     }
   }
   
@@ -164,10 +170,14 @@ function inheritCoilLayers(
     if (!result.rhythm && defaultCoil.rhythm) {
       result.rhythm = defaultCoil.rhythm;
     }
+    if (result.harmonyOctave === undefined && defaultCoil.harmonyOctave !== undefined) {
+      result.harmonyOctave = defaultCoil.harmonyOctave;
+    }
   }
   
   return result;
 }
+
 
 
 /** Internal: resolved melody pitch info */
@@ -246,17 +256,19 @@ function resolveHarmony(
   harmony: string[],
   melodyLength: number,
   knot: ResolvedKnot,
+  harmonyOctave: number = 0,
 ): HarmonyChord[] {
   // Resolve each chord root to a triad
   const chords: HarmonyChord[] = harmony.map(token => {
     const parsed = parseHarmonyChord(token);
     const semitone = solfegeToSemitone(parsed.rootSyllable);
-    const rootMidi = knot.doMidi + semitone;
+    const rootMidi = knot.doMidi + semitone + (harmonyOctave * 12);
     return {
       triad: buildChordFromToken(rootMidi, token),
       root: token,
     };
   });
+
 
   
   // Distribute chords across melody onsets (stretch mode)

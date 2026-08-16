@@ -17,11 +17,11 @@ import { midiToLilyPondPitch, chordMidiToLilyPond } from './pitch.js';
 export interface CompileOptions {
   /** LilyPond version string to emit (default: "2.24.4") */
   lilypondVersion?: string;
-  /** Clef for the melody staff (default: "treble", omitted if treble) */
+  /** Clef for the melody staff (default: "treble") */
   melodyClef?: string;
-  /** Clef for the harmony staff (default: "bass") */
+  /** Clef for the harmony staff (default: "treble") */
   harmonyClef?: string;
-  /** Octave transposition for harmony triads (default: -1 for lower staff register) */
+  /** Octave transposition for harmony triads (default: 0 for treble, -1 for bass) */
   harmonyOctaveShift?: number;
   /** Note duration placeholder string (default: "4" for quarter notes) */
   durationToken?: string;
@@ -39,21 +39,21 @@ export function compileToLilyPond(
   options: CompileOptions = {},
 ): string {
   const version = options.lilypondVersion ?? '2.24.4';
-  const harmShift = options.harmonyOctaveShift ?? -1;
+  const melClef = options.melodyClef ?? 'treble';
+  const harmClef = options.harmonyClef ?? 'treble';
+  const harmShift = options.harmonyOctaveShift ?? (harmClef === 'bass' ? -1 : 0);
   const dur = options.durationToken ?? '4';
-  const harmClef = options.harmonyClef ?? 'bass';
 
-  const melodyLines: string[] = [];
-  if (options.melodyClef && options.melodyClef !== 'treble') {
-    melodyLines.push(`  \\clef ${options.melodyClef}`);
-  }
-  melodyLines.push('  \\cadenzaOn');
+  const melodyLines: string[] = [
+    `  \\clef ${melClef}`,
+    '  \\cadenzaOn',
+  ];
 
-  const harmonyLines: string[] = [];
-  if (harmClef) {
-    harmonyLines.push(`  \\clef ${harmClef}`);
-  }
-  harmonyLines.push('  \\cadenzaOn');
+  const harmonyLines: string[] = [
+    `  \\clef ${harmClef}`,
+    '  \\cadenzaOn',
+  ];
+
 
 
   let lastCoilId: string | null = null;

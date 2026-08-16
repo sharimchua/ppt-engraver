@@ -250,20 +250,33 @@ export function buildMajorTriad(rootMidi: number): [number, number, number] {
 
 /**
  * Parsed representation of a harmony chord token.
- * E.g. "Do" (major triad), "DoMe" (minor triad), "DoTe" (dominant 7th), "So"
+ * E.g. "Do" (major triad), "DoMe" (minor triad), "DoTe" (dominant 7th), "So^", "Do_"
  */
 export interface ParsedHarmonyChord {
   rootSyllable: string;
   modifiers: string[];
+  octaveShift: number;
   quality: 'major' | 'minor' | 'dominant7' | 'minor7' | 'diminished' | 'augmented' | 'custom';
 }
 
 /**
- * Parses a harmony chord token like "Do", "DoMe", "So", "DoTe".
- * The first solfège syllable is the root; any trailing syllables are modifier/alteration subscripts.
+ * Parses a harmony chord token like "Do", "DoMe", "So", "DoTe", "So^", "Do_".
+ * The first solfège syllable is the root; trailing solfège syllables are modifiers;
+ * trailing ^/_ are octave shifts.
  */
 export function parseHarmonyChord(token: string): ParsedHarmonyChord {
-  const match = token.match(/^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(.*)$/);
+  let remaining = token;
+  let octaveShift = 0;
+  while (remaining.endsWith('^')) {
+    octaveShift++;
+    remaining = remaining.slice(0, -1);
+  }
+  while (remaining.endsWith('_')) {
+    octaveShift--;
+    remaining = remaining.slice(0, -1);
+  }
+
+  const match = remaining.match(/^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(.*)$/);
   if (!match) {
     throw new Error(`Invalid harmony chord token: "${token}"`);
   }
@@ -288,25 +301,28 @@ export function parseHarmonyChord(token: string): ParsedHarmonyChord {
     quality = 'diminished';
   }
 
-  return { rootSyllable, modifiers: modifierMatches, quality };
+  return { rootSyllable, modifiers: modifierMatches, octaveShift, quality };
 }
 
 /**
  * Builds chord tones (MIDI notes) for a harmony token relative to root MIDI.
  * Default is a major triad [root, root+4, root+7].
  * If minor (e.g. "DoMe"), builds [root, root+3, root+7].
+ * Applies any octave shifts (^ or _) from the token.
  */
 export function buildChordFromToken(rootMidi: number, chordToken: string): number[] {
   const parsed = parseHarmonyChord(chordToken);
+  const shiftedRoot = rootMidi + (parsed.octaveShift * 12);
   if (parsed.quality === 'minor') {
-    return [rootMidi, rootMidi + 3, rootMidi + 7];
+    return [shiftedRoot, shiftedRoot + 3, shiftedRoot + 7];
   } else if (parsed.quality === 'minor7') {
-    return [rootMidi, rootMidi + 3, rootMidi + 7, rootMidi + 10];
+    return [shiftedRoot, shiftedRoot + 3, shiftedRoot + 7, shiftedRoot + 10];
   } else if (parsed.quality === 'dominant7') {
-    return [rootMidi, rootMidi + 4, rootMidi + 7, rootMidi + 10];
+    return [shiftedRoot, shiftedRoot + 4, shiftedRoot + 7, shiftedRoot + 10];
   } else if (parsed.quality === 'diminished') {
-    return [rootMidi, rootMidi + 3, rootMidi + 6];
+    return [shiftedRoot, shiftedRoot + 3, shiftedRoot + 6];
   }
-  return [rootMidi, rootMidi + 4, rootMidi + 7];
+  return [shiftedRoot, shiftedRoot + 4, shiftedRoot + 7];
 }
+
 

@@ -25,11 +25,11 @@ const SolfegePitchToken = z.string().refine(
 );
 
 /**
- * Solfège syllable for harmony roots and chord alterations (e.g. "Do", "DoMe", "So", "DoTe").
+ * Solfège syllable for harmony roots and chord alterations (e.g. "Do", "DoMe", "So^", "Do_").
  */
 const SolfegeHarmonyRoot = z.string().regex(
-  /^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(?:(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti))*$/,
-  'Must be a valid solfège harmony token (e.g. "Do", "DoMe", "So")'
+  /^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(?:(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti))*(?:\^+|_*)?$/,
+  'Must be a valid solfège harmony token (e.g. "Do", "DoMe", "So^", "Do_")'
 );
 
 
@@ -41,7 +41,7 @@ const RhythmLabel = z.enum(['DoSo', 'DoRe', 'DoLa', 'DoMi', 'DoSi', 'DoFi']);
 
 /**
  * Knot: absolute pitch/tempo anchor.
- * Provides the concrete value for Do and an optional tempo.
+ * Provides the concrete value for Do and an optional tempo and default harmony octave offset.
  */
 export const KnotSchema = z.object({
   /** Absolute pitch anchor for Do, e.g. "C4", "Eb4", "F#3" */
@@ -51,6 +51,8 @@ export const KnotSchema = z.object({
   ),
   /** Tempo in BPM — accepted but unused in v1 */
   tempo: z.number().positive().optional(),
+  /** Global octave shift for harmony layer (e.g. 0 for treble register, -1 for bass register) */
+  harmonyOctave: z.number().int().optional(),
 });
 
 
@@ -69,7 +71,8 @@ export const CoilSchema = z.object({
   melody: z.array(SolfegePitchToken).min(1).optional(),
   /** Harmony layer: array of chord root solfège syllables */
   harmony: z.array(SolfegeHarmonyRoot).min(1).optional(),
-
+  /** Optional octave shift for this coil's harmony layer (e.g. 0, -1, 1) */
+  harmonyOctave: z.number().int().optional(),
 });
 
 /**
