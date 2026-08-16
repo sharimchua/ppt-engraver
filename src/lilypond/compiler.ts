@@ -74,7 +74,12 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 
 #(define (make-ppt-stencil base-stencil)
    (lambda (grob)
-     (let* ((orig base-stencil)
+     (let* ((default-stencil (ly:note-head::print grob))
+            (x-ext (if (ly:stencil? default-stencil)
+                       (ly:stencil-extent default-stencil X)
+                       '(0.0 . 1.30)))
+            (x-center (/ (+ (car x-ext) (cdr x-ext)) 2.0))
+            (orig (ly:stencil-translate-axis base-stencil x-center X))
             (col (ly:grob-property grob 'color #f)))
        (if (and col (list? col))
            (let* ((black-stencil (stencil-with-color orig black))
@@ -91,6 +96,7 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
                (ly:stencil-translate black-stencil (cons d (- d)))
                colored-stencil))
            orig))))
+
 
 #(define stencilDo (make-ppt-stencil (make-circle-stencil 0.52 0.0 #t)))
 #(define stencilRe (make-ppt-stencil (make-path-stencil '(moveto -0.50 -0.48 lineto 0.50 -0.48 lineto 0.50 0.48 lineto -0.50 0.48 closepath) 0.0 1.0 1.0 #t)))
