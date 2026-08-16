@@ -110,7 +110,7 @@
       "midiNote": 71
     },
     "harmony": {
-      "root": "So",
+      "root": "So^",
       "quality": "major",
       "chordTones": [
         "G4",
@@ -135,7 +135,7 @@
       "midiNote": 72
     },
     "harmony": {
-      "root": "So",
+      "root": "So^",
       "quality": "major",
       "chordTones": [
         "G4",

@@ -12,12 +12,14 @@ import type { ResolvedKnot } from '../solfege/pitch.js';
 import {
   parsePitch,
   solfegeToSemitone,
+  solfegeToNearestAddress,
   resolveAbsolutePitch,
   resolveInterval,
   buildChordFromToken,
   parseHarmonyChord,
   midiToPitchName,
 } from '../solfege/pitch.js';
+
 
 
 /** A single resolved onset from a coil (before tagging) */
@@ -258,16 +260,17 @@ function resolveHarmony(
   knot: ResolvedKnot,
   harmonyOctave: number = 0,
 ): HarmonyChord[] {
-  // Resolve each chord root to a triad
+  // Resolve each chord root to a triad using centered Do coordinates (-5 to +6)
   const chords: HarmonyChord[] = harmony.map(token => {
     const parsed = parseHarmonyChord(token);
-    const semitone = solfegeToSemitone(parsed.rootSyllable);
+    const semitone = solfegeToNearestAddress(parsed.rootSyllable);
     const rootMidi = knot.doMidi + semitone + (harmonyOctave * 12);
     return {
       triad: buildChordFromToken(rootMidi, token),
       root: token,
     };
   });
+
 
 
   

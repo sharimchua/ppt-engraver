@@ -20,5 +20,6 @@ tapestry:
           id: cadence
           rhythm: DoSo
           melody: ["Ti^", "Do^"]
-          harmony: [So]
+          harmony: ["So^"]
+
 
