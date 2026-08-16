@@ -189,7 +189,19 @@ describe('compileToLilyPond', () => {
     const ly = compileToLilyPond(sampleOnsets, { colorNotes: true, noteheadOutline: false });
     expect(ly).not.toContain('\\override NoteHead.stencil = #color-notehead-with-outline');
   });
+
+  it('omits natural signs in shape-note mode by default to prevent unwanted naturals from hidden key signature', () => {
+    const ly = compileToLilyPond(sampleOnsets, {
+      noteheadStyle: 'sacredHarp',
+      doPitch: 'A4',
+    });
+    expect(ly).toContain('\\key a \\major');
+    expect(ly).toContain('\\omit Staff.KeySignature');
+    expect(ly).toContain('#(define (drop-naturals-stencil grob)');
+    expect(ly).toContain('\\override Accidental.stencil = #drop-naturals-stencil');
+  });
 });
+
 
 
 

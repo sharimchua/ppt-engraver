@@ -47,20 +47,12 @@ export interface CompileOptions {
   colorNotes?: boolean;
   /** Whether to draw a dark outline around colored noteheads for contrast (default: true when colorNotes is true) */
   noteheadOutline?: boolean;
+  /** Whether to omit natural accidental signs on unmetered staves with hidden key signatures (default: true in shape-note mode) */
+  omitNaturals?: boolean;
 }
 
 /**
- * PPT Uniform Solfège Interval Palette
- * Source: https://ppt.midlifemuso.com/reference/specifications/design-system/
- * 
- * - Do (Unison):     #E13610
- * - Seconds (Ra, Re): #F98016
- * - Thirds (Me, Mi):  #F5D432
- * - Fourths (Fa):     #43A440
- * - Tritone (Fi):     #141414
- * - Fifths (So):      #0032A4
- * - Sixths (Le, La):  #5300A4
- * - Sevenths (Te, Ti):#F158A4
+ * Scheme definitions for PPT Solfège Interval Palette & Notehead Outline Stencil
  */
 export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1 255.0) (/ #x36 255.0) (/ #x10 255.0)))
 #(define colorRe (rgb-color (/ #xF9 255.0) (/ #x80 255.0) (/ #x16 255.0)))
@@ -91,6 +83,12 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
          orig)))
 `;
 
+export const DROP_NATURALS_SCHEME_DEFINITION = `#(define (drop-naturals-stencil grob)
+   (let ((alt (ly:grob-property grob 'alteration 0)))
+     (if (and (number? alt) (= alt 0))
+         #f
+         (ly:accidental-interface::print grob))))
+`;
 
 export const SOLFEGE_TO_SCHEME_COLOR: Record<string, string> = {
   Do: 'colorDo',
@@ -134,6 +132,9 @@ export function compileToLilyPond(
   const omitStem = options.omitStem ?? false;
   const colorNotes = options.colorNotes ?? false;
   const noteheadOutline = options.noteheadOutline ?? (colorNotes ? true : false);
+  const isShapeNoteMode = ['sacredHarp', 'aiken', 'funk', 'walker'].includes(noteheadStyle);
+  const omitNaturals = options.omitNaturals ?? isShapeNoteMode;
+  const forceAccidentals = isShapeNoteMode;
   const accMode =
     options.accidentalMode ??
     (onsets.some(
@@ -151,7 +152,7 @@ export function compileToLilyPond(
   ];
 
   // Configure shape noteheads aligned with Do (tonic)
-  if (['sacredHarp', 'aiken', 'funk', 'walker'].includes(noteheadStyle)) {
+  if (isShapeNoteMode) {
     let tonicDutch = 'c';
     if (options.doPitch) {
       try {
@@ -198,9 +199,6 @@ export function compileToLilyPond(
 
   let lastCoilId: string | null = null;
   let lastWeaveId: string | null = null;
-
-  const isShapeNoteMode = ['sacredHarp', 'aiken', 'funk', 'walker'].includes(noteheadStyle);
-  const forceAccidentals = isShapeNoteMode;
 
   for (let i = 0; i < onsets.length; i++) {
     const onset = onsets[i];
@@ -255,7 +253,14 @@ export function compileToLilyPond(
     \\new Staff \\harmonyVoice
   >>`;
 
-  const colorPreamble = colorNotes ? `\n${PPT_SCHEME_COLOR_DEFINITIONS}\n` : '';
+  let preambles = '';
+  if (colorNotes) {
+    preambles += `\n${PPT_SCHEME_COLOR_DEFINITIONS}`;
+  }
+  if (omitNaturals) {
+    preambles += `\n${DROP_NATURALS_SCHEME_DEFINITION}`;
+  }
+
   const outlineLayoutContext = noteheadOutline
     ? `    \\context {
       \\Voice
@@ -263,8 +268,12 @@ export function compileToLilyPond(
     }\n`
     : '';
 
+  const dropNaturalsContext = omitNaturals
+    ? `      \\override Accidental.stencil = #drop-naturals-stencil\n`
+    : '';
+
   return `\\version "${version}"
-${colorPreamble}
+${preambles}
 melodyVoice = {
 ${melodyVoiceStr}
 }
@@ -279,11 +288,12 @@ ${scoreBody}
 ${outlineLayoutContext}    \\context {
       \\Staff
       \\remove "Time_signature_engraver"
-    }
+${dropNaturalsContext}    }
   }
 }
 `;
 }
+
 
 
 
