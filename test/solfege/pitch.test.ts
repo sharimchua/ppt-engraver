@@ -11,6 +11,8 @@ import {
   buildMajorTriad,
   parseHarmonyChord,
   buildChordFromToken,
+  getSolfegeGlyphSpec,
+  semitoneIntervalToSolfege,
 } from '../../src/solfege/pitch.js';
 
 
@@ -258,6 +260,206 @@ describe('buildChordFromToken & parseHarmonyChord', () => {
     const chord = buildChordFromToken(fittedRoot, 'Fa');
     // D4 (62), F#4 (66), A4 (69) -> D major
     expect(chord).toEqual([62, 66, 69]);
+  });
+
+  it('parses harmony chords with axis diacritic (x) on root and modifiers', () => {
+    expect(parseHarmonyChord('Dox')).toEqual({
+      rootSyllable: 'Do',
+      hasAxis: true,
+      modifiers: [],
+      octaveShift: 0,
+      quality: 'major',
+    });
+
+    expect(parseHarmonyChord('DoMe')).toEqual({
+      rootSyllable: 'Do',
+      hasAxis: false,
+      modifiers: [{ syllable: 'Me', hasAxis: false }],
+      octaveShift: 0,
+      quality: 'minor',
+    });
+
+    expect(parseHarmonyChord('DoxMe')).toEqual({
+      rootSyllable: 'Do',
+      hasAxis: true,
+      modifiers: [{ syllable: 'Me', hasAxis: false }],
+      octaveShift: 0,
+      quality: 'minor',
+    });
+
+    expect(parseHarmonyChord('DoMex')).toEqual({
+      rootSyllable: 'Do',
+      hasAxis: false,
+      modifiers: [{ syllable: 'Me', hasAxis: true }],
+      octaveShift: 0,
+      quality: 'minor',
+    });
+
+    expect(parseHarmonyChord('DoxMex')).toEqual({
+      rootSyllable: 'Do',
+      hasAxis: true,
+      modifiers: [{ syllable: 'Me', hasAxis: true }],
+      octaveShift: 0,
+      quality: 'minor',
+    });
+
+    expect(parseHarmonyChord('DoMeTe')).toEqual({
+      rootSyllable: 'Do',
+      hasAxis: false,
+      modifiers: [
+        { syllable: 'Me', hasAxis: false },
+        { syllable: 'Te', hasAxis: false },
+      ],
+      octaveShift: 0,
+      quality: 'minor7',
+    });
+  });
+});
+
+describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
+  it('maps Base glyph rotations (Do: 0°, Me: 270° CW, Fi: 180°, La: 90° CCW)', () => {
+    expect(getSolfegeGlyphSpec('Do')).toEqual({
+      canonicalSyllable: 'Do',
+      glyphType: 'base',
+      rotation: 0,
+      colorHex: '#E13610',
+      colorSchemeVar: 'colorDo',
+      hasAxis: false,
+    });
+
+    expect(getSolfegeGlyphSpec('Me')).toEqual({
+      canonicalSyllable: 'Me',
+      glyphType: 'base',
+      rotation: 270,
+      colorHex: '#F5D432',
+      colorSchemeVar: 'colorMi',
+      hasAxis: false,
+    });
+
+    expect(getSolfegeGlyphSpec('Fi')).toEqual({
+      canonicalSyllable: 'Fi',
+      glyphType: 'base',
+      rotation: 180,
+      colorHex: '#141414',
+      colorSchemeVar: 'colorFi',
+      hasAxis: false,
+    });
+
+    expect(getSolfegeGlyphSpec('La')).toEqual({
+      canonicalSyllable: 'La',
+      glyphType: 'base',
+      rotation: 90,
+      colorHex: '#5300A4',
+      colorSchemeVar: 'colorLa',
+      hasAxis: false,
+    });
+  });
+
+  it('maps Sharp glyph rotations (Ra: 0°, Mi: 270° CW, So: 180°, Te: 90° CCW)', () => {
+    expect(getSolfegeGlyphSpec('Ra')).toEqual({
+      canonicalSyllable: 'Ra',
+      glyphType: 'sharp',
+      rotation: 0,
+      colorHex: '#F98016',
+      colorSchemeVar: 'colorRe',
+      hasAxis: false,
+    });
+
+    expect(getSolfegeGlyphSpec('Mi')).toEqual({
+      canonicalSyllable: 'Mi',
+      glyphType: 'sharp',
+      rotation: 270,
+      colorHex: '#F5D432',
+      colorSchemeVar: 'colorMi',
+      hasAxis: false,
+    });
+
+    expect(getSolfegeGlyphSpec('So')).toEqual({
+      canonicalSyllable: 'So',
+      glyphType: 'sharp',
+      rotation: 180,
+      colorHex: '#0032A4',
+      colorSchemeVar: 'colorSo',
+      hasAxis: false,
+    });
+
+    expect(getSolfegeGlyphSpec('Te')).toEqual({
+      canonicalSyllable: 'Te',
+      glyphType: 'sharp',
+      rotation: 90,
+      colorHex: '#F158A4',
+      colorSchemeVar: 'colorTi',
+      hasAxis: false,
+    });
+  });
+
+  it('maps Flat glyph rotations (Ti: 0°, Re: 270° CW, Fa: 180°, Le: 90° CCW)', () => {
+    expect(getSolfegeGlyphSpec('Ti')).toEqual({
+      canonicalSyllable: 'Ti',
+      glyphType: 'flat',
+      rotation: 0,
+      colorHex: '#F158A4',
+      colorSchemeVar: 'colorTi',
+      hasAxis: false,
+    });
+
+    expect(getSolfegeGlyphSpec('Re')).toEqual({
+      canonicalSyllable: 'Re',
+      glyphType: 'flat',
+      rotation: 270,
+      colorHex: '#F98016',
+      colorSchemeVar: 'colorRe',
+      hasAxis: false,
+    });
+
+    expect(getSolfegeGlyphSpec('Fa')).toEqual({
+      canonicalSyllable: 'Fa',
+      glyphType: 'flat',
+      rotation: 180,
+      colorHex: '#43A440',
+      colorSchemeVar: 'colorFa',
+      hasAxis: false,
+    });
+
+    expect(getSolfegeGlyphSpec('Le')).toEqual({
+      canonicalSyllable: 'Le',
+      glyphType: 'flat',
+      rotation: 90,
+      colorHex: '#5300A4',
+      colorSchemeVar: 'colorLa',
+      hasAxis: false,
+    });
+  });
+
+  it('supports hasAxis flag in glyph spec', () => {
+    const spec = getSolfegeGlyphSpec('Do', true);
+    expect(spec.hasAxis).toBe(true);
+    expect(spec.glyphType).toBe('base');
+    expect(spec.rotation).toBe(0);
+  });
+});
+
+describe('semitoneIntervalToSolfege', () => {
+  it('maps ascending and descending intervals within -5..+6 correctly', () => {
+    expect(semitoneIntervalToSolfege(0)).toBe('Do');
+    expect(semitoneIntervalToSolfege(1)).toBe('Ra');
+    expect(semitoneIntervalToSolfege(2)).toBe('Re');
+    expect(semitoneIntervalToSolfege(3)).toBe('Me');
+    expect(semitoneIntervalToSolfege(4)).toBe('Mi');
+    expect(semitoneIntervalToSolfege(5)).toBe('Fa');
+    expect(semitoneIntervalToSolfege(6)).toBe('Fi');
+    expect(semitoneIntervalToSolfege(-1)).toBe('Ti');
+    expect(semitoneIntervalToSolfege(-2)).toBe('Te');
+    expect(semitoneIntervalToSolfege(-3)).toBe('La');
+    expect(semitoneIntervalToSolfege(-4)).toBe('Le');
+    expect(semitoneIntervalToSolfege(-5)).toBe('So');
+  });
+
+  it('maps compound intervals with octave markers', () => {
+    expect(semitoneIntervalToSolfege(7)).toBe('So^');
+    expect(semitoneIntervalToSolfege(12)).toBe('Do^');
+    expect(semitoneIntervalToSolfege(-7)).toBe('Fa_');
+    expect(semitoneIntervalToSolfege(-12)).toBe('Do_');
   });
 });
 

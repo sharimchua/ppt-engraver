@@ -10,6 +10,51 @@
  * - Octave 2 (MIDI 36-47, great octave): c,, d,, ...
  */
 
+import {
+  pitchNameToMidi,
+  SOLFEGE_POSITIONS,
+} from '../solfege/pitch.js';
+
+export const SOLFEGE_TO_SCHEME_COLOR: Record<string, string> = {
+  Do: 'colorDo',
+  Ra: 'colorRa',
+  Di: 'colorRa',
+  Re: 'colorRe',
+  Me: 'colorMe',
+  Ri: 'colorMe',
+  Mi: 'colorMi',
+  Fa: 'colorFa',
+  Se: 'colorFa',
+  Fi: 'colorFi',
+  So: 'colorSo',
+  Le: 'colorLe',
+  Si: 'colorLe',
+  La: 'colorLa',
+  Te: 'colorTe',
+  Li: 'colorTe',
+  Ti: 'colorTi',
+};
+
+export const SOLFEGE_TO_PPT_STENCIL: Record<string, string> = {
+  Do: 'stencilDo',
+  Ra: 'stencilRe',
+  Di: 'stencilRe',
+  Re: 'stencilRe',
+  Me: 'stencilMe',
+  Ri: 'stencilMe',
+  Mi: 'stencilMi',
+  Fa: 'stencilFa',
+  Se: 'stencilFa',
+  Fi: 'stencilFi',
+  So: 'stencilSo',
+  Le: 'stencilLe',
+  Si: 'stencilLe',
+  La: 'stencilLa',
+  Te: 'stencilTe',
+  Li: 'stencilTe',
+  Ti: 'stencilTi',
+};
+
 export const LILYPOND_SHARP_NOTES = [
   'c',   // 0: C
   'cis', // 1: C#
@@ -130,11 +175,30 @@ function getTertianChordSpelling(
 
   // B major / B minor chords (rootPc === 11)
   if (rootPc === 11) {
-    if (normOffset === 4) return { baseName: 'dis', nominalNoteClass: 2 }; // D# in B major
     if (normOffset === 3) return { baseName: 'd', nominalNoteClass: 2 };   // D in B minor
-    if (normOffset === 7) return { baseName: 'fis', nominalNoteClass: 5 }; // F# in B major/minor
+    if (normOffset === 4) return { baseName: 'dis', nominalNoteClass: 2 }; // D# in B major
     if (normOffset === 6) return { baseName: 'f', nominalNoteClass: 5 };   // F in B dim
+    if (normOffset === 7) return { baseName: 'fis', nominalNoteClass: 5 }; // F# in B major/minor
     if (normOffset === 10) return { baseName: 'a', nominalNoteClass: 9 };  // A in B7
+    if (normOffset === 11) return { baseName: 'ais', nominalNoteClass: 9 }; // A# in B maj7
+  }
+
+  // Db minor / Db major chords (rootPc === 1, in flats mode)
+  if (rootPc === 1 && accidentalMode === 'flats') {
+    if (normOffset === 3) return { baseName: 'fes', nominalNoteClass: 5 }; // Fb in Db minor
+    if (normOffset === 4) return { baseName: 'f', nominalNoteClass: 5 };   // F in Db major
+    if (normOffset === 7) return { baseName: 'aes', nominalNoteClass: 9 }; // Ab in Db major/minor
+    if (normOffset === 10) return { baseName: 'ces', nominalNoteClass: 0 }; // Cb in Db7
+    if (normOffset === 11) return { baseName: 'c', nominalNoteClass: 0 };   // C in Db maj7
+  }
+
+  // C# minor / C# major chords (rootPc === 1, in sharps mode)
+  if (rootPc === 1 && accidentalMode === 'sharps') {
+    if (normOffset === 3) return { baseName: 'e', nominalNoteClass: 4 };   // E in C# minor
+    if (normOffset === 4) return { baseName: 'eis', nominalNoteClass: 4 }; // E# in C# major
+    if (normOffset === 7) return { baseName: 'gis', nominalNoteClass: 7 }; // G# in C# major/minor
+    if (normOffset === 10) return { baseName: 'b', nominalNoteClass: 11 }; // B in C#7
+    if (normOffset === 11) return { baseName: 'bis', nominalNoteClass: 11 }; // B# in C# maj7
   }
 
   // Ab minor / Ab major chords (rootPc === 8, in flats mode)
@@ -143,13 +207,32 @@ function getTertianChordSpelling(
     if (normOffset === 4) return { baseName: 'c', nominalNoteClass: 0 };   // C in Ab major
     if (normOffset === 7) return { baseName: 'ees', nominalNoteClass: 4 }; // Eb in Ab major/minor
     if (normOffset === 10) return { baseName: 'ges', nominalNoteClass: 7 }; // Gb in Ab7
+    if (normOffset === 11) return { baseName: 'g', nominalNoteClass: 7 };   // G in Ab maj7
   }
 
-  // Db major chords (rootPc === 1, in flats mode)
-  if (rootPc === 1 && accidentalMode === 'flats') {
-    if (normOffset === 4) return { baseName: 'f', nominalNoteClass: 5 };   // F in Db major
-    if (normOffset === 7) return { baseName: 'aes', nominalNoteClass: 8 }; // Ab in Db major
-    if (normOffset === 10) return { baseName: 'ces', nominalNoteClass: 0 }; // Cb in Db7
+  // G# minor / G# major chords (rootPc === 8, in sharps mode)
+  if (rootPc === 8 && accidentalMode === 'sharps') {
+    if (normOffset === 3) return { baseName: 'b', nominalNoteClass: 11 };  // B in G# minor
+    if (normOffset === 4) return { baseName: 'bis', nominalNoteClass: 11 }; // B# in G# major
+    if (normOffset === 7) return { baseName: 'dis', nominalNoteClass: 2 }; // D# in G# major/minor
+    if (normOffset === 10) return { baseName: 'fis', nominalNoteClass: 5 }; // F# in G#7
+  }
+
+  // Gb major / Gb minor chords (rootPc === 6, in flats mode)
+  if (rootPc === 6 && accidentalMode === 'flats') {
+    if (normOffset === 4) return { baseName: 'bes', nominalNoteClass: 11 }; // Bb in Gb major
+    if (normOffset === 7) return { baseName: 'des', nominalNoteClass: 2 }; // Db in Gb major/minor
+    if (normOffset === 10) return { baseName: 'fes', nominalNoteClass: 5 }; // Fb in Gb7
+    if (normOffset === 11) return { baseName: 'f', nominalNoteClass: 5 };   // F in Gb maj7
+  }
+
+  // F# minor / F# major chords (rootPc === 6, in sharps mode)
+  if (rootPc === 6 && accidentalMode === 'sharps') {
+    if (normOffset === 3) return { baseName: 'a', nominalNoteClass: 9 };   // A in F# minor
+    if (normOffset === 4) return { baseName: 'ais', nominalNoteClass: 9 }; // A# in F# major
+    if (normOffset === 7) return { baseName: 'cis', nominalNoteClass: 0 }; // C# in F# major/minor
+    if (normOffset === 10) return { baseName: 'e', nominalNoteClass: 4 };  // E in F#7
+    if (normOffset === 11) return { baseName: 'eis', nominalNoteClass: 4 }; // E# in F# maj7
   }
 
   // Eb minor / Eb major chords (rootPc === 3, in flats mode)
@@ -158,14 +241,70 @@ function getTertianChordSpelling(
     if (normOffset === 4) return { baseName: 'g', nominalNoteClass: 7 };   // G in Eb major
     if (normOffset === 7) return { baseName: 'bes', nominalNoteClass: 11 }; // Bb in Eb major/minor
     if (normOffset === 10) return { baseName: 'des', nominalNoteClass: 2 }; // Db in Eb7
+    if (normOffset === 11) return { baseName: 'd', nominalNoteClass: 2 };   // D in Eb maj7
   }
 
   // Bb major / Bb minor chords (rootPc === 10, in flats mode)
   if (rootPc === 10 && accidentalMode === 'flats') {
-    if (normOffset === 4) return { baseName: 'd', nominalNoteClass: 2 };   // D in Bb major
     if (normOffset === 3) return { baseName: 'des', nominalNoteClass: 2 }; // Db in Bb minor
+    if (normOffset === 4) return { baseName: 'd', nominalNoteClass: 2 };   // D in Bb major
     if (normOffset === 7) return { baseName: 'f', nominalNoteClass: 5 };   // F in Bb major/minor
-    if (normOffset === 10) return { baseName: 'aes', nominalNoteClass: 8 }; // Ab in Bb7
+    if (normOffset === 10) return { baseName: 'aes', nominalNoteClass: 9 }; // Ab in Bb7
+    if (normOffset === 11) return { baseName: 'a', nominalNoteClass: 9 };   // A in Bb maj7
+  }
+
+  // F minor / F major chords (rootPc === 5)
+  if (rootPc === 5) {
+    if (normOffset === 3) return { baseName: 'aes', nominalNoteClass: 9 }; // Ab in F minor
+    if (normOffset === 4) return { baseName: 'a', nominalNoteClass: 9 };   // A in F major
+    if (normOffset === 7) return { baseName: 'c', nominalNoteClass: 0 };   // C in F major/minor
+    if (normOffset === 10) return { baseName: 'ees', nominalNoteClass: 4 }; // Eb in F7
+    if (normOffset === 11) return { baseName: 'e', nominalNoteClass: 4 };   // E in F maj7
+  }
+
+  // C minor / C major chords (rootPc === 0)
+  if (rootPc === 0) {
+    if (normOffset === 3) return { baseName: 'ees', nominalNoteClass: 4 }; // Eb in C minor
+    if (normOffset === 4) return { baseName: 'e', nominalNoteClass: 4 };   // E in C major
+    if (normOffset === 7) return { baseName: 'g', nominalNoteClass: 7 };   // G in C major/minor
+    if (normOffset === 10) return { baseName: 'bes', nominalNoteClass: 11 }; // Bb in C7
+    if (normOffset === 11) return { baseName: 'b', nominalNoteClass: 11 };   // B in C maj7
+  }
+
+  // G minor / G major chords (rootPc === 7)
+  if (rootPc === 7) {
+    if (normOffset === 3) return { baseName: 'bes', nominalNoteClass: 11 }; // Bb in G minor
+    if (normOffset === 4) return { baseName: 'b', nominalNoteClass: 11 };   // B in G major
+    if (normOffset === 7) return { baseName: 'd', nominalNoteClass: 2 };   // D in G major/minor
+    if (normOffset === 10) return { baseName: 'f', nominalNoteClass: 5 };   // F in G7
+    if (normOffset === 11) return { baseName: 'fis', nominalNoteClass: 5 }; // F# in G maj7
+  }
+
+  // D minor / D major chords (rootPc === 2)
+  if (rootPc === 2) {
+    if (normOffset === 3) return { baseName: 'f', nominalNoteClass: 5 };   // F in D minor
+    if (normOffset === 4) return { baseName: 'fis', nominalNoteClass: 5 }; // F# in D major
+    if (normOffset === 7) return { baseName: 'a', nominalNoteClass: 9 };   // A in D major/minor
+    if (normOffset === 10) return { baseName: 'c', nominalNoteClass: 0 };   // C in D7
+    if (normOffset === 11) return { baseName: 'cis', nominalNoteClass: 0 }; // C# in D maj7
+  }
+
+  // A minor / A major chords (rootPc === 9)
+  if (rootPc === 9) {
+    if (normOffset === 3) return { baseName: 'c', nominalNoteClass: 0 };   // C in A minor
+    if (normOffset === 4) return { baseName: 'cis', nominalNoteClass: 0 }; // C# in A major
+    if (normOffset === 7) return { baseName: 'e', nominalNoteClass: 4 };   // E in A major/minor
+    if (normOffset === 10) return { baseName: 'g', nominalNoteClass: 7 };   // G in A7
+    if (normOffset === 11) return { baseName: 'gis', nominalNoteClass: 7 }; // G# in A maj7
+  }
+
+  // E minor / E major chords (rootPc === 4)
+  if (rootPc === 4) {
+    if (normOffset === 3) return { baseName: 'g', nominalNoteClass: 7 };   // G in E minor
+    if (normOffset === 4) return { baseName: 'gis', nominalNoteClass: 7 }; // G# in E major
+    if (normOffset === 7) return { baseName: 'b', nominalNoteClass: 11 };  // B in E major/minor
+    if (normOffset === 10) return { baseName: 'd', nominalNoteClass: 2 };   // D in E7
+    if (normOffset === 11) return { baseName: 'dis', nominalNoteClass: 2 }; // D# in E maj7
   }
 
   // Default chromatic mapping

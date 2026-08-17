@@ -67,5 +67,25 @@ describe('chordMidiToLilyPond', () => {
     // Eb4 triad [63, 67, 70] -> <ees' g' bes'>
     expect(chordMidiToLilyPond([63, 67, 70], 0, 'flats')).toBe("<ees' g' bes'>");
   });
+
+  it('formats Db minor triad (e.g. TeMe in Eb) with proper tertian spelling (fes instead of e)', () => {
+    // Db4 minor triad [61, 64, 68] -> <des' fes' aes'>
+    expect(chordMidiToLilyPond([61, 64, 68], 0, 'flats')).toBe("<des' fes' aes'>");
+  });
+
+  it('formats Ab minor triad with proper tertian spelling (ces instead of b)', () => {
+    // Ab4 minor triad [68, 71, 75] -> <aes' ces'' ees''>
+    expect(chordMidiToLilyPond([68, 71, 75], 0, 'flats')).toBe("<aes' ces'' ees''>");
+  });
+
+  it('formats Eb minor triad with proper tertian spelling (ges instead of f#)', () => {
+    // Eb4 minor triad [63, 66, 70] -> <ees' ges' bes'>
+    expect(chordMidiToLilyPond([63, 66, 70], 0, 'flats')).toBe("<ees' ges' bes'>");
+  });
+
+  it('formats Bb minor triad with flat spelling', () => {
+    // Bb4 minor triad [70, 73, 77] -> <bes' des'' f''>
+    expect(chordMidiToLilyPond([70, 73, 77], 0, 'flats')).toBe("<bes' des'' f''>");
+  });
 });
 

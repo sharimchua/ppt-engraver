@@ -23,7 +23,7 @@ export type SolfegeSyllable = typeof SOLFEGE_POSITIONS[number];
  * Maps ALL accepted solfège names (including context-specific variations)
  * to their semitone offset from Do (0–11).
  */
-const SOLFEGE_TO_SEMITONE: Record<string, number> = {
+export const SOLFEGE_TO_SEMITONE: Record<string, number> = {
   Do: 0,
   Ra: 1, Di: 1,
   Re: 2,
@@ -141,6 +141,38 @@ export interface ResolvedKnot {
   colorNotes?: boolean;
   /** Whether to draw a dark outline around colored noteheads for contrast */
   noteheadOutline?: boolean;
+  /** Harmony staff rendering style: 'standard' (traditional 5-line staff), 'coil' (includes single-line staff with circle clef and solfège glyphs), or 'both' */
+  harmonyStaffStyle?: 'standard' | 'coil' | 'both';
+  /** Whether to show the Harmony Coil staff */
+  showHarmonyCoil?: boolean;
+  /** Whether to show the traditional 5-line harmony staff */
+  showTraditionalHarmony?: boolean;
+  /** Whether to show the melody staff */
+  showMelody?: boolean;
+  /** Whether to show the Melody Coil Absolute row layer (displays absolute Solfège pitch classes) */
+  showMelodyCoilAbsolute?: boolean;
+  /** Whether to show the Melody Coil Interval row layer (displays relative interval Solfège glyphs) */
+  showMelodyCoilInterval?: boolean;
+  /** Whether to show the Rhythm Coil row layer (displays Solfège rhythm tokens / glyphs) */
+  showRhythmCoil?: boolean;
+  /** Global zoom / staff size scaling factor (e.g. 1.2 for +20%, 0.8 for -20%) or absolute pt size (e.g. 24) */
+  zoom?: number;
+  /** First-line indentation in mm (default: 0 for flush alignment) */
+  indent?: number;
+  /** Whether to draw light vertical grid lines indicating onset alignment */
+  showRhythmGrid?: boolean;
+  /** Whether to only display chord names when the chord changes (default: false, showing chord names for every harmony event) */
+  chordChanges?: boolean;
+  /** Whether to display chord names row */
+  showChordNames?: boolean;
+  /** Root weave identifier specified in Knot */
+  rootWeaveId?: string;
+  /** Tonic MIDI number (alias for doMidi) */
+  tonicMidi?: number;
+  /** Declared tonic name (e.g. "Eb4") */
+  tonicName?: string;
+  /** Global octave shift for harmony layer */
+  harmonyOctave?: number;
 }
 
 
@@ -378,6 +410,43 @@ export function resolveInterval(syllable: string, octaveShift: number): number {
 }
 
 /**
+ * Maps a signed semitone interval (e.g. 0, +1, +2, -1, -5, +7, etc.)
+ * back to its canonical Solfège interval token (e.g. 'Do', 'Ra', 'Re', 'Ti', 'So', 'So^', 'Fa_').
+ */
+export function semitoneIntervalToSolfege(semitones: number): string {
+  const INTERVAL_MAP: Record<number, string> = {
+    0: 'Do',
+    1: 'Ra',
+    2: 'Re',
+    3: 'Me',
+    4: 'Mi',
+    5: 'Fa',
+    6: 'Fi',
+    [-1]: 'Ti',
+    [-2]: 'Te',
+    [-3]: 'La',
+    [-4]: 'Le',
+    [-5]: 'So',
+  };
+
+  if (INTERVAL_MAP[semitones] !== undefined) {
+    return INTERVAL_MAP[semitones];
+  }
+
+  // Handle intervals outside -5..+6 by calculating nearest-address + octave displacement
+  const mod = ((semitones % 12) + 12) % 12;
+  const nearest = NEAREST_ADDRESS[mod];
+  const oct = Math.round((semitones - nearest) / 12);
+  const baseSyllable = INTERVAL_MAP[nearest] ?? 'Do';
+  if (oct > 0) {
+    return baseSyllable + '^'.repeat(oct);
+  } else if (oct < 0) {
+    return baseSyllable + '_'.repeat(-oct);
+  }
+  return baseSyllable;
+}
+
+/**
  * Builds a root-position major triad from a given root MIDI note.
  * Returns [root, major third, perfect fifth] as MIDI note numbers.
  */
@@ -385,20 +454,71 @@ export function buildMajorTriad(rootMidi: number): [number, number, number] {
   return [rootMidi, rootMidi + 4, rootMidi + 7];
 }
 
+export interface ParsedHarmonyModifier {
+  syllable: string;
+  hasAxis: boolean;
+}
+
 /**
  * Parsed representation of a harmony chord token.
- * E.g. "Do" (major triad), "DoMe" (minor triad), "DoTe" (dominant 7th), "So^", "Do_"
+ * E.g. "Do" (major triad), "DoMe" (minor triad), "DoTe" (dominant 7th), "Dox", "DoxMe", "So^", "Do_"
  */
 export interface ParsedHarmonyChord {
   rootSyllable: string;
-  modifiers: string[];
+  hasAxis: boolean;
+  modifiers: ParsedHarmonyModifier[];
   octaveShift: number;
   quality: 'major' | 'minor' | 'dominant7' | 'minor7' | 'diminished' | 'augmented' | 'custom';
 }
 
+export interface SolfegeGlyphSpec {
+  canonicalSyllable: string;
+  glyphType: 'base' | 'sharp' | 'flat';
+  rotation: 0 | 90 | 180 | 270;
+  colorHex: string;
+  colorSchemeVar: string;
+  hasAxis: boolean;
+}
+
+export const SOLFEGE_GLYPH_MAP: Record<string, Omit<SolfegeGlyphSpec, 'hasAxis' | 'canonicalSyllable'>> = {
+  Do: { glyphType: 'base', rotation: 0, colorHex: '#E13610', colorSchemeVar: 'colorDo' },
+  Ra: { glyphType: 'sharp', rotation: 0, colorHex: '#F98016', colorSchemeVar: 'colorRe' },
+  Di: { glyphType: 'sharp', rotation: 0, colorHex: '#F98016', colorSchemeVar: 'colorRe' },
+  Re: { glyphType: 'flat', rotation: 270, colorHex: '#F98016', colorSchemeVar: 'colorRe' },
+  Me: { glyphType: 'base', rotation: 270, colorHex: '#F5D432', colorSchemeVar: 'colorMi' },
+  Ri: { glyphType: 'base', rotation: 270, colorHex: '#F5D432', colorSchemeVar: 'colorMi' },
+  Mi: { glyphType: 'sharp', rotation: 270, colorHex: '#F5D432', colorSchemeVar: 'colorMi' },
+  Fa: { glyphType: 'flat', rotation: 180, colorHex: '#43A440', colorSchemeVar: 'colorFa' },
+  Fi: { glyphType: 'base', rotation: 180, colorHex: '#141414', colorSchemeVar: 'colorFi' },
+  Se: { glyphType: 'base', rotation: 180, colorHex: '#141414', colorSchemeVar: 'colorFi' },
+  So: { glyphType: 'sharp', rotation: 180, colorHex: '#0032A4', colorSchemeVar: 'colorSo' },
+  Le: { glyphType: 'flat', rotation: 90, colorHex: '#5300A4', colorSchemeVar: 'colorLa' },
+  Si: { glyphType: 'flat', rotation: 90, colorHex: '#5300A4', colorSchemeVar: 'colorLa' },
+  La: { glyphType: 'base', rotation: 90, colorHex: '#5300A4', colorSchemeVar: 'colorLa' },
+  Te: { glyphType: 'sharp', rotation: 90, colorHex: '#F158A4', colorSchemeVar: 'colorTi' },
+  Li: { glyphType: 'sharp', rotation: 90, colorHex: '#F158A4', colorSchemeVar: 'colorTi' },
+  Ti: { glyphType: 'flat', rotation: 0, colorHex: '#F158A4', colorSchemeVar: 'colorTi' },
+};
+
+export function getSolfegeGlyphSpec(syllable: string, hasAxis: boolean = false): SolfegeGlyphSpec {
+  const spec = SOLFEGE_GLYPH_MAP[syllable];
+  if (!spec) {
+    throw new Error(`Unknown solfège syllable for glyph spec: "${syllable}"`);
+  }
+  return {
+    canonicalSyllable: syllable,
+    glyphType: spec.glyphType,
+    rotation: spec.rotation,
+    colorHex: spec.colorHex,
+    colorSchemeVar: spec.colorSchemeVar,
+    hasAxis,
+  };
+}
+
 /**
- * Parses a harmony chord token like "Do", "DoMe", "So", "DoTe", "So^", "Do_".
- * The first solfège syllable is the root; trailing solfège syllables are modifiers;
+ * Parses a harmony chord token like "Do", "DoMe", "So", "DoTe", "Dox", "DoxMe", "So^", "Do_".
+ * The first solfège syllable is the root (optionally with 'x' axis marker);
+ * trailing solfège syllables (with optional 'x') are modifiers;
  * trailing ^/_ are octave shifts.
  */
 export function parseHarmonyChord(token: string): ParsedHarmonyChord {
@@ -413,20 +533,29 @@ export function parseHarmonyChord(token: string): ParsedHarmonyChord {
     remaining = remaining.slice(0, -1);
   }
 
-  const match = remaining.match(/^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(.*)$/);
+  const match = remaining.match(/^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(x?)(.*)$/);
   if (!match) {
     throw new Error(`Invalid harmony chord token: "${token}"`);
   }
   const rootSyllable = match[1];
-  const rest = match[2];
+  const hasAxis = match[2] === 'x';
+  const rest = match[3];
   
-  // Extract modifier syllables (e.g. "Me", "Te", "MeTe")
-  const modifierMatches = rest.match(/(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)/g) ?? [];
+  // Extract modifier syllables (e.g. "Me", "Te", "Mex", "Te", "MeTe")
+  const modifiers: ParsedHarmonyModifier[] = [];
+  const modifierRegex = /(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(x?)/g;
+  let modMatch: RegExpExecArray | null;
+  while ((modMatch = modifierRegex.exec(rest)) !== null) {
+    modifiers.push({
+      syllable: modMatch[1],
+      hasAxis: modMatch[2] === 'x',
+    });
+  }
   
   let quality: ParsedHarmonyChord['quality'] = 'major';
-  const hasMe = modifierMatches.some(m => m === 'Me' || m === 'Ri');
-  const hasTe = modifierMatches.some(m => m === 'Te' || m === 'Li');
-  const hasFi = modifierMatches.some(m => m === 'Fi' || m === 'Se');
+  const hasMe = modifiers.some(m => m.syllable === 'Me' || m.syllable === 'Ri');
+  const hasTe = modifiers.some(m => m.syllable === 'Te' || m.syllable === 'Li');
+  const hasFi = modifiers.some(m => m.syllable === 'Fi' || m.syllable === 'Se');
 
   if (hasMe && hasTe) {
     quality = 'minor7';
@@ -438,7 +567,7 @@ export function parseHarmonyChord(token: string): ParsedHarmonyChord {
     quality = 'diminished';
   }
 
-  return { rootSyllable, modifiers: modifierMatches, octaveShift, quality };
+  return { rootSyllable, hasAxis, modifiers, octaveShift, quality };
 }
 
 /**
