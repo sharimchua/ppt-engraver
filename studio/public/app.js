@@ -9,16 +9,162 @@ let compileDebounceTimer = null;
 let currentZoom = 1.0;
 let lastCompiledData = null;
 
-// Solfège keywords for autocompletion
-const SOLFEGE_KEYWORDS = [
-  'Do', 'Ra', 'Di', 'Re', 'Me', 'Ri', 'Mi', 'Fa', 'Fi', 'Se', 'So', 'Le', 'Si', 'La', 'Te', 'Li', 'Ti',
-  'Dox', 'Rax', 'Dix', 'Rex', 'Mex', 'Rix', 'Mix', 'Fax', 'Fix', 'Sex', 'Sox', 'Lex', 'Six', 'Lax', 'Tex', 'Lix', 'Tix',
-  'DoMe', 'DoSo', 'DoMeTe', 'DoLa', 'DoRe', 'DoMi', 'DoSi', 'DoFi',
-  'DoxDo', 'DoxFi', 'DoxMe', 'DoxDoxDo',
-  'tapestry', 'knot', 'tonic', 'engraving', 'show', 'melody', 'harmony', 'rhythm', 'coils', 'weaves', 'children',
-  'melodyCoilInterval', 'melodyCoilAbsolute', 'rhythmCoil', 'harmonyCoil', 'traditionalHarmony', 'rhythmGrid', 'chordNames',
-  'colorNotes', 'omitStem', 'harmonyClef', 'melodyClef', 'zoom', 'title', 'composer', 'arranger'
+// User Preferences
+let enableAutocomplete = localStorage.getItem('ppt_enable_autocomplete') !== 'false';
+let enableSolfegeColors = localStorage.getItem('ppt_enable_solfege_colors') !== 'false';
+let enableCoilSuggestions = localStorage.getItem('ppt_enable_coil_suggestions') !== 'false';
+
+// --- Domain Keyword Sets ---
+const ENUMS_SHOW = [
+  'melody', 'harmony', 'harmonyCoil', 'rhythmCoil', 'rhythmGrid', 'chordNames',
+  'melodyCoilInterval', 'melodyCoilAbsolute', 'traditionalHarmony'
 ];
+
+const ENUMS_CLEF = [
+  'treble', 'treble_8', 'treble^8', 'bass', 'bass_8', 'bass_15'
+];
+
+const ENUMS_NOTEHEAD_STYLE = [
+  'ppt', 'sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default'
+];
+
+const TOKENS_MELODY = [
+  'Do', 'Ra', 'Di', 'Re', 'Me', 'Ri', 'Mi', 'Fa', 'Fi', 'Se', 'So', 'Le', 'Si', 'La', 'Te', 'Li', 'Ti',
+  'Dox', 'Do^', 'Re^', 'Me^', 'Fa^', 'So^', 'La^', 'Te^', 'Do_', 'Re_', 'Me_', 'Fa_', 'So_', 'La_', 'Te_'
+];
+
+const TOKENS_RHYTHM = [
+  'Do', 'Fi', 'Me', 'La', 'Mi', 'Le', 'Te', 'Dox', 'DoxDo', 'DoxFi', 'DoxMe', 'DoxLa', 'DoxDoxDo'
+];
+
+const TOKENS_HARMONY = [
+  'Do', 'DoMe', 'DoSo', 'DoMeTe', 'DoLa', 'DoRe', 'DoSi', 'DoFi',
+  '1', '2', '4', '8', '16', '32'
+];
+
+const TOP_LEVEL_KEYS = [
+  'tapestry:', 'knot:', 'tonic:', 'engraving:', 'title:', 'composer:', 'arranger:', 'tempo:',
+  'show:', 'harmonyClef:', 'melodyClef:', 'colorNotes:', 'omitStem:', 'noteheadStyle:',
+  'weaves:', 'coils:', 'children:', 'melody:', 'rhythm:', 'harmony:', 'concat:', 'parents:', 'id:'
+];
+
+/**
+ * Scans the current document text for declared coil and weave IDs.
+ */
+function scanDeclaredIds(cm) {
+  if (!enableCoilSuggestions) return [];
+  const text = cm.getValue();
+  const ids = new Set();
+  
+  const coilMapMatch = text.matchAll(/^\s*([_a-zA-Z0-9]+)\s*:/gm);
+  for (const m of coilMapMatch) {
+    const key = m[1];
+    if (!['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem'].includes(key)) {
+      ids.add(key);
+    }
+  }
+
+  const inlineIdMatch = text.matchAll(/\bid\s*:\s*([_a-zA-Z0-9]+)/g);
+  for (const m of inlineIdMatch) {
+    ids.add(m[1]);
+  }
+
+  return Array.from(ids);
+}
+
+/**
+ * Determines autocomplete context based on cursor position and line content.
+ */
+function getContextSuggestions(cm, cursor) {
+  const line = cm.getLine(cursor.line);
+  const beforeCursor = line.slice(0, cursor.ch);
+
+  // 1. Show layers: show: [ ... ] or under show:
+  if (/show\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*-\s*(melody|harmony|rhythm|chord)/i.test(line)) {
+    return ENUMS_SHOW;
+  }
+  for (let l = cursor.line - 1; l >= Math.max(0, cursor.line - 8); l--) {
+    const prevLine = cm.getLine(l);
+    if (/^\s*show\s*:/i.test(prevLine)) {
+      return ENUMS_SHOW;
+    }
+    if (/^\s*[a-zA-Z0-9_]+\s*:/i.test(prevLine) && !/^\s*-\s*/.test(prevLine)) break;
+  }
+
+  // 2. Clef settings
+  if (/(melodyClef|harmonyClef)\s*:\s*/i.test(beforeCursor)) {
+    return ENUMS_CLEF;
+  }
+
+  // 3. Notehead style
+  if (/noteheadStyle\s*:\s*/i.test(beforeCursor)) {
+    return ENUMS_NOTEHEAD_STYLE;
+  }
+
+  // 4. Melody array
+  if (/melody\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*melody\s*:/i.test(line)) {
+    return TOKENS_MELODY;
+  }
+
+  // 5. Rhythm array
+  if (/rhythm\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*rhythm\s*:/i.test(line)) {
+    return TOKENS_RHYTHM;
+  }
+
+  // 6. Harmony array
+  if (/harmony\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*harmony\s*:/i.test(line)) {
+    return TOKENS_HARMONY;
+  }
+
+  // 7. Concat / Parents / Coil references
+  if (/(concat|parents)\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /(coil|weave)\s*:\s*[_a-zA-Z0-9]*$/i.test(beforeCursor)) {
+    const declaredIds = scanDeclaredIds(cm);
+    if (declaredIds.length > 0) {
+      return declaredIds;
+    }
+  }
+
+  // General fallback
+  const declared = scanDeclaredIds(cm);
+  return Array.from(new Set([...TOKENS_MELODY, ...TOKENS_RHYTHM, ...TOKENS_HARMONY, ...declared, ...TOP_LEVEL_KEYS]));
+}
+
+// Solfège Color Overlay Mode for CodeMirror
+const SOLFEGE_COLOR_MAP = {
+  do: 'ppt-do',
+  dox: 'ppt-dox',
+  ra: 'ppt-ra',
+  di: 'ppt-di',
+  re: 'ppt-re',
+  me: 'ppt-me',
+  ri: 'ppt-ri',
+  mi: 'ppt-mi',
+  fa: 'ppt-fa',
+  se: 'ppt-fa',
+  fi: 'ppt-fi',
+  so: 'ppt-so',
+  si: 'ppt-so',
+  le: 'ppt-le',
+  la: 'ppt-la',
+  li: 'ppt-la',
+  te: 'ppt-te',
+  ti: 'ppt-te'
+};
+
+const solfegeOverlay = {
+  token: function(stream) {
+    if (stream.eatWhile(/[\w\^_\.]/)) {
+      const word = stream.current();
+      const baseSyl = word.replace(/[\^_0-9\.]/g, '').toLowerCase();
+      if (SOLFEGE_COLOR_MAP[baseSyl]) {
+        return SOLFEGE_COLOR_MAP[baseSyl];
+      }
+    } else {
+      stream.next();
+    }
+    return null;
+  }
+};
 
 // Initialize CodeMirror Editor
 const editorContainer = document.getElementById('editor-container');
@@ -38,18 +184,27 @@ const editor = CodeMirror(editorContainer, {
   },
 });
 
-// Custom Solfège Autocomplete Hinting
+// Enable Solfège Overlay if preferred
+if (enableSolfegeColors) {
+  editor.addOverlay(solfegeOverlay);
+}
+
+// Context-Aware Solfège Autocomplete Hinting
 CodeMirror.registerHelper('hint', 'yaml', (cm) => {
+  if (!enableAutocomplete) return { list: [], from: cm.getCursor(), to: cm.getCursor() };
+
   const cur = cm.getCursor();
   const token = cm.getTokenAt(cur);
   const start = token.start;
   const end = cur.ch;
-  const word = token.string.slice(0, end - start).trim();
+  const word = token.string.slice(0, end - start).replace(/^[\[\s,]+/, '').trim();
 
-  const list = SOLFEGE_KEYWORDS.filter(k => k.toLowerCase().startsWith(word.toLowerCase()));
+  const candidates = getContextSuggestions(cm, cur);
+  const list = word ? candidates.filter(k => k.toLowerCase().startsWith(word.toLowerCase())) : candidates;
+
   return {
-    list: list.length > 0 ? list : SOLFEGE_KEYWORDS,
-    from: CodeMirror.Pos(cur.line, start),
+    list: list.length > 0 ? list : candidates,
+    from: CodeMirror.Pos(cur.line, start + (token.string.length - word.length)),
     to: CodeMirror.Pos(cur.line, end),
   };
 });
@@ -101,6 +256,9 @@ const settingLoupeSize = document.getElementById('setting-loupe-size');
 const labelLoupeSize = document.getElementById('label-loupe-size');
 const settingLoupePower = document.getElementById('setting-loupe-power');
 const labelLoupePower = document.getElementById('label-loupe-power');
+const settingEnableAutocomplete = document.getElementById('setting-enable-autocomplete');
+const settingEnableSolfegeColors = document.getElementById('setting-enable-solfege-colors');
+const settingEnableCoilSuggestions = document.getElementById('setting-enable-coil-suggestions');
 
 // --- API Helpers ---
 async function fetchScores() {
@@ -522,6 +680,16 @@ btnSettings.addEventListener('click', async () => {
       labelLoupePower.textContent = `${loupePower}x`;
     }
 
+    if (settingEnableAutocomplete) {
+      settingEnableAutocomplete.checked = enableAutocomplete;
+    }
+    if (settingEnableSolfegeColors) {
+      settingEnableSolfegeColors.checked = enableSolfegeColors;
+    }
+    if (settingEnableCoilSuggestions) {
+      settingEnableCoilSuggestions.checked = enableCoilSuggestions;
+    }
+
     settingsModal.classList.remove('hidden');
   } catch (err) {
     console.error('Failed to load settings:', err);
@@ -541,6 +709,25 @@ btnSaveSettings.addEventListener('click', async () => {
   if (settingLoupePower) {
     loupePower = parseFloat(settingLoupePower.value);
     localStorage.setItem('ppt_loupe_power', String(loupePower));
+  }
+
+  if (settingEnableAutocomplete) {
+    enableAutocomplete = settingEnableAutocomplete.checked;
+    localStorage.setItem('ppt_enable_autocomplete', String(enableAutocomplete));
+  }
+  if (settingEnableSolfegeColors) {
+    const prev = enableSolfegeColors;
+    enableSolfegeColors = settingEnableSolfegeColors.checked;
+    localStorage.setItem('ppt_enable_solfege_colors', String(enableSolfegeColors));
+    if (enableSolfegeColors && !prev) {
+      editor.addOverlay(solfegeOverlay);
+    } else if (!enableSolfegeColors && prev) {
+      editor.removeOverlay(solfegeOverlay);
+    }
+  }
+  if (settingEnableCoilSuggestions) {
+    enableCoilSuggestions = settingEnableCoilSuggestions.checked;
+    localStorage.setItem('ppt_enable_coil_suggestions', String(enableCoilSuggestions));
   }
 
   try {

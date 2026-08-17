@@ -258,6 +258,16 @@ html, body {
   line-height: 1.5 !important;
 }
 
+/* Solfège Syntax Highlighting Colors */
+.cm-ppt-do, .cm-ppt-dox { color: #ff5544 !important; font-weight: 600; }
+.cm-ppt-ra, .cm-ppt-re, .cm-ppt-di { color: #fb923c !important; font-weight: 600; }
+.cm-ppt-me, .cm-ppt-mi, .cm-ppt-ri { color: #fde047 !important; font-weight: 600; }
+.cm-ppt-fa, .cm-ppt-se { color: #4ade80 !important; font-weight: 600; }
+.cm-ppt-fi { color: #94a3b8 !important; font-weight: 600; }
+.cm-ppt-so, .cm-ppt-si { color: #60a5fa !important; font-weight: 600; }
+.cm-ppt-le, .cm-ppt-la, .cm-ppt-li { color: #c084fc !important; font-weight: 600; }
+.cm-ppt-te, .cm-ppt-ti { color: #f472b6 !important; font-weight: 600; }
+
 /* Error Banner */
 .error-banner {
   background-color: rgba(239, 68, 68, 0.1);
