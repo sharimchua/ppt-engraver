@@ -218,40 +218,87 @@ async function exportPdf() {
   }
 }
 
-let lastPdfBase64 = null;
-let pdfZoomMode = 'FitH';
-
-// --- Rendering Functions ---
-function updatePdfFrame() {
-  const frame = document.getElementById('pdf-preview-frame');
-  if (!frame || !lastPdfBase64) return;
-  const zoomParam = pdfZoomMode === 'FitH'
-    ? '#view=FitH&toolbar=0&navpanes=0'
-    : `#zoom=${Math.round(currentZoom * 100)}&toolbar=0&navpanes=0`;
-  frame.src = `data:application/pdf;base64,${lastPdfBase64}${zoomParam}`;
-  zoomLevel.textContent = pdfZoomMode === 'FitH' ? 'Fit' : `${Math.round(currentZoom * 100)}%`;
+// PDF.js worker setup
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-function renderPreview(data) {
+let currentPdfDoc = null;
+let lastPdfBase64 = null;
+let pdfZoomMode = 'FitH'; // 'FitH' | 'percent'
+let currentZoom = 1.0;
+let isRenderingPdf = false;
+
+// --- Rendering Functions ---
+async function renderPdfPages() {
+  if (!currentPdfDoc || isRenderingPdf) return;
+  isRenderingPdf = true;
+
+  try {
+    scorePlaceholder.style.display = 'none';
+    scoreSvgContainer.innerHTML = '';
+
+    const numPages = currentPdfDoc.numPages;
+    const containerWidth = scoreCanvas.clientWidth - 40;
+
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const page = await currentPdfDoc.getPage(pageNum);
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+
+      let scale = currentZoom;
+      if (pdfZoomMode === 'FitH') {
+        scale = Math.max(containerWidth / unscaledViewport.width, 0.4);
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      const viewport = page.getViewport({ scale: scale * dpr });
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'pdf-page-canvas';
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      canvas.style.width = `${viewport.width / dpr}px`;
+      canvas.style.height = `${viewport.height / dpr}px`;
+
+      const ctx = canvas.getContext('2d');
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport,
+      };
+
+      scoreSvgContainer.appendChild(canvas);
+      await page.render(renderContext).promise;
+    }
+
+    zoomLevel.textContent = pdfZoomMode === 'FitH' ? 'Fit' : `${Math.round(currentZoom * 100)}%`;
+  } catch (err) {
+    console.error('Error rendering PDF pages:', err);
+  } finally {
+    isRenderingPdf = false;
+  }
+}
+
+async function renderPreview(data) {
   if (data.format === 'pdf' && data.pdfBase64) {
     lastPdfBase64 = data.pdfBase64;
-    scorePlaceholder.style.display = 'none';
-    const zoomParam = pdfZoomMode === 'FitH'
-      ? '#view=FitH&toolbar=0&navpanes=0'
-      : `#zoom=${Math.round(currentZoom * 100)}&toolbar=0&navpanes=0`;
-    scoreSvgContainer.innerHTML = `
-      <iframe
-        id="pdf-preview-frame"
-        src="data:application/pdf;base64,${data.pdfBase64}${zoomParam}"
-        style="width: 100%; height: 100%; border: none; display: block;"
-        title="Score Preview"
-      ></iframe>
-    `;
-    zoomLevel.textContent = pdfZoomMode === 'FitH' ? 'Fit' : `${Math.round(currentZoom * 100)}%`;
-    return;
+    try {
+      const binaryString = atob(data.pdfBase64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      currentPdfDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+      await renderPdfPages();
+      return;
+    } catch (err) {
+      console.error('PDF.js parse error:', err);
+    }
   }
 
   if (data.svg) {
+    currentPdfDoc = null;
     scorePlaceholder.style.display = 'none';
     scoreSvgContainer.innerHTML = data.svg;
     applyZoom();
@@ -368,15 +415,18 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     const tabId = btn.dataset.tab;
     document.getElementById(tabId)?.classList.add('active');
+    if (tabId === 'score-view' && currentPdfDoc) {
+      renderPdfPages();
+    }
   });
 });
 
 // Zoom Controls
 btnZoomIn.addEventListener('click', () => {
-  if (lastPdfBase64) {
+  if (currentPdfDoc) {
     pdfZoomMode = 'percent';
     currentZoom = Math.min(currentZoom + 0.15, 3.0);
-    updatePdfFrame();
+    renderPdfPages();
   } else {
     currentZoom = Math.min(currentZoom + 0.15, 3.0);
     applyZoom();
@@ -384,10 +434,10 @@ btnZoomIn.addEventListener('click', () => {
 });
 
 btnZoomOut.addEventListener('click', () => {
-  if (lastPdfBase64) {
+  if (currentPdfDoc) {
     pdfZoomMode = 'percent';
-    currentZoom = Math.max(currentZoom - 0.15, 0.4);
-    updatePdfFrame();
+    currentZoom = Math.max(currentZoom - 0.15, 0.3);
+    renderPdfPages();
   } else {
     currentZoom = Math.max(currentZoom - 0.15, 0.3);
     applyZoom();
@@ -396,18 +446,18 @@ btnZoomOut.addEventListener('click', () => {
 
 btnZoomReset.addEventListener('click', () => {
   currentZoom = 1.0;
-  if (lastPdfBase64) {
+  if (currentPdfDoc) {
     pdfZoomMode = 'percent';
-    updatePdfFrame();
+    renderPdfPages();
   } else {
     applyZoom();
   }
 });
 
 btnZoomFit.addEventListener('click', () => {
-  if (lastPdfBase64) {
+  if (currentPdfDoc) {
     pdfZoomMode = 'FitH';
-    updatePdfFrame();
+    renderPdfPages();
   } else {
     const containerWidth = scoreCanvas.clientWidth - 48;
     const svgElem = scoreSvgContainer.querySelector('svg');
@@ -416,6 +466,13 @@ btnZoomFit.addEventListener('click', () => {
       currentZoom = Math.min(Math.max(containerWidth / svgWidth, 0.4), 2.0);
       applyZoom();
     }
+  }
+});
+
+// Auto-resize on window change if in Fit mode
+window.addEventListener('resize', () => {
+  if (pdfZoomMode === 'FitH' && currentPdfDoc) {
+    renderPdfPages();
   }
 });
 
