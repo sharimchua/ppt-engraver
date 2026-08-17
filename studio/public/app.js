@@ -218,17 +218,36 @@ async function exportPdf() {
   }
 }
 
+let lastPdfBase64 = null;
+let pdfZoomMode = 'FitH';
+
 // --- Rendering Functions ---
+function updatePdfFrame() {
+  const frame = document.getElementById('pdf-preview-frame');
+  if (!frame || !lastPdfBase64) return;
+  const zoomParam = pdfZoomMode === 'FitH'
+    ? '#view=FitH&toolbar=0&navpanes=0'
+    : `#zoom=${Math.round(currentZoom * 100)}&toolbar=0&navpanes=0`;
+  frame.src = `data:application/pdf;base64,${lastPdfBase64}${zoomParam}`;
+  zoomLevel.textContent = pdfZoomMode === 'FitH' ? 'Fit' : `${Math.round(currentZoom * 100)}%`;
+}
+
 function renderPreview(data) {
   if (data.format === 'pdf' && data.pdfBase64) {
+    lastPdfBase64 = data.pdfBase64;
     scorePlaceholder.style.display = 'none';
+    const zoomParam = pdfZoomMode === 'FitH'
+      ? '#view=FitH&toolbar=0&navpanes=0'
+      : `#zoom=${Math.round(currentZoom * 100)}&toolbar=0&navpanes=0`;
     scoreSvgContainer.innerHTML = `
       <iframe
-        src="data:application/pdf;base64,${data.pdfBase64}#toolbar=0&navpanes=0&scrollbar=1"
-        style="width: 100%; min-height: 850px; height: 100%; border: none; background: white; border-radius: 4px;"
+        id="pdf-preview-frame"
+        src="data:application/pdf;base64,${data.pdfBase64}${zoomParam}"
+        style="width: 100%; height: 100%; border: none; display: block;"
         title="Score Preview"
       ></iframe>
     `;
+    zoomLevel.textContent = pdfZoomMode === 'FitH' ? 'Fit' : `${Math.round(currentZoom * 100)}%`;
     return;
   }
 
@@ -354,27 +373,49 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // Zoom Controls
 btnZoomIn.addEventListener('click', () => {
-  currentZoom = Math.min(currentZoom + 0.15, 3.0);
-  applyZoom();
+  if (lastPdfBase64) {
+    pdfZoomMode = 'percent';
+    currentZoom = Math.min(currentZoom + 0.15, 3.0);
+    updatePdfFrame();
+  } else {
+    currentZoom = Math.min(currentZoom + 0.15, 3.0);
+    applyZoom();
+  }
 });
 
 btnZoomOut.addEventListener('click', () => {
-  currentZoom = Math.max(currentZoom - 0.15, 0.3);
-  applyZoom();
+  if (lastPdfBase64) {
+    pdfZoomMode = 'percent';
+    currentZoom = Math.max(currentZoom - 0.15, 0.4);
+    updatePdfFrame();
+  } else {
+    currentZoom = Math.max(currentZoom - 0.15, 0.3);
+    applyZoom();
+  }
 });
 
 btnZoomReset.addEventListener('click', () => {
   currentZoom = 1.0;
-  applyZoom();
+  if (lastPdfBase64) {
+    pdfZoomMode = 'percent';
+    updatePdfFrame();
+  } else {
+    applyZoom();
+  }
 });
 
 btnZoomFit.addEventListener('click', () => {
-  const containerWidth = scoreCanvas.clientWidth - 48;
-  const svgElem = scoreSvgContainer.querySelector('svg');
-  if (svgElem) {
-    const svgWidth = svgElem.clientWidth || svgElem.getBoundingClientRect().width || 800;
-    currentZoom = Math.min(Math.max(containerWidth / svgWidth, 0.4), 2.0);
-    applyZoom();
+  if (lastPdfBase64) {
+    pdfZoomMode = 'FitH';
+    updatePdfFrame();
+  } else {
+    const containerWidth = scoreCanvas.clientWidth - 48;
+    const svgElem = scoreSvgContainer.querySelector('svg');
+    if (svgElem) {
+      const svgWidth = svgElem.clientWidth || svgElem.getBoundingClientRect().width || 800;
+      currentZoom = Math.min(Math.max(containerWidth / svgWidth, 0.4), 2.0);
+      applyZoom();
+    }
   }
 });
 
