@@ -178,7 +178,7 @@ async function triggerCompile() {
     if (data.success) {
       setStatus('ready', `⚡ ${data.metrics?.totalTimeMs || 0}ms`);
       metricsText.textContent = `Compile: ${data.metrics?.compileTimeMs || 0}ms | LilyPond: ${data.metrics?.lilyTimeMs || 0}ms`;
-      renderSvg(data.svg);
+      renderPreview(data);
       renderLilyPond(data.lilypondSource);
       renderOnsets(data.onsets);
     } else {
@@ -219,15 +219,32 @@ async function exportPdf() {
 }
 
 // --- Rendering Functions ---
-function renderSvg(svgString) {
-  if (!svgString) {
-    scorePlaceholder.style.display = 'block';
-    scoreSvgContainer.innerHTML = '';
+function renderPreview(data) {
+  if (data.format === 'pdf' && data.pdfBase64) {
+    scorePlaceholder.style.display = 'none';
+    scoreSvgContainer.innerHTML = `
+      <iframe
+        src="data:application/pdf;base64,${data.pdfBase64}#toolbar=0&navpanes=0&scrollbar=1"
+        style="width: 100%; min-height: 850px; height: 100%; border: none; background: white; border-radius: 4px;"
+        title="Score Preview"
+      ></iframe>
+    `;
     return;
   }
-  scorePlaceholder.style.display = 'none';
-  scoreSvgContainer.innerHTML = svgString;
-  applyZoom();
+
+  if (data.svg) {
+    scorePlaceholder.style.display = 'none';
+    scoreSvgContainer.innerHTML = data.svg;
+    applyZoom();
+    return;
+  }
+
+  scorePlaceholder.style.display = 'block';
+  scoreSvgContainer.innerHTML = '';
+}
+
+function renderSvg(svgString) {
+  renderPreview({ svg: svgString });
 }
 
 function renderLilyPond(lySource) {

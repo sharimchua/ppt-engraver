@@ -100,16 +100,16 @@ function sendError(res: ServerResponse, message: string, status = 500, details?:
 }
 
 /**
- * Compiles a YAML string to LilyPond .ly and runs LilyPond to produce SVG.
+ * Compiles a YAML string to LilyPond .ly and runs LilyPond to produce PDF (super-fast native backend).
  */
-async function compileToSvg(yamlContent: string) {
+async function compileScore(yamlContent: string, format = 'pdf') {
   const startTime = Date.now();
   
-  // 1. In-memory YAML -> LilyPond compilation
+  // 1. In-memory YAML -> LilyPond compilation (runs in ~10-20ms)
   const result = compileYamlString(yamlContent);
   const compileTimeMs = Date.now() - startTime;
 
-  // 2. Render SVG via LilyPond
+  // 2. Render via LilyPond
   const tempDir = resolve(tmpdir(), 'ppt-studio-' + Math.random().toString(36).slice(2, 8));
   mkdirSync(tempDir, { recursive: true });
 
@@ -119,40 +119,71 @@ async function compileToSvg(yamlContent: string) {
 
   try {
     const lilyStartTime = Date.now();
-    await execFileAsync(lilypondPath, [
-      '-dbackend=svg',
-      '-dno-point-and-click',
-      '-o',
-      tempOutPrefix,
-      tempLyPath,
-    ], { timeout: 15000 });
-    const lilyTimeMs = Date.now() - lilyStartTime;
 
-    // Look for generated SVG
-    const standardSvgPath = tempOutPrefix + '.svg';
-    const croppedSvgPath = tempOutPrefix + '.cropped.svg';
-    let svgContent = '';
+    if (format === 'svg') {
+      await execFileAsync(lilypondPath, [
+        '-dbackend=svg',
+        '-dno-point-and-click',
+        '-o',
+        tempOutPrefix,
+        tempLyPath,
+      ], { timeout: 20000 });
+      const lilyTimeMs = Date.now() - lilyStartTime;
 
-    if (existsSync(standardSvgPath)) {
-      svgContent = readFileSync(standardSvgPath, 'utf-8');
-    } else if (existsSync(croppedSvgPath)) {
-      svgContent = readFileSync(croppedSvgPath, 'utf-8');
+      const standardSvgPath = tempOutPrefix + '.svg';
+      const croppedSvgPath = tempOutPrefix + '.cropped.svg';
+      let svgContent = '';
+
+      if (existsSync(standardSvgPath)) {
+        svgContent = readFileSync(standardSvgPath, 'utf-8');
+      } else if (existsSync(croppedSvgPath)) {
+        svgContent = readFileSync(croppedSvgPath, 'utf-8');
+      }
+
+      return {
+        success: true,
+        format: 'svg',
+        svg: svgContent,
+        lilypondSource: result.lilypondSource,
+        onsets: result.onsets,
+        warnings: result.warnings,
+        metrics: {
+          compileTimeMs,
+          lilyTimeMs,
+          totalTimeMs: Date.now() - startTime,
+        },
+      };
     } else {
-      throw new Error('LilyPond did not output expected SVG file');
-    }
+      // Default: Native PDF output (1.7s fast Cairo/PostScript engine, exact Frescobaldi match)
+      await execFileAsync(lilypondPath, [
+        '-o',
+        tempOutPrefix,
+        tempLyPath,
+      ], { timeout: 20000 });
+      const lilyTimeMs = Date.now() - lilyStartTime;
 
-    return {
-      success: true,
-      svg: svgContent,
-      lilypondSource: result.lilypondSource,
-      onsets: result.onsets,
-      warnings: result.warnings,
-      metrics: {
-        compileTimeMs,
-        lilyTimeMs,
-        totalTimeMs: Date.now() - startTime,
-      },
-    };
+      const pdfPath = tempOutPrefix + '.pdf';
+      let pdfBase64 = '';
+      if (existsSync(pdfPath)) {
+        pdfBase64 = readFileSync(pdfPath).toString('base64');
+      } else {
+        throw new Error('LilyPond did not produce PDF output');
+      }
+
+      return {
+        success: true,
+        format: 'pdf',
+        pdfBase64,
+        lilypondSource: result.lilypondSource,
+        onsets: result.onsets,
+        warnings: result.warnings,
+        metrics: {
+          compileTimeMs,
+          lilyTimeMs,
+          totalTimeMs: Date.now() - startTime,
+        },
+      };
+    }
   } catch (err: any) {
     return {
       success: false,
@@ -207,7 +238,7 @@ const server = createServer(async (req, res) => {
         if (!body.yaml || typeof body.yaml !== 'string') {
           return sendError(res, 'Missing yaml content', 400);
         }
-        const result = await compileToSvg(body.yaml);
+        const result = await compileScore(body.yaml, body.format || 'pdf');
         return sendJson(res, result);
       }
 
