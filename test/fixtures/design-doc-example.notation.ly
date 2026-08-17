@@ -381,6 +381,21 @@
 #(define pptClefHStencil (make-clef-text-stencil "H"))
 #(define pptClefRStencil (make-clef-text-stencil "R"))
 
+#(define (make-grid-point-stencil grob)
+   (let* ((col (x11-color 'gray80))
+          (dash-len 0.6)
+          (space-len 0.4)
+          (thickness 0.12)
+          (y-bottom -2.5)
+          (y-top 2.5))
+     (let loop ((y y-bottom)
+                (res empty-stencil))
+       (if (>= y y-top)
+           (stencil-with-color res col)
+           (let* ((next-y (min (+ y dash-len) y-top))
+                  (seg (make-line-stencil thickness 0.0 y 0.0 next-y)))
+             (loop (+ next-y space-len) (ly:stencil-add res seg)))))))
+
 \header {
   poet = \markup \line \vcenter { \stencil #pptGlyphDoOutlined \fontsize #1.5 \bold " = C" }
   tagline = ##f

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPT Engraver Studio</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- CodeMirror for clean, high-performance YAML editing with Solfege autocompletion -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Top Header / App Toolbar -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-glyph">◈</span>
+          <span class="logo-title">PPT Engraver Studio</span>
+        </div>
+        <div class="score-picker-wrapper">
+          <select id="score-select" title="Select Score">
+            <option value="" disabled selected>Loading scores...</option>
+          </select>
+          <button id="btn-new-score" class="btn-icon" title="New Score">+</button>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div id="status-badge" class="badge ready">Ready</div>
+        <span id="save-status" class="save-status">Saved</span>
+      </div>
+
+      <div class="header-right">
+        <button id="btn-compile" class="btn btn-primary" title="Compile (Ctrl+Enter)">
+          <span class="btn-icon-symbol">▶</span> Compile
+        </button>
+        <button id="btn-save" class="btn btn-secondary" title="Save (Ctrl+S)">
+          <span>💾</span> Save
+        </button>
+        <button id="btn-export-pdf" class="btn btn-secondary" title="Export PDF">
+          <span>📑</span> Export PDF
+        </button>
+        <button id="btn-settings" class="btn btn-icon" title="Settings">⚙</button>
+      </div>
+    </header>
+
+    <!-- Main Split Area -->
+    <main class="main-container">
+      <!-- Left Panel: Code Editor -->
+      <section class="panel editor-panel">
+        <div class="panel-header">
+          <span class="panel-title">Tapestry Score (.ppt.yaml)</span>
+          <div class="editor-actions">
+            <span id="metrics-text" class="metrics-text"></span>
+          </div>
+        </div>
+        <div id="editor-container" class="editor-container"></div>
+        <div id="error-banner" class="error-banner hidden">
+          <div class="error-title">⚠️ Schema Validation Error</div>
+          <pre id="error-content" class="error-content"></pre>
+        </div>
+      </section>
+
+      <!-- Right Panel: Output & Inspector -->
+      <section class="panel preview-panel">
+        <div class="panel-header">
+          <div class="tab-bar">
+            <button class="tab-btn active" data-tab="score-view">🎼 Sheet Music</button>
+            <button class="tab-btn" data-tab="lilypond-view">📄 LilyPond Source</button>
+            <button class="tab-btn" data-tab="onsets-view">🔍 Diagnostics</button>
+          </div>
+          <div class="preview-actions" id="zoom-controls">
+            <button id="btn-zoom-out" class="btn-icon" title="Zoom Out">-</button>
+            <span id="zoom-level">100%</span>
+            <button id="btn-zoom-in" class="btn-icon" title="Zoom In">+</button>
+            <button id="btn-zoom-fit" class="btn-icon" title="Fit to Width">⤢</button>
+            <button id="btn-zoom-reset" class="btn-icon" title="Reset Zoom">1:1</button>
+          </div>
+        </div>
+
+        <div class="tab-content-container">
+          <!-- Tab 1: Sheet Music SVG -->
+          <div id="score-view" class="tab-content active">
+            <div id="score-canvas" class="score-canvas">
+              <div id="score-placeholder" class="placeholder-message">
+                Click <strong>Compile</strong> or edit the score to render sheet music.
+              </div>
+              <div id="score-svg-container" class="svg-container"></div>
+            </div>
+          </div>
+
+          <!-- Tab 2: LilyPond Source Code -->
+          <div id="lilypond-view" class="tab-content">
+            <div class="code-viewer-header">
+              <span>Generated LilyPond Notation</span>
+              <button id="btn-copy-ly" class="btn btn-small">Copy Code</button>
+            </div>
+            <pre id="lilypond-code" class="code-viewer"></pre>
+          </div>
+
+          <!-- Tab 3: Onsets Diagnostics -->
+          <div id="onsets-view" class="tab-content">
+            <div class="table-container">
+              <table id="onsets-table" class="diagnostics-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Tag</th>
+                    <th>Melody Degree</th>
+                    <th>MIDI</th>
+                    <th>Harmony Root</th>
+                    <th>Triad</th>
+                    <th>Rhythm Token</th>
+                    <th>Duration</th>
+                  </tr>
+                </thead>
+                <tbody id="onsets-tbody">
+                  <tr><td colspan="8" class="empty-cell">No onsets resolved yet</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Studio Settings</h3>
+          <button id="btn-close-settings" class="btn-icon">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="setting-lilypond-path">LilyPond Binary Executable Path:</label>
+            <input type="text" id="setting-lilypond-path" class="input-text" placeholder="e.g. C:\lilypond-2.24.4\bin\lilypond.exe">
+            <small id="setting-status-hint" class="hint-text"></small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-save-settings" class="btn btn-primary">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

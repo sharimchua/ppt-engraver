@@ -12,6 +12,7 @@
 
   "scripts": {
     "build": "tsup",
+    "studio": "tsx studio/server.ts",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",

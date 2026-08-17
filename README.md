@@ -1,70 +1,106 @@
 # ppt-engraver
 
-**Prime Period Theory (Tapestry/Coil) → LilyPond Compiler & Resolution Engine.**
+**Prime Period Theory (Tapestry/Coil) → LilyPond Compiler & Web Studio.**
 
 Compiles [Prime Period Theory](https://ppt.midlifemuso.com/) Tapestry source files (`.ppt.yaml`) into standard music notation via LilyPond and playable MIDI audio.
 
 ---
 
-## Status
+## Features
 
-- ✅ **Phase 1 — Resolution Engine**: Tapestry IR → Onset Stream JSON + Playable MIDI
-- ✅ **Phase 2 — LilyPond Compiler**: Onset Stream → Provenance-Tagged `.notation.ly` + `.ppt-map.json` Sidecar
-- ⏳ **Phase 3 — Consistency Checker + Safe Regeneration** (In Progress)
+- 🎼 **Live Web Studio**: Real-time side-by-side YAML editor with instant vector SVG sheet music preview (`npm run studio`).
+- 🎨 **PPT Solfège Geometry & Colors**: Standard 12-chromatic Solfège noteheads, vector SVG glyphs, custom clefs (`H`, `Do`, `Rhythm`), and tailored HSL color palette.
+- 🧬 **Multi-Layer Coils**: Melody, Harmony, Rhythm, and metric block layers with priority-fill inheritance.
+- 🔗 **Coil Concatenation & In-Place Maps**: Compose complex phrases using `concat: [...]` with automatic downbeat rhythm boundary collapsing.
+- 📐 **Rhythmic Grammar**: Sub-beat subdivisions (`Fi` = 8th, `Me`/`La` = 16ths, `Mi`/`Le` = triplets), beat skips (`Dox`), and downbeat grid alignment.
+- 📄 **LilyPond Engine**: Compiles to `.notation.ly`, vector `.svg`, `.pdf`, and `.ppt-map.json` provenance sidecars.
 
 ---
 
 ## Quick Start
 
+### 1. Launch the Live Web Studio
+
 ```bash
 npm install
-npm test                                            # run full test suite (122 tests)
-npm run build                                       # bundle distribution CLI
-
-# Compile YAML to LilyPond notation (.notation.ly) & sidecar map (.ppt-map.json)
-node dist/compile-cli.js scores/dracula.ppt.yaml
-
-# Resolve YAML to MIDI audio & JSON onset stream
-npx tsx src/index.ts scores/dracula.ppt.yaml -o out.json -m out.mid
+npm run studio
 ```
+Opens the interactive Web Studio in your browser at `http://localhost:3333` with live vector score preview, schema validation, and diagnostics.
+
+### 2. Command-Line Compilation
+
+```bash
+# Build the distribution CLI
+npm run build
+
+# Run unit test suite (192 tests)
+npm test
+
+# Compile YAML score to LilyPond notation (.notation.ly) & sidecar map (.ppt-map.json)
+node dist/compile-cli.js scores/strive.ppt.yaml -o scores/
+
+# Resolve YAML to JSON onset stream and standard MIDI file
+node dist/index.js scores/strive.ppt.yaml -o out.json -m out.mid
+```
+
+---
+
+## Configuring LilyPond
+
+The compiler and Web Studio look for the LilyPond binary automatically at:
+1. Environment variable: `LILYPOND_PATH` or `LILYPOND_BIN`
+2. `C:\lilypond-2.24.4\bin\lilypond.exe` (Windows default)
+3. `C:\Program Files\LilyPond\bin\lilypond.exe`
+4. System PATH: `lilypond`
+
+You can also adjust the LilyPond path anytime in the Web Studio **Settings (⚙)** modal.
 
 ---
 
 ## Tapestry Specification (`.ppt.yaml`)
 
-A Tapestry file consists of three main sections:
-1. **`knot`** (Score Metadata, Key Anchor, Clefs, Engraving Options)
-2. **`coils`** *(Optional)* (Reusable Library of Named Coils)
-3. **`weave`** (Hierarchical Sequence & Structure)
-
 ```yaml
 tapestry:
   knot:
-    title: "Dracula"
-    composer: "Tame Impala"
-    arranger: "Midlife Muso"
-    do: "Eb4"
-    harmonyClef: "bass_8"
-    noteheadStyle: ppt
-    omitStem: true
-    colorNotes: true
+    tonic: "A4"
+    weave: song
+    engraving:
+      title: "Strive"
+      composer: "Christopher Larkin"
+      arranger: "Kieran + Midlife Muso"
+      harmonyClef: treble_8
+      colorNotes: true
+      omitStem: true
+      show:
+        - melody
+        - harmony
+        - harmonyCoil
+        - rhythmCoil
+        - rhythmGrid
+        - chordNames
 
-  coils:
-    verseBase:
-      rhythm: DoFi
-      melody: [Dox, Me, Re, La, Te, Re, Te]
-      harmony: [DoMe]
+  weaves:
+    song:
+      children:
+        - weave: verse
 
-  weave:
-    id: song
-    layout: concatenate
-    children:
-      - coil:
-          id: verse1
-          parents: [verseBase]
-      - coil:
-          id: verse2
-          parents: [verseBase]
+    verse:
+      coils:
+        _v1:
+          melody: [Dox, Do, Me, La, Me]
+          rhythm: [Do, Fi, Do, Fi, Do, Do]
+        _v2:
+          melody: [Dox, Me, Re]
+          rhythm: [DoxMe, Fi, La]
+        _v3:
+          melody: [Sox^, Te, Re, Te, Te, Re]
+          rhythm: [Do, Fi, Le, Te, Do, Fi]
+
+        verse1:
+          concat: [_v1, _v2, _v3]
+
+      children:
+        - coil: verse1
 ```
 
 ---
