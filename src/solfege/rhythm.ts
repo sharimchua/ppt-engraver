@@ -55,13 +55,13 @@ export function parseRhythmToken(token: string): ParsedRhythmToken {
   }
 
   if (remaining.length === 0) {
-    // Lone "Dox" or multiple "Dox" without trailing syllable defaults to Do
+    // Lone "Dox" represents a single downbeat rest (1 beat)
     return {
-      beatSkips,
+      beatSkips: 0,
       baseSyllable: 'Do',
       suffixes: [],
       offsetInBeat: 0,
-      cleanToken: 'Do',
+      cleanToken: 'Dox',
     };
   }
 

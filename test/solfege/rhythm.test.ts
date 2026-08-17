@@ -150,18 +150,27 @@ describe('Solfège Rhythmic Grammar', () => {
       expect(timeline[3].durationBeats).toBeCloseTo(1.0);
     });
 
-    it('resolves Dox beat skips (DoxDo = +1 beat delay)', () => {
-      // Beat 0: Do (start=0, next is at 2.0 -> duration 2.0 = half note)
-      // Beat 2: DoxDo (skips beat 1, arrives at beat 2)
-      const timeline = resolveRhythmTimeline(['Do', 'DoxDo']);
-      expect(timeline).toHaveLength(2);
-      expect(timeline[0].startBeat).toBeCloseTo(0.0);
-      expect(timeline[0].durationBeats).toBeCloseTo(2.0);
-      expect(timeline[0].lilypondDuration).toBe('2');
+    it('expands compound Dox tokens into individual downbeat onsets', () => {
+      const expanded = expandRhythmEntries(['Do', 'Fi', 'Do', 'DoxDoxDo', 'Fi', 'Do']);
+      expect(expanded).toEqual(['Do', 'Fi', 'Do', 'Dox', 'Dox', 'Do', 'Fi', 'Do']);
+    });
 
-      expect(timeline[1].startBeat).toBeCloseTo(2.0);
-      expect(timeline[1].durationBeats).toBeCloseTo(1.0);
-      expect(timeline[1].lilypondDuration).toBe('4');
+    it('resolves DoxDoxDo with single beat increments on each Dox without doubling', () => {
+      const expanded = expandRhythmEntries(['Do', 'Fi', 'Do', 'DoxDoxDo', 'Fi', 'Do']);
+      const timeline = resolveRhythmTimeline(expanded);
+      expect(timeline).toHaveLength(8);
+      expect(timeline[0].startBeat).toBeCloseTo(0.0); // Do
+      expect(timeline[1].startBeat).toBeCloseTo(0.5); // Fi
+      expect(timeline[2].startBeat).toBeCloseTo(1.0); // Do
+      expect(timeline[3].startBeat).toBeCloseTo(2.0); // Dox
+      expect(timeline[4].startBeat).toBeCloseTo(3.0); // Dox
+      expect(timeline[5].startBeat).toBeCloseTo(4.0); // Do
+      expect(timeline[6].startBeat).toBeCloseTo(4.5); // Fi
+      expect(timeline[7].startBeat).toBeCloseTo(5.0); // Do
+
+      // Each Dox is exactly 1.0 beat (quarter note)
+      expect(timeline[3].durationBeats).toBeCloseTo(1.0);
+      expect(timeline[4].durationBeats).toBeCloseTo(1.0);
     });
   });
 });

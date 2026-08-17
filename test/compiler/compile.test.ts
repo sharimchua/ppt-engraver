@@ -212,13 +212,13 @@ tapestry:
     // 8th notes on beat 2
     expect(result.onsets[4].duration).toBe('8');
     expect(result.onsets[5].duration).toBe('8');
-    // Half note across beats 2 and 3 (beat 2.0 to 4.0)
-    expect(result.onsets[6].duration).toBe('2');
+    // Quarter note on beat 3 (beat 2.0 to 3.0)
+    expect(result.onsets[6].duration).toBe('4');
     // Dox skip on beat 4 (beat 3.0 to 4.0)
     expect(result.onsets[7].rhythmToken).toBe('Dox');
     expect(result.onsets[7].isRest).toBe(true);
     expect(result.onsets[7].duration).toBe('4');
-    // Final delayed note on beat 5
+    // Final delayed note on beat 5 (beat 4.0 to 5.0)
     expect(result.onsets[8].rhythmToken).toBe('Do');
     expect(result.onsets[8].duration).toBe('4');
 
