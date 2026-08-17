@@ -175,12 +175,25 @@ const editor = CodeMirror(editorContainer, {
   tabSize: 2,
   indentUnit: 2,
   lineWrapping: true,
+  autoCloseBrackets: true,
+  matchBrackets: true,
+  styleActiveLine: true,
   extraKeys: {
     'Ctrl-S': () => saveScore(),
     'Cmd-S': () => saveScore(),
     'Ctrl-Enter': () => triggerCompile(),
     'Cmd-Enter': () => triggerCompile(),
     'Ctrl-Space': 'autocomplete',
+    'Ctrl-/': 'toggleComment',
+    'Cmd-/': 'toggleComment',
+    'Tab': (cm) => {
+      if (cm.somethingSelected()) {
+        cm.indentSelection('add');
+      } else {
+        cm.replaceSelection('  ', 'end');
+      }
+    },
+    'Shift-Tab': (cm) => cm.indentSelection('subtract'),
   },
 });
 
