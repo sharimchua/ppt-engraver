@@ -560,10 +560,11 @@ btnSaveSettings.addEventListener('click', async () => {
 
 // --- Magnifier Lens (Loupe) Logic ---
 let isMagnifierToggled = false;
-let isAltHeld = false;
+let isShiftHeld = false;
 
 function updateMagnifier(e) {
-  if (!isMagnifierToggled && !isAltHeld) {
+  const active = isMagnifierToggled || isShiftHeld || e.shiftKey;
+  if (!active) {
     if (magnifierLens) magnifierLens.classList.add('hidden');
     return;
   }
@@ -606,7 +607,7 @@ if (btnToggleMagnifier) {
   btnToggleMagnifier.addEventListener('click', () => {
     isMagnifierToggled = !isMagnifierToggled;
     btnToggleMagnifier.classList.toggle('active', isMagnifierToggled);
-    if (!isMagnifierToggled && !isAltHeld && magnifierLens) {
+    if (!isMagnifierToggled && !isShiftHeld && magnifierLens) {
       magnifierLens.classList.add('hidden');
     }
   });
@@ -621,8 +622,8 @@ if (scoreCanvas) {
 
 // Keyboard Shortcuts
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Alt') {
-    isAltHeld = true;
+  if (e.key === 'Shift') {
+    isShiftHeld = true;
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
@@ -635,8 +636,8 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('keyup', (e) => {
-  if (e.key === 'Alt') {
-    isAltHeld = false;
+  if (e.key === 'Shift') {
+    isShiftHeld = false;
     if (!isMagnifierToggled && magnifierLens) {
       magnifierLens.classList.add('hidden');
     }
