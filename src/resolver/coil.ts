@@ -70,6 +70,112 @@ export interface CoilResolutionResult {
  * @param defaultCoil - Optional default Coil from enclosing Weave
  * @returns Array of resolved onsets + warnings
  */
+/**
+ * Resolves a composite coil defined with `concat: [...]`.
+ * Stitches sub-coils into a single continuous phrase and collapses overlapping downbeat boundary rests.
+ */
+export function resolveConcatCoil(
+  coil: Coil,
+  knot: ResolvedKnot,
+  coilLibrary: Map<string, Coil> = new Map(),
+  defaultCoil?: Coil,
+): CoilResolutionResult {
+  const warnings: string[] = [];
+  const concatEntries = coil.concat!;
+  const mergedOnsets: ResolvedOnset[] = [];
+
+  for (let i = 0; i < concatEntries.length; i++) {
+    const entry = concatEntries[i];
+    let subCoil: Coil;
+    if (typeof entry === 'string') {
+      const found = coilLibrary.get(entry);
+      if (!found) {
+        throw new Error(
+          `Coil "${coil.id ?? 'anonymous'}" concat references unknown coil "${entry}"`
+        );
+      }
+      subCoil = found;
+    } else {
+      subCoil = entry;
+    }
+
+    const { onsets: subOnsets, warnings: subWarnings } = resolveCoil(
+      subCoil,
+      knot,
+      coilLibrary,
+      defaultCoil
+    );
+    warnings.push(...subWarnings);
+
+    if (subOnsets.length === 0) continue;
+
+    if (mergedOnsets.length === 0) {
+      mergedOnsets.push(...subOnsets);
+    } else {
+      const lastMerged = mergedOnsets[mergedOnsets.length - 1];
+      const firstSub = subOnsets[0];
+
+      // Boundary Collapsing:
+      // Case 1: Trailing rest at end of previous coil AND leading rest at start of next coil
+      // (e.g. previous ends on trailing 'Do' rest, next begins with 'Dox' push rest)
+      if (lastMerged.isRest && firstSub.isRest) {
+        mergedOnsets[mergedOnsets.length - 1] = {
+          ...firstSub,
+          chordMidi: lastMerged.chordMidi,
+          chordRoot: lastMerged.chordRoot,
+        };
+        mergedOnsets.push(...subOnsets.slice(1));
+      }
+      // Case 2: Trailing rest at end of previous coil AND next coil lands directly on-beat with melody
+      else if (lastMerged.isRest && !firstSub.isRest && (firstSub.rhythmToken === 'Do' || firstSub.rhythmToken === undefined)) {
+        mergedOnsets.pop(); // Remove trailing empty rest
+        mergedOnsets.push(...subOnsets);
+      }
+      // Case 3: Standard concatenation
+      else {
+        mergedOnsets.push(...subOnsets);
+      }
+    }
+  }
+
+  // If the composite coil specifies its own harmony layer, override harmony across the entire concatenated stream
+  if (coil.harmony && coil.harmony.length > 0) {
+    const totalOnsets = mergedOnsets.length;
+    const harmonyChords = resolveHarmony(
+      coil.harmony,
+      totalOnsets,
+      knot,
+      coil.harmonyOctave ?? 0,
+    );
+    for (let k = 0; k < totalOnsets; k++) {
+      mergedOnsets[k].chordMidi = harmonyChords[k].triad;
+      mergedOnsets[k].chordRoot = harmonyChords[k].root;
+    }
+  } else if (coil.harmonyOctave !== undefined && coil.harmonyOctave !== 0) {
+    const shiftSemitones = coil.harmonyOctave * 12;
+    for (const onset of mergedOnsets) {
+      onset.chordMidi = onset.chordMidi.map(m => m + shiftSemitones);
+    }
+  }
+
+  return { onsets: mergedOnsets, warnings };
+}
+
+/**
+ * Resolves a single Coil into an array of ResolvedOnsets.
+ * 
+ * Supports Priority-Fill Inheritance:
+ * 1. Explicit local layer definition wins outright.
+ * 2. Unfilled layers inherit from the ordered list of parent coils in `parents`.
+ * 3. Unfilled layers inherit from the enclosing Weave's `defaultCoil`.
+ * 4. Fallback defaults (e.g. Harmony defaults to ['Do']).
+ * 
+ * @param coil - The Coil definition from the Tapestry IR
+ * @param knot - The resolved Knot providing the Do anchor
+ * @param coilLibrary - Map of named Coil definitions available for inheritance
+ * @param defaultCoil - Optional default Coil from enclosing Weave
+ * @returns Array of resolved onsets + warnings
+ */
 export function resolveCoil(
   coil: Coil,
   knot: ResolvedKnot,
@@ -77,6 +183,11 @@ export function resolveCoil(
   defaultCoil?: Coil,
 ): CoilResolutionResult {
   const warnings: string[] = [];
+
+  // If this coil is a composite concatenation of sub-coils, resolve via resolveConcatCoil
+  if (coil.concat && coil.concat.length > 0) {
+    return resolveConcatCoil(coil, knot, coilLibrary, defaultCoil);
+  }
   
   // Resolve layers using inheritance rules:
   // Explicit > Parents (in order) > Default Coil

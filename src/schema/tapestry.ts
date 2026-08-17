@@ -85,6 +85,7 @@ export type RhythmEntry = z.infer<typeof RhythmEntrySchema>;
  * V1 supported values: DoSo, DoRe, DoLa, DoMi, DoSi, DoFi
  */
 export const RhythmLabel = z.enum(['DoSo', 'DoRe', 'DoLa', 'DoMi', 'DoSi', 'DoFi']);
+export type RhythmLabelType = z.infer<typeof RhythmLabel>;
 
 /**
  * Visual elements that can be selectively shown in the engraved score.
@@ -227,29 +228,55 @@ export const KnotSchema = z.object({
 });
 
 /**
- * Coil: the atomic composable unit with up to three layers.
- * Supports priority-based inheritance from parent coils.
+ * Coil interface for TypeScript typing with recursive concat support.
  */
-export const CoilSchema = z.object({
+export interface Coil {
   /** Unique identifier for this coil (optional for anonymous inline coils) */
-  id: z.string().min(1).optional(),
+  id?: string;
   /** Single parent Coil ID to inherit layers from */
-  parent: z.string().optional(),
+  parent?: string;
   /** Ordered list or single parent Coil ID to inherit layers from */
-  parents: z.union([z.string(), z.array(z.string())]).optional(),
+  parents?: string | string[];
+  /** Sub-coils to concatenate into a single continuous phrase */
+  concat?: Array<string | Coil>;
   /** Rhythm layer: either micro Solfège rhythm tokens array or a macro metric block-length label */
-  rhythm: z.union([RhythmLabel, z.array(RhythmEntrySchema)]).optional(),
+  rhythm?: RhythmLabelType | Array<string | number>;
   /** Metric block-length label: macro time grouping (e.g. "DoLa", "DoSo") */
-  meter: RhythmLabel.optional(),
+  meter?: RhythmLabelType;
   /** Melody layer: array of solfège pitch tokens and/or repeat padding counts (optional if inherited, min 1 if specified) */
-  melody: z.array(MelodyEntrySchema).min(1).optional(),
+  melody?: Array<string | number>;
   /** Harmony layer: array of chord root solfège syllables and/or repeat padding counts */
-  harmony: z.array(HarmonyEntrySchema).min(1).optional(),
+  harmony?: Array<string | number>;
   /** Optional octave shift for this coil's harmony layer (e.g. 0, -1, 1) */
-  harmonyOctave: z.number().int().optional(),
-});
+  harmonyOctave?: number;
+}
 
-export type Coil = z.infer<typeof CoilSchema>;
+/**
+ * Coil: the atomic composable unit with up to three layers.
+ * Supports priority-based inheritance from parent coils and concatenation of sub-coils.
+ */
+export const CoilSchema: z.ZodType<Coil> = z.lazy(() =>
+  z.object({
+    /** Unique identifier for this coil (optional for anonymous inline coils) */
+    id: z.string().min(1).optional(),
+    /** Single parent Coil ID to inherit layers from */
+    parent: z.string().optional(),
+    /** Ordered list or single parent Coil ID to inherit layers from */
+    parents: z.union([z.string(), z.array(z.string())]).optional(),
+    /** Sub-coils to concatenate into a single continuous phrase */
+    concat: z.array(z.union([z.string(), CoilSchema])).min(1).optional(),
+    /** Rhythm layer: either micro Solfège rhythm tokens array or a macro metric block-length label */
+    rhythm: z.union([RhythmLabel, z.array(RhythmEntrySchema)]).optional(),
+    /** Metric block-length label: macro time grouping (e.g. "DoLa", "DoSo") */
+    meter: RhythmLabel.optional(),
+    /** Melody layer: array of solfège pitch tokens and/or repeat padding counts (optional if inherited, min 1 if specified) */
+    melody: z.array(MelodyEntrySchema).min(1).optional(),
+    /** Harmony layer: array of chord root solfège syllables and/or repeat padding counts */
+    harmony: z.array(HarmonyEntrySchema).min(1).optional(),
+    /** Optional octave shift for this coil's harmony layer (e.g. 0, -1, 1) */
+    harmonyOctave: z.number().int().optional(),
+  })
+);
 
 /**
  * Weave interface for TypeScript typing with recursive children.

@@ -19,6 +19,7 @@ import { writeMidiFile } from './midi/writer.js';
 export * from './schema/tapestry.js';
 export * from './schema/onset.js';
 export * from './solfege/pitch.js';
+export * from './solfege/rhythm.js';
 export * from './parser/yaml-loader.js';
 export * from './resolver/knot.js';
 export * from './resolver/coil.js';
