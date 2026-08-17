@@ -498,6 +498,21 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 #(define pptClefMStencil (make-clef-text-stencil "M"))
 #(define pptClefHStencil (make-clef-text-stencil "H"))
 #(define pptClefRStencil (make-clef-text-stencil "R"))
+
+#(define (make-grid-point-stencil grob)
+   (let* ((col (x11-color 'gray80))
+          (dash-len 0.6)
+          (space-len 0.4)
+          (thickness 0.12)
+          (y-bottom -2.5)
+          (y-top 2.5))
+     (let loop ((y y-bottom)
+                (res empty-stencil))
+       (if (>= y y-top)
+           (stencil-with-color res col)
+           (let* ((next-y (min (+ y dash-len) y-top))
+                  (seg (make-line-stencil thickness 0.0 y 0.0 next-y)))
+             (loop (+ next-y space-len) (ly:stencil-add res seg)))))))
 `;
 
 /**
@@ -1412,6 +1427,7 @@ ${chordChangesDirective}      \\chordNamesVoice
     showMelodyCoilAbsolute ||
     showMelodyCoilInterval ||
     showRhythmCoil ||
+    options.showRhythmGrid ||
     (options.doPitch && options.showKeyAnchor !== false)
   ) {
     preambles += `\n${PPT_SCHEME_COLOR_DEFINITIONS}`;
@@ -1487,6 +1503,8 @@ ${chordChangesDirective}      \\chordNamesVoice
       gridInterval = #(ly:make-moment 1/4)
       \\override GridPoint.X-offset = #0.65
       \\override GridPoint.Y-offset = #0
+      \\override GridPoint.stencil = #make-grid-point-stencil
+      \\override GridPoint.layer = #-1
     }\n`
     : "";
 
