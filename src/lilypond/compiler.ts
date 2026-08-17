@@ -1151,6 +1151,10 @@ export function compileToLilyPond(
   const chordNamesVoiceStr = chordNamesLines.join("\n");
 
   // Assemble staves in PianoStaff
+  const gridSuffix = options.showRhythmGrid ? " \\rhythmGridVoice >>" : "";
+  const wrapWithGrid = (voiceName: string) =>
+    options.showRhythmGrid ? `<< ${voiceName}${gridSuffix}` : voiceName;
+
   const coilStaffLines: string[] = [];
   if (showMelodyCoilAbsolute) {
     coilStaffLines.push(`      \\new Staff \\with {
@@ -1170,7 +1174,7 @@ export function compileToLilyPond(
         \\override Beam.stencil = ##f
         \\override Dots.stencil = ##f
         \\override NoteHead.no-ledgers = ##t
-      } \\melodyCoilAbsoluteVoice`);
+      } ${wrapWithGrid("\\melodyCoilAbsoluteVoice")}`);
   }
 
   if (showMelodyCoilInterval) {
@@ -1191,7 +1195,7 @@ export function compileToLilyPond(
         \\override Beam.stencil = ##f
         \\override Dots.stencil = ##f
         \\override NoteHead.no-ledgers = ##t
-      } \\melodyCoilIntervalVoice`);
+      } ${wrapWithGrid("\\melodyCoilIntervalVoice")}`);
   }
 
   if (showRhythmCoil) {
@@ -1212,7 +1216,7 @@ export function compileToLilyPond(
         \\override Beam.stencil = ##f
         \\override Dots.stencil = ##f
         \\override NoteHead.no-ledgers = ##t
-      } \\rhythmCoilVoice`);
+      } ${wrapWithGrid("\\rhythmCoilVoice")}`);
   }
 
   if (showHarmonyCoil) {
@@ -1233,7 +1237,7 @@ export function compileToLilyPond(
         \\override Beam.stencil = ##f
         \\override Dots.stencil = ##f
         \\override NoteHead.no-ledgers = ##t
-      } \\harmonyCoilVoice`);
+      } ${wrapWithGrid("\\harmonyCoilVoice")}`);
   }
 
   const rhythmGridLines: string[] = ["  \\cadenzaOn"];
@@ -1310,7 +1314,11 @@ ${coilStaffLines.join("\n")}
     staffLines.push(`  ${coilStaffLines[0].trim()}`);
   }
   if (showTraditionalHarmony) {
-    staffLines.push("    \\new Staff \\harmonyVoice");
+    if (options.showRhythmGrid) {
+      staffLines.push("    \\new Staff << \\harmonyVoice \\rhythmGridVoice >>");
+    } else {
+      staffLines.push("    \\new Staff \\harmonyVoice");
+    }
   }
 
   const staffGroupBody =
