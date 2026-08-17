@@ -102,15 +102,25 @@ export function createMidiBuffer(
   const melodyName = Buffer.from('Melody');
   track1Events.push(0x00, 0xff, 0x03, melodyName.length, ...melodyName);
 
+  let pendingMelodyDelta = 0;
   for (const onset of onsets) {
-    const pitch = onset.midiNote;
-    // Note On: Delta 0, 90 (channel 0), pitch, velocity 90
-    track1Events.push(0x00, 0x90, pitch, 0x5a);
-    // Note Off: Delta durationTicks, 80 (channel 0), pitch, velocity 0
-    track1Events.push(...toVariableLength(durationTicks), 0x80, pitch, 0x00);
+    const onsetDurationTicks = onset.durationBeats !== undefined
+      ? Math.round(onset.durationBeats * ppq)
+      : durationTicks;
+
+    if (!onset.isRest) {
+      const pitch = onset.midiNote;
+      // Note On: Delta pendingMelodyDelta, 90 (channel 0), pitch, velocity 90
+      track1Events.push(...toVariableLength(pendingMelodyDelta), 0x90, pitch, 0x5a);
+      // Note Off: Delta onsetDurationTicks, 80 (channel 0), pitch, velocity 0
+      track1Events.push(...toVariableLength(onsetDurationTicks), 0x80, pitch, 0x00);
+      pendingMelodyDelta = 0;
+    } else {
+      pendingMelodyDelta += onsetDurationTicks;
+    }
   }
   // End of Track
-  track1Events.push(0x00, 0xff, 0x2f, 0x00);
+  track1Events.push(...toVariableLength(pendingMelodyDelta), 0xff, 0x2f, 0x00);
 
   // === Track 2: Harmony Triads (Channel 1) ===
   const track2Events: number[] = [];
@@ -119,6 +129,9 @@ export function createMidiBuffer(
   track2Events.push(0x00, 0xff, 0x03, harmonyName.length, ...harmonyName);
 
   for (const onset of onsets) {
+    const onsetDurationTicks = onset.durationBeats !== undefined
+      ? Math.round(onset.durationBeats * ppq)
+      : durationTicks;
     const triad = onset.chordMidi; // [root, 3rd, 5th]
     
     // Note On for all 3 chord tones at delta 0
@@ -127,7 +140,7 @@ export function createMidiBuffer(
     track2Events.push(0x00, 0x91, triad[2], 0x48);
     
     // Note Off for all 3 chord tones after durationTicks
-    track2Events.push(...toVariableLength(durationTicks), 0x81, triad[0], 0x00);
+    track2Events.push(...toVariableLength(onsetDurationTicks), 0x81, triad[0], 0x00);
     track2Events.push(0x00, 0x81, triad[1], 0x00);
     track2Events.push(0x00, 0x81, triad[2], 0x00);
   }

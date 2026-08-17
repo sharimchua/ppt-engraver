@@ -1,12 +1,16 @@
 \version "2.24.4"
 
 #(define colorDo (rgb-color (/ #xE1 255.0) (/ #x36 255.0) (/ #x10 255.0)))
+#(define colorRa (rgb-color (/ #xF9 255.0) (/ #x80 255.0) (/ #x16 255.0)))
 #(define colorRe (rgb-color (/ #xF9 255.0) (/ #x80 255.0) (/ #x16 255.0)))
+#(define colorMe (rgb-color (/ #xF5 255.0) (/ #xD4 255.0) (/ #x32 255.0)))
 #(define colorMi (rgb-color (/ #xF5 255.0) (/ #xD4 255.0) (/ #x32 255.0)))
 #(define colorFa (rgb-color (/ #x43 255.0) (/ #xA4 255.0) (/ #x40 255.0)))
 #(define colorFi (rgb-color (/ #x14 255.0) (/ #x14 255.0) (/ #x14 255.0)))
 #(define colorSo (rgb-color (/ #x00 255.0) (/ #x32 255.0) (/ #xA4 255.0)))
+#(define colorLe (rgb-color (/ #x53 255.0) (/ #x00 255.0) (/ #xA4 255.0)))
 #(define colorLa (rgb-color (/ #x53 255.0) (/ #x00 255.0) (/ #xA4 255.0)))
+#(define colorTe (rgb-color (/ #xF1 255.0) (/ #x58 255.0) (/ #xA4 255.0)))
 #(define colorTi (rgb-color (/ #xF1 255.0) (/ #x58 255.0) (/ #xA4 255.0)))
 
 #(define (make-ppt-stencil base-stencil)
@@ -47,78 +51,360 @@
 #(define stencilTe (make-ppt-stencil (make-path-stencil '(moveto -0.62 0.0 lineto 0.0 0.52 lineto 0.62 0.0 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilTi (make-ppt-stencil (make-path-stencil '(moveto -0.62 0.0 lineto 0.0 0.52 lineto 0.62 0.0 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
 
-#(define pptGlyphDo
-   (make-path-stencil
-     '(moveto 0.29 0.502
-       lineto 0.50 0.866
-       lineto 0.866 0.50
-       lineto 1.00 0.00
-       lineto 0.866 -0.50
-       lineto 0.50 -0.866
-       lineto -0.50 -0.866
-       lineto -0.866 -0.50
-       lineto -1.00 0.00
-       lineto -0.866 0.50
-       lineto -0.50 0.866
-       lineto -0.29 0.502
-       lineto -0.502 0.29
-       lineto -0.58 0.00
-       lineto -0.502 -0.29
-       lineto -0.29 -0.502
-       lineto 0.29 -0.502
-       lineto 0.502 -0.29
-       lineto 0.58 0.00
-       lineto 0.502 0.29
-       closepath)
-     0.0 0.9 0.9 #t))
+#(define pptPathBase
+   '(moveto 0.262 0.806
+     lineto 0.389 0.674
+     lineto 0.559 0.498
+     lineto 0.750 0.302
+     lineto 0.848 0.000
+     lineto 0.750 -0.302
+     lineto 0.714 -0.412
+     lineto 0.686 -0.498
+     lineto 0.405 -0.702
+     lineto 0.262 -0.806
+     lineto 0.000 -0.848
+     lineto -0.262 -0.806
+     lineto -0.405 -0.702
+     lineto -0.686 -0.498
+     lineto -0.714 -0.412
+     lineto -0.750 -0.302
+     lineto -0.848 0.000
+     lineto -0.750 0.302
+     lineto -0.559 0.498
+     lineto -0.389 0.674
+     lineto -0.262 0.806
+     lineto -0.250 0.432
+     lineto -0.330 0.381
+     lineto -0.407 0.292
+     lineto -0.440 0.254
+     lineto -0.473 0.216
+     lineto -0.483 0.142
+     lineto -0.504 0.000
+     lineto -0.483 -0.142
+     lineto -0.445 -0.226
+     lineto -0.393 -0.340
+     lineto -0.330 -0.381
+     lineto -0.250 -0.432
+     lineto -0.209 -0.458
+     lineto -0.147 -0.498
+     lineto 0.000 -0.504
+     lineto 0.147 -0.498
+     lineto 0.209 -0.458
+     lineto 0.250 -0.432
+     lineto 0.330 -0.381
+     lineto 0.393 -0.340
+     lineto 0.445 -0.226
+     lineto 0.483 -0.142
+     lineto 0.504 0.000
+     lineto 0.483 0.142
+     lineto 0.473 0.216
+     lineto 0.440 0.254
+     lineto 0.407 0.292
+     lineto 0.330 0.381
+     lineto 0.250 0.432
+     closepath))
 
-#(define (make-outlined-glyph base-stencil fill-col)
-   (let* ((orig (if fill-col (stencil-with-color base-stencil fill-col) base-stencil))
-          (black-stencil (stencil-with-color base-stencil black))
-          (d 0.07))
-     (ly:stencil-add
-       (ly:stencil-translate black-stencil (cons (- d) 0))
-       (ly:stencil-translate black-stencil (cons d 0))
-       (ly:stencil-translate black-stencil (cons 0 (- d)))
-       (ly:stencil-translate black-stencil (cons 0 d))
-       (ly:stencil-translate black-stencil (cons (- d) (- d)))
-       (ly:stencil-translate black-stencil (cons d d))
-       (ly:stencil-translate black-stencil (cons (- d) d))
-       (ly:stencil-translate black-stencil (cons d (- d)))
-       orig)))
+#(define pptPathSharp
+   '(moveto 0.00 1.00
+     lineto 0.00 0.807
+     lineto 0.001 0.806
+     lineto 0.262 0.806
+     lineto 0.389 0.674
+     lineto 0.447 0.615
+     lineto 0.462 0.599
+     lineto 0.559 0.498
+     lineto 0.288 0.498
+     lineto 0.148 0.740
+     lineto 0.110 0.806
+     lineto 0.000 0.806
+     lineto 0.000 0.520
+     lineto 0.072 0.499
+     lineto 0.146 0.499
+     lineto 0.147 0.498
+     lineto 0.073 0.498
+     lineto 0.209 0.458
+     lineto 0.250 0.432
+     lineto 0.330 0.381
+     lineto 0.407 0.292
+     lineto 0.424 0.272
+     lineto 0.440 0.254
+     lineto 0.473 0.216
+     lineto 0.480 0.165
+     lineto 0.483 0.142
+     lineto 0.504 0.000
+     lineto 0.514 -0.074
+     lineto 0.483 -0.142
+     lineto 0.445 -0.226
+     lineto 0.434 -0.250
+     lineto 0.424 -0.272
+     lineto 0.393 -0.340
+     lineto 0.371 -0.354
+     lineto 0.330 -0.381
+     lineto 0.250 -0.432
+     lineto 0.209 -0.458
+     lineto 0.147 -0.498
+     lineto 0.146 -0.499
+     lineto -0.146 -0.499
+     lineto -0.147 -0.498
+     lineto -0.209 -0.458
+     lineto -0.250 -0.432
+     lineto -0.330 -0.381
+     lineto -0.371 -0.354
+     lineto -0.393 -0.340
+     lineto -0.424 -0.272
+     lineto -0.434 -0.250
+     lineto -0.445 -0.226
+     lineto -0.483 -0.142
+     lineto -0.514 -0.074
+     lineto -0.504 0.000
+     lineto -0.483 0.142
+     lineto -0.480 0.165
+     lineto -0.473 0.216
+     lineto -0.440 0.254
+     lineto -0.424 0.272
+     lineto -0.407 0.292
+     lineto -0.330 0.381
+     lineto -0.250 0.432
+     lineto -0.257 0.444
+     lineto -0.288 0.498
+     lineto -0.560 0.498
+     lineto -0.668 0.386
+     lineto -0.697 0.356
+     lineto -0.750 0.302
+     lineto -0.848 0.000
+     lineto -0.750 -0.302
+     lineto -0.714 -0.412
+     lineto -0.686 -0.498
+     lineto -0.405 -0.702
+     lineto -0.262 -0.806
+     lineto 0.262 -0.806
+     lineto 0.110 -0.806
+     lineto 0.262 -0.806
+     lineto 0.405 -0.702
+     lineto 0.686 -0.498
+     lineto 0.714 -0.412
+     lineto 0.750 -0.302
+     lineto 0.848 0.000
+     lineto 0.750 0.302
+     lineto 0.811 0.408
+     lineto 0.863 0.498
+     lineto 0.866 0.500
+     lineto 0.707 0.707
+     lineto 0.500 0.866
+     lineto 0.259 0.966
+     lineto 0.000 1.000
+     closepath))
 
-#(define pptGlyphDoOutlined (make-outlined-glyph pptGlyphDo colorDo))
+#(define pptPathFlat
+   '(moveto 0.00 1.00
+     lineto -0.259 0.966
+     lineto -0.500 0.866
+     lineto -0.707 0.707
+     lineto -0.866 0.500
+     lineto -0.863 0.498
+     lineto -0.811 0.408
+     lineto -0.750 0.302
+     lineto -0.848 0.000
+     lineto -0.750 -0.302
+     lineto -0.714 -0.412
+     lineto -0.686 -0.498
+     lineto -0.405 -0.702
+     lineto -0.262 -0.806
+     lineto 0.262 -0.806
+     lineto 0.110 -0.806
+     lineto 0.262 -0.806
+     lineto 0.405 -0.702
+     lineto 0.686 -0.498
+     lineto 0.714 -0.412
+     lineto 0.750 -0.302
+     lineto 0.848 0.000
+     lineto 0.750 0.302
+     lineto 0.697 0.356
+     lineto 0.668 0.386
+     lineto 0.559 0.498
+     lineto 0.288 0.498
+     lineto 0.257 0.444
+     lineto 0.250 0.432
+     lineto 0.330 0.381
+     lineto 0.407 0.292
+     lineto 0.424 0.272
+     lineto 0.440 0.254
+     lineto 0.473 0.216
+     lineto 0.480 0.165
+     lineto 0.483 0.142
+     lineto 0.504 0.000
+     lineto 0.514 -0.074
+     lineto 0.483 -0.142
+     lineto 0.445 -0.226
+     lineto 0.434 -0.250
+     lineto 0.424 -0.272
+     lineto 0.393 -0.340
+     lineto 0.371 -0.354
+     lineto 0.330 -0.381
+     lineto 0.250 -0.432
+     lineto 0.209 -0.458
+     lineto 0.147 -0.498
+     lineto 0.146 -0.499
+     lineto -0.146 -0.499
+     lineto -0.147 -0.498
+     lineto -0.209 -0.458
+     lineto -0.250 -0.432
+     lineto -0.330 -0.381
+     lineto -0.371 -0.354
+     lineto -0.393 -0.340
+     lineto -0.424 -0.272
+     lineto -0.434 -0.250
+     lineto -0.445 -0.226
+     lineto -0.483 -0.142
+     lineto -0.514 -0.074
+     lineto -0.504 0.000
+     lineto -0.483 0.142
+     lineto -0.480 0.165
+     lineto -0.473 0.216
+     lineto -0.440 0.254
+     lineto -0.424 0.272
+     lineto -0.407 0.292
+     lineto -0.330 0.381
+     lineto -0.250 0.432
+     lineto -0.209 0.458
+     lineto -0.073 0.498
+     lineto -0.147 0.498
+     lineto -0.146 0.499
+     lineto -0.072 0.499
+     lineto 0.000 0.520
+     lineto 0.000 0.806
+     lineto -0.110 0.806
+     lineto -0.148 0.740
+     lineto -0.288 0.498
+     lineto -0.560 0.498
+     lineto -0.463 0.599
+     lineto -0.447 0.615
+     lineto -0.389 0.675
+     lineto -0.262 0.806
+     lineto -0.001 0.806
+     lineto 0.000 0.807
+     lineto 0.000 1.000
+     closepath))
 
+#(define (make-solfege-glyph base-path rot-deg fill-col has-axis?)
+   (let* ((raw-stencil (make-path-stencil base-path 0.0 0.9 0.9 #t))
+          (rotated-stencil (if (= rot-deg 0)
+                               raw-stencil
+                               (ly:stencil-rotate raw-stencil rot-deg 0 0)))
+          (axis-stencil (if has-axis?
+                            (ly:stencil-rotate (make-line-stencil 0.12 -0.95 0.0 0.95 0.0) rot-deg 0 0)
+                            empty-stencil))
+          (combined (if has-axis?
+                        (ly:stencil-add rotated-stencil axis-stencil)
+                        rotated-stencil))
+          (colored (if fill-col (stencil-with-color combined fill-col) combined))
+          (black-stencil (stencil-with-color combined black))
+          (d 0.07)
+          (outlined (ly:stencil-add
+                      (ly:stencil-translate black-stencil (cons (- d) 0))
+                      (ly:stencil-translate black-stencil (cons d 0))
+                      (ly:stencil-translate black-stencil (cons 0 (- d)))
+                      (ly:stencil-translate black-stencil (cons 0 d))
+                      (ly:stencil-translate black-stencil (cons (- d) (- d)))
+                      (ly:stencil-translate black-stencil (cons d d))
+                      (ly:stencil-translate black-stencil (cons (- d) d))
+                      (ly:stencil-translate black-stencil (cons d (- d)))
+                      colored))
+          (centered (ly:stencil-aligned-to (ly:stencil-aligned-to outlined X CENTER) Y CENTER)))
+     (ly:stencil-translate centered (cons 0.65 0))))
 
+#(define (make-solfege-glyph-sub base-path rot-deg fill-col has-axis?)
+   (ly:stencil-scale (make-solfege-glyph base-path rot-deg fill-col has-axis?) 0.55 0.55))
 
+#(define (make-solfege-glyph-with-prefix base-path rot-deg fill-col has-axis? dox-count)
+   (let* ((main-stencil (make-solfege-glyph base-path rot-deg fill-col has-axis?))
+          (dox-base (make-solfege-glyph pptPathBase 0 colorDo #t)))
+     (let loop ((count dox-count)
+                (res main-stencil))
+       (if (<= count 0)
+           res
+           (let* ((offset (* (- count) 1.8))
+                  (shifted-dox (ly:stencil-translate-axis dox-base offset X)))
+             (loop (- count 1) (ly:stencil-add res shifted-dox)))))))
+
+#(define pptGlyphDo (make-path-stencil pptPathBase 0.0 0.9 0.9 #t))
+#(define pptGlyphDoOutlined (make-solfege-glyph pptPathBase 0 colorDo #f))
 
 #(define (color-notehead-with-outline grob)
    (let* ((orig (ly:note-head::print grob))
-          (col (ly:grob-property grob 'color #f)))
+          (col (ly:grob-property grob 'color #f))
+          (dur-log (ly:grob-property grob 'duration-log 2)))
      (if (and col (list? col))
-         (let* ((black-stencil (stencil-with-color orig black))
-                (colored-stencil (stencil-with-color orig col))
-                (d 0.08))
-           (ly:stencil-add
-             (ly:stencil-translate black-stencil (cons (- d) 0))
-             (ly:stencil-translate black-stencil (cons d 0))
-             (ly:stencil-translate black-stencil (cons 0 (- d)))
-             (ly:stencil-translate black-stencil (cons 0 d))
-             (ly:stencil-translate black-stencil (cons (- d) (- d)))
-             (ly:stencil-translate black-stencil (cons d d))
-             (ly:stencil-translate black-stencil (cons (- d) d))
-             (ly:stencil-translate black-stencil (cons d (- d)))
-             colored-stencil))
+         (if (<= dur-log 1)
+             ;; Whole / half notes: fill interior with Solfège color, overlaid with black whole notehead outline
+             (let* ((fill-glyph (grob-interpret-markup grob (markup #:musicglyph "noteheads.s2")))
+                    (colored-fill (stencil-with-color fill-glyph col))
+                    (black-outline (stencil-with-color orig black)))
+               (ly:stencil-add colored-fill black-outline))
+             ;; Quarter notes or shorter: solid colored notehead with 8-directional contrast outline
+             (let* ((black-stencil (stencil-with-color orig black))
+                    (colored-stencil (stencil-with-color orig col))
+                    (d 0.08))
+               (ly:stencil-add
+                 (ly:stencil-translate black-stencil (cons (- d) 0))
+                 (ly:stencil-translate black-stencil (cons d 0))
+                 (ly:stencil-translate black-stencil (cons 0 (- d)))
+                 (ly:stencil-translate black-stencil (cons 0 d))
+                 (ly:stencil-translate black-stencil (cons (- d) (- d)))
+                 (ly:stencil-translate black-stencil (cons d d))
+                 (ly:stencil-translate black-stencil (cons (- d) d))
+                 (ly:stencil-translate black-stencil (cons d (- d)))
+                 colored-stencil)))
          orig)))
 
+#(define (ppt-row-band-stencil grob)
+   (let* ((orig (ly:staff-symbol::print grob))
+          (ext-x (if (ly:stencil? orig) (ly:stencil-extent orig X) '(-0.5 . 0.5)))
+          (ext-y (if (ly:stencil? orig) (ly:stencil-extent orig Y) '(-2.0 . 2.0)))
+          (bg-col (rgb-color 0.94 0.95 0.97))
+          (edge-col (rgb-color 0.70 0.72 0.76))
+          (bg-box (stencil-with-color
+                    (make-filled-box-stencil ext-x ext-y)
+                    bg-col))
+          (edges (if (ly:stencil? orig)
+                     (stencil-with-color orig edge-col)
+                     empty-stencil)))
+     (ly:stencil-add bg-box edges)))
+
+#(define (make-clef-text-stencil text-str)
+   (lambda (grob)
+     (let* ((stc (grob-interpret-markup grob (markup #:vcenter #:bold #:fontsize -1.5 text-str)))
+            (centered-y (ly:stencil-aligned-to stc Y CENTER)))
+       centered-y)))
+
+#(define pptClefMStencil (make-clef-text-stencil "M"))
+#(define pptClefHStencil (make-clef-text-stencil "H"))
+#(define pptClefRStencil (make-clef-text-stencil "R"))
+
 \header {
-  piece = \markup \line \vcenter { \stencil #pptGlyphDoOutlined \fontsize #1.5 \bold " = C" }
+  poet = \markup \line \vcenter { \stencil #pptGlyphDoOutlined \fontsize #1.5 \bold " = C" }
   tagline = ##f
+}
+
+\paper {
+  markup-system-spacing =
+    #'((basic-distance . 12)
+       (minimum-distance . 8)
+       (padding . 3)
+       (stretchability . 20))
+}
+
+chordNamesVoice = {
+  \tag #'ppt_verse_introMotif_1 <c' e' g'>1
+  \bar "|"
+  \tag #'ppt_verse_cadence_1 <g b d'>1*2/4
+  \bar "|."
 }
 
 melodyVoice = {
   \clef treble
   \accidentalStyle forget
+  \override NoteHead.duration-log = #2
   \cadenzaOn
   \tag #'ppt_verse_introMotif_1 c'4
   \tag #'ppt_verse_introMotif_2 e'4
@@ -127,32 +413,46 @@ melodyVoice = {
   \bar "|"
   \tag #'ppt_verse_cadence_1 b'4
   \tag #'ppt_verse_cadence_2 c''4
+  \bar "|."
   \cadenzaOff
 }
-
 
 harmonyVoice = {
   \clef treble
   \accidentalStyle forget
+  \override NoteHead.duration-log = #2
   \cadenzaOn
   \tag #'ppt_verse_introMotif_1 <c' e' g'>1
   \bar "|"
   \tag #'ppt_verse_cadence_1 <g b d'>1*2/4
+  \bar "|."
   \cadenzaOff
 }
 
 \score {
   <<
     \new ChordNames {
-      \set chordChanges = ##t
-      \harmonyVoice
+      \chordNamesVoice
     }
-    \new PianoStaff <<
-      \new Staff \melodyVoice
-      \new Staff \harmonyVoice
-    >>
+  \new PianoStaff \with {
+    \override StaffGrouper.staff-staff-spacing =
+      #'((basic-distance . 9)
+         (minimum-distance . 7)
+         (padding . 2)
+         (stretchability . 0))
+    \override StaffGrouper.staffgroup-staff-spacing =
+      #'((basic-distance . 9)
+         (minimum-distance . 7)
+         (padding . 2)
+         (stretchability . 0))
+  } <<
+    \new Staff \melodyVoice
+    \new Staff \harmonyVoice
+  >>
   >>
   \layout {
+    indent = 0\mm
+    short-indent = 0\mm
     \context {
       \Staff
       \remove "Time_signature_engraver"

@@ -18,8 +18,10 @@ export const OnsetSchema = z.object({
   pitch: z.string(),
   /** MIDI note number for the melody pitch */
   midiNote: z.number().int(),
-  /** Original solfège scale degree, e.g. "Do", "Mi" */
+  /** Solfège syllable of the melody note */
   scaleDegree: z.string(),
+  /** Whether this onset is a rest in the melody layer */
+  isRest: z.boolean().optional(),
   /** Absolute pitch names for all chord tones, e.g. ["C4", "E4", "G4"] */
   chordTones: z.array(z.string()),
   /** MIDI note numbers for all chord tones */
@@ -32,6 +34,12 @@ export const OnsetSchema = z.object({
   weaveId: z.string(),
   /** 1-based onset index within the coil */
   onsetIndex: z.number().int().positive(),
+  /** Optional rhythm token string if rhythmic grammar is used */
+  rhythmToken: z.string().optional(),
+  /** Duration in beats (quarter note = 1.0) */
+  durationBeats: z.number().positive().optional(),
+  /** LilyPond duration string, e.g. "4", "8", "16", "4*1/3" */
+  duration: z.string().optional(),
 });
 
 /**
