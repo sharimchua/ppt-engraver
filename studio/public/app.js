@@ -86,6 +86,10 @@ const btnZoomIn = document.getElementById('btn-zoom-in');
 const btnZoomOut = document.getElementById('btn-zoom-out');
 const btnZoomReset = document.getElementById('btn-zoom-reset');
 const btnZoomFit = document.getElementById('btn-zoom-fit');
+const btnToggleMagnifier = document.getElementById('btn-toggle-magnifier');
+const magnifierLens = document.getElementById('magnifier-lens');
+const magnifierCanvas = document.getElementById('magnifier-canvas');
+const magnifierCtx = magnifierCanvas ? magnifierCanvas.getContext('2d') : null;
 
 // Settings Modal Elements
 const settingsModal = document.getElementById('settings-modal');
@@ -515,8 +519,72 @@ btnSaveSettings.addEventListener('click', async () => {
   }
 });
 
+// --- Magnifier Lens (Loupe) Logic ---
+const LENS_DIAMETER = 220;
+const MAGNIFIER_POWER = 2.5;
+let isMagnifierToggled = false;
+let isAltHeld = false;
+
+function updateMagnifier(e) {
+  if (!isMagnifierToggled && !isAltHeld) {
+    if (magnifierLens) magnifierLens.classList.add('hidden');
+    return;
+  }
+
+  // Find canvas element under cursor
+  const elements = document.elementsFromPoint(e.clientX, e.clientY);
+  const targetCanvas = elements.find(el => el.classList && el.classList.contains('pdf-page-canvas'));
+
+  if (!targetCanvas || !magnifierCanvas || !magnifierCtx) {
+    if (magnifierLens) magnifierLens.classList.add('hidden');
+    return;
+  }
+
+  magnifierLens.classList.remove('hidden');
+  magnifierLens.style.left = `${e.clientX}px`;
+  magnifierLens.style.top = `${e.clientY}px`;
+
+  const rect = targetCanvas.getBoundingClientRect();
+  const relX = (e.clientX - rect.left) * (targetCanvas.width / rect.width);
+  const relY = (e.clientY - rect.top) * (targetCanvas.height / rect.height);
+
+  const dpr = window.devicePixelRatio || 1;
+  magnifierCanvas.width = LENS_DIAMETER * dpr;
+  magnifierCanvas.height = LENS_DIAMETER * dpr;
+
+  const srcW = (LENS_DIAMETER / MAGNIFIER_POWER) * (targetCanvas.width / rect.width);
+  const srcH = (LENS_DIAMETER / MAGNIFIER_POWER) * (targetCanvas.height / rect.height);
+  const srcX = relX - srcW / 2;
+  const srcY = relY - srcH / 2;
+
+  magnifierCtx.clearRect(0, 0, magnifierCanvas.width, magnifierCanvas.height);
+  magnifierCtx.fillStyle = '#ffffff';
+  magnifierCtx.fillRect(0, 0, magnifierCanvas.width, magnifierCanvas.height);
+  magnifierCtx.drawImage(targetCanvas, srcX, srcY, srcW, srcH, 0, 0, magnifierCanvas.width, magnifierCanvas.height);
+}
+
+if (btnToggleMagnifier) {
+  btnToggleMagnifier.addEventListener('click', () => {
+    isMagnifierToggled = !isMagnifierToggled;
+    btnToggleMagnifier.classList.toggle('active', isMagnifierToggled);
+    if (!isMagnifierToggled && !isAltHeld && magnifierLens) {
+      magnifierLens.classList.add('hidden');
+    }
+  });
+}
+
+if (scoreCanvas) {
+  scoreCanvas.addEventListener('mousemove', updateMagnifier);
+  scoreCanvas.addEventListener('mouseleave', () => {
+    if (magnifierLens) magnifierLens.classList.add('hidden');
+  });
+}
+
 // Keyboard Shortcuts
 window.addEventListener('keydown', (e) => {
+  if (e.key === 'Alt') {
+    isAltHeld = true;
+  }
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
     saveScore();
@@ -524,6 +592,15 @@ window.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     e.preventDefault();
     triggerCompile();
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  if (e.key === 'Alt') {
+    isAltHeld = false;
+    if (!isMagnifierToggled && magnifierLens) {
+      magnifierLens.classList.add('hidden');
+    }
   }
 });
 

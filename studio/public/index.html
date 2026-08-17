@@ -81,17 +81,21 @@
             <button id="btn-zoom-in" class="btn-icon" title="Zoom In">+</button>
             <button id="btn-zoom-fit" class="btn-icon" title="Fit to Width">⤢</button>
             <button id="btn-zoom-reset" class="btn-icon" title="Reset Zoom">1:1</button>
+            <button id="btn-toggle-magnifier" class="btn-icon" title="Magnifying Glass / Loupe (or hold Alt)">🔍</button>
           </div>
         </div>
 
         <div class="tab-content-container">
-          <!-- Tab 1: Sheet Music SVG -->
+          <!-- Tab 1: Sheet Music Preview -->
           <div id="score-view" class="tab-content active">
             <div id="score-canvas" class="score-canvas">
               <div id="score-placeholder" class="placeholder-message">
                 Click <strong>Compile</strong> or edit the score to render sheet music.
               </div>
               <div id="score-svg-container" class="svg-container"></div>
+              <div id="magnifier-lens" class="magnifier-lens hidden">
+                <canvas id="magnifier-canvas"></canvas>
+              </div>
             </div>
           </div>
 
