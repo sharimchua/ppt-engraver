@@ -34,38 +34,105 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
     return {
       knot: {
         doMidi: pitchNameToMidi(DEFAULT_DO),
+        tonicMidi: pitchNameToMidi(DEFAULT_DO),
         tempo: DEFAULT_TEMPO,
         doName: DEFAULT_DO,
+        tonicName: DEFAULT_DO,
         accidentalMode: 'sharps',
       },
       warnings,
     };
   }
-  
-  const doMidi = pitchNameToMidi(knotDef.do);
+
+  const tonicPitch = knotDef.tonic ?? knotDef.do ?? DEFAULT_DO;
+  if (!knotDef.tonic && !knotDef.do) {
+    warnings.push(`No tonic/do defined in Knot — falling back to default: ${DEFAULT_DO}`);
+  }
+
+  const doMidi = pitchNameToMidi(tonicPitch);
   const tempo = knotDef.tempo ?? DEFAULT_TEMPO;
-  const accidentalMode = getAccidentalModeFromPitchName(knotDef.do);
-  
+  const accidentalMode = getAccidentalModeFromPitchName(tonicPitch);
+
+  const eng = knotDef.engraving ?? {};
+
+  // Resolve show flags from engraving.show array if provided
+  let showMelody = eng.showMelody ?? knotDef.showMelody;
+  let showMelodyCoilInterval = eng.showMelodyCoilInterval ?? knotDef.showMelodyCoilInterval;
+  let showMelodyCoilAbsolute = eng.showMelodyCoilAbsolute ?? knotDef.showMelodyCoilAbsolute;
+  let showRhythmCoil = eng.showRhythmCoil ?? knotDef.showRhythmCoil;
+  let showHarmonyCoil = eng.showHarmonyCoil ?? knotDef.showHarmonyCoil;
+  let showTraditionalHarmony = eng.showTraditionalHarmony ?? knotDef.showTraditionalHarmony;
+  let showRhythmGrid = eng.showRhythmGrid ?? knotDef.showRhythmGrid;
+  let showChordNames: boolean | undefined = undefined;
+
+  if (eng.show && Array.isArray(eng.show)) {
+    showMelody = eng.show.includes('melody');
+    showMelodyCoilInterval = eng.show.includes('melodyCoilInterval');
+    showMelodyCoilAbsolute = eng.show.includes('melodyCoilAbsolute');
+    showRhythmCoil = eng.show.includes('rhythmCoil');
+    showHarmonyCoil = eng.show.includes('harmonyCoil');
+    showTraditionalHarmony = eng.show.includes('harmony') || eng.show.includes('traditionalHarmony');
+    showRhythmGrid = eng.show.includes('rhythmGrid');
+    showChordNames = eng.show.includes('chordNames');
+  }
+
+  const title = eng.title ?? knotDef.title;
+  const subtitle = eng.subtitle ?? knotDef.subtitle;
+  const composer = eng.composer ?? knotDef.composer ?? eng.artist ?? knotDef.artist ?? eng.author ?? knotDef.author;
+  const arranger = eng.arranger ?? knotDef.arranger;
+  const poet = eng.poet ?? knotDef.poet ?? eng.lyricist ?? knotDef.lyricist;
+  const copyright = eng.copyright ?? knotDef.copyright;
+  const tagline = eng.tagline ?? knotDef.tagline;
+
+  const melodyClef = eng.melodyClef ?? knotDef.melodyClef;
+  const harmonyClef = eng.harmonyClef ?? knotDef.harmonyClef;
+  const harmonyOctave = eng.harmonyOctave ?? knotDef.harmonyOctave;
+  const noteheadStyle = eng.noteheadStyle ?? knotDef.noteheadStyle;
+  const harmonyChangesOnly = eng.harmonyChangesOnly ?? knotDef.harmonyChangesOnly;
+  const omitStem = eng.omitStem ?? knotDef.omitStem;
+  const colorNotes = eng.colorNotes ?? knotDef.colorNotes;
+  const noteheadOutline = eng.noteheadOutline ?? knotDef.noteheadOutline;
+  const harmonyStaffStyle = eng.harmonyStaffStyle ?? knotDef.harmonyStaffStyle;
+  const zoom = eng.zoom ?? knotDef.zoom;
+  const indent = eng.indent ?? knotDef.indent;
+  const chordChanges = eng.chordChanges ?? knotDef.chordChanges;
+
   return {
     knot: {
       doMidi,
+      tonicMidi: doMidi,
       tempo,
-      doName: knotDef.do,
-      title: knotDef.title,
-      subtitle: knotDef.subtitle,
-      composer: knotDef.composer ?? knotDef.artist ?? knotDef.author,
-      arranger: knotDef.arranger,
-      poet: knotDef.poet ?? knotDef.lyricist,
-      copyright: knotDef.copyright,
-      tagline: knotDef.tagline,
-      melodyClef: knotDef.melodyClef,
-      harmonyClef: knotDef.harmonyClef,
+      doName: tonicPitch,
+      tonicName: tonicPitch,
+      rootWeaveId: knotDef.weave,
+      title,
+      subtitle,
+      composer,
+      arranger,
+      poet,
+      copyright,
+      tagline,
+      melodyClef,
+      harmonyClef,
+      harmonyOctave,
       accidentalMode,
-      noteheadStyle: knotDef.noteheadStyle,
-      harmonyChangesOnly: knotDef.harmonyChangesOnly,
-      omitStem: knotDef.omitStem,
-      colorNotes: knotDef.colorNotes,
-      noteheadOutline: knotDef.noteheadOutline,
+      noteheadStyle,
+      harmonyChangesOnly,
+      omitStem,
+      colorNotes,
+      noteheadOutline,
+      harmonyStaffStyle,
+      showHarmonyCoil,
+      showTraditionalHarmony,
+      showMelody,
+      showMelodyCoilAbsolute,
+      showMelodyCoilInterval,
+      showRhythmCoil,
+      showChordNames,
+      zoom,
+      indent,
+      showRhythmGrid,
+      chordChanges,
     },
     warnings,
   };

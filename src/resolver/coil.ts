@@ -22,12 +22,12 @@ import {
   midiToPitchName,
   getScaleDegreeFromDo,
 } from '../solfege/pitch.js';
-
-
-
-
-
-
+import {
+  expandRhythmEntries,
+  resolveRhythmTimeline,
+  beatsToLilyPondDuration,
+  type ResolvedRhythmOnset,
+} from '../solfege/rhythm.js';
 
 /** A single resolved onset from a coil (before tagging) */
 export interface ResolvedOnset {
@@ -35,10 +35,18 @@ export interface ResolvedOnset {
   melodyMidi: number;
   /** The solfège scale degree of the melody note (base syllable, no axis/octave) */
   scaleDegree: string;
+  /** Whether this onset is a rest in the melody layer */
+  isRest?: boolean;
   /** Chord tones as MIDI notes */
   chordMidi: number[];
   /** Solfège syllable of the chord root / token */
   chordRoot: string;
+  /** Optional rhythm token string if rhythmic grammar is used */
+  rhythmToken?: string;
+  /** Duration in beats (quarter note = 1.0) */
+  durationBeats?: number;
+  /** LilyPond duration string, e.g. "4", "8", "16", "4*1/3" */
+  duration?: string;
 }
 
 
@@ -48,7 +56,7 @@ export interface CoilResolutionResult {
 }
 
 /**
- * Resolves a Coil's layers into an ordered array of onsets.
+ * Resolves a single Coil into an array of ResolvedOnsets.
  * 
  * Supports Priority-Fill Inheritance:
  * 1. Explicit local layer definition wins outright.
@@ -70,7 +78,8 @@ export function resolveCoil(
 ): CoilResolutionResult {
   const warnings: string[] = [];
   
-  // 1. Resolve layers through priority-fill inheritance
+  // Resolve layers using inheritance rules:
+  // Explicit > Parents (in order) > Default Coil
   const resolvedLayers = inheritCoilLayers(coil, coilLibrary, defaultCoil);
   
   const rawMelody = resolvedLayers.melody;
@@ -80,14 +89,27 @@ export function resolveCoil(
     );
   }
   
-  // Flatten any space-separated tokens in melody (e.g. ["Re Te"] -> ["Re", "Te"])
-  const melody = rawMelody.flatMap(entry => entry.trim().split(/\s+/).filter(Boolean));
+  // Expand repeat padding numbers and flatten space-separated tokens
+  const melody = expandMelodyArray(rawMelody);
   
   const harmony = resolvedLayers.harmony ?? ['Do'];
   const rhythm = resolvedLayers.rhythm;
   
-  // --- Rhythm validation (warning if count differs from declared beat block) ---
-  if (rhythm) {
+  // --- Rhythm resolution ---
+  let resolvedRhythmOnsets: ResolvedRhythmOnset[] | null = null;
+  let hasInitialRest = false;
+  let initialOffsetBeats = 0;
+  let totalOnsets = melody.length;
+
+  if (Array.isArray(rhythm)) {
+    const expanded = expandRhythmEntries(rhythm, melody.length);
+    resolvedRhythmOnsets = resolveRhythmTimeline(expanded);
+    if (resolvedRhythmOnsets.length > 0 && resolvedRhythmOnsets[0].startBeat > 0) {
+      hasInitialRest = true;
+      initialOffsetBeats = resolvedRhythmOnsets[0].startBeat;
+    }
+    totalOnsets = (hasInitialRest ? 1 : 0) + resolvedRhythmOnsets.length;
+  } else if (typeof rhythm === 'string') {
     const expectedCount = RHYTHM_BLOCK_LENGTHS[rhythm];
     if (expectedCount === undefined) {
       warnings.push(`Coil "${coil.id}": unknown rhythm label "${rhythm}"`);
@@ -98,36 +120,125 @@ export function resolveCoil(
     }
   }
 
-  
   // --- Melody resolution ---
   const melodyPitches = resolveMelody(melody, knot);
   
   // --- Harmony resolution ---
   const harmonyChords = resolveHarmony(
     harmony,
-    melody.length,
+    totalOnsets,
     knot,
     resolvedLayers.harmonyOctave ?? 0,
   );
   
   // --- Pair melody + harmony into onsets ---
-  const onsets: ResolvedOnset[] = melodyPitches.map((mp, i) => ({
-    melodyMidi: mp.midi,
-    scaleDegree: mp.scaleDegree,
-    chordMidi: harmonyChords[i].triad,
-    chordRoot: harmonyChords[i].root,
-  }));
+  const onsets: ResolvedOnset[] = [];
+  
+  // 1. Initial rest if the first rhythm onset does not start on beat 0.0
+  if (hasInitialRest) {
+    onsets.push({
+      melodyMidi: 0,
+      scaleDegree: '',
+      isRest: true,
+      chordMidi: harmonyChords[0].triad,
+      chordRoot: harmonyChords[0].root,
+      rhythmToken: undefined,
+      durationBeats: initialOffsetBeats,
+      duration: beatsToLilyPondDuration(initialOffsetBeats),
+    });
+  }
+
+  // 2. Audible rhythm onsets + trailing rests
+  if (resolvedRhythmOnsets) {
+    for (let k = 0; k < resolvedRhythmOnsets.length; k++) {
+      const onsetIndexInFull = (hasInitialRest ? 1 : 0) + k;
+      const mp = melodyPitches[k];
+      const isRest = k >= melodyPitches.length;
+      const ro = resolvedRhythmOnsets[k];
+      onsets.push({
+        melodyMidi: mp ? mp.midi : 0,
+        scaleDegree: mp ? mp.scaleDegree : '',
+        isRest,
+        chordMidi: harmonyChords[onsetIndexInFull].triad,
+        chordRoot: harmonyChords[onsetIndexInFull].root,
+        rhythmToken: ro.token,
+        durationBeats: ro.durationBeats,
+        duration: ro.lilypondDuration,
+      });
+    }
+  } else {
+    for (let i = 0; i < totalOnsets; i++) {
+      const mp = melodyPitches[i];
+      const isRest = i >= melodyPitches.length;
+      onsets.push({
+        melodyMidi: mp ? mp.midi : 0,
+        scaleDegree: mp ? mp.scaleDegree : '',
+        isRest,
+        chordMidi: harmonyChords[i].triad,
+        chordRoot: harmonyChords[i].root,
+        rhythmToken: undefined,
+        durationBeats: undefined,
+        duration: undefined,
+      });
+    }
+  }
   
   return { onsets, warnings };
 }
 
 interface ResolvedLayers {
-  melody?: string[];
+  melody?: (string | number)[];
   harmony?: (string | number)[];
-  rhythm?: string;
+  rhythm?: string | (string | number)[];
+  meter?: string;
   harmonyOctave?: number;
 }
 
+
+function resolveParentChain(
+  parentId: string,
+  library: Map<string, Coil>,
+  visited: Set<string> = new Set(),
+  callerId: string = 'anonymous',
+): ResolvedLayers {
+  if (visited.has(parentId)) {
+    throw new Error(
+      `Circular coil inheritance detected: ${[...visited, parentId].join(' -> ')}`
+    );
+  }
+  const parent = library.get(parentId);
+  if (!parent) {
+    throw new Error(
+      `Coil "${callerId}" references unknown parent coil "${parentId}"`
+    );
+  }
+  const nextVisited = new Set(visited).add(parentId);
+  const direct: ResolvedLayers = {};
+  if (parent.melody && parent.melody.length > 0) direct.melody = parent.melody;
+  if (parent.harmony && parent.harmony.length > 0) direct.harmony = parent.harmony;
+  if (parent.rhythm) direct.rhythm = parent.rhythm;
+  if (parent.harmonyOctave !== undefined) direct.harmonyOctave = parent.harmonyOctave;
+
+  // Check parent's parents
+  const ancestorIds: string[] = [];
+  if (parent.parent) ancestorIds.push(parent.parent);
+  if (parent.parents) {
+    if (Array.isArray(parent.parents)) ancestorIds.push(...parent.parents);
+    else ancestorIds.push(parent.parents);
+  }
+
+  for (const ancId of ancestorIds) {
+    const ancLayers = resolveParentChain(ancId, library, nextVisited, parentId);
+    if (!direct.melody && ancLayers.melody) direct.melody = ancLayers.melody;
+    if (!direct.harmony && ancLayers.harmony) direct.harmony = ancLayers.harmony;
+    if (!direct.rhythm && ancLayers.rhythm) direct.rhythm = ancLayers.rhythm;
+    if (direct.harmonyOctave === undefined && ancLayers.harmonyOctave !== undefined) {
+      direct.harmonyOctave = ancLayers.harmonyOctave;
+    }
+  }
+
+  return direct;
+}
 
 /**
  * Resolves M, H, R layers using the priority-fill rule across parents and default coil.
@@ -138,6 +249,7 @@ function inheritCoilLayers(
   defaultCoil?: Coil,
 ): ResolvedLayers {
   const result: ResolvedLayers = {};
+  const coilId = coil.id ?? 'anonymousCoil';
   
   // 1. Explicit local definition
   if (coil.melody && coil.melody.length > 0) result.melody = coil.melody;
@@ -146,25 +258,32 @@ function inheritCoilLayers(
   if (coil.harmonyOctave !== undefined) result.harmonyOctave = coil.harmonyOctave;
   
   // 2. Parents in priority order
-  if (coil.parents && coil.parents.length > 0) {
-    for (const parentId of coil.parents) {
-      const parent = library.get(parentId);
-      if (!parent) {
-        throw new Error(
-          `Coil "${coil.id}" references unknown parent coil "${parentId}"`
-        );
+  const parentIds: string[] = [];
+  if (coil.parent) parentIds.push(coil.parent);
+  if (coil.parents) {
+    if (Array.isArray(coil.parents)) parentIds.push(...coil.parents);
+    else parentIds.push(coil.parents);
+  }
+
+  if (parentIds.length > 0) {
+    for (const parentId of parentIds) {
+      const parentLayers = resolveParentChain(
+        parentId,
+        library,
+        new Set(coil.id ? [coil.id] : []),
+        coilId,
+      );
+      if (!result.melody && parentLayers.melody && parentLayers.melody.length > 0) {
+        result.melody = parentLayers.melody;
       }
-      if (!result.melody && parent.melody && parent.melody.length > 0) {
-        result.melody = parent.melody;
+      if (!result.harmony && parentLayers.harmony && parentLayers.harmony.length > 0) {
+        result.harmony = parentLayers.harmony;
       }
-      if (!result.harmony && parent.harmony && parent.harmony.length > 0) {
-        result.harmony = parent.harmony;
+      if (!result.rhythm && parentLayers.rhythm) {
+        result.rhythm = parentLayers.rhythm;
       }
-      if (!result.rhythm && parent.rhythm) {
-        result.rhythm = parent.rhythm;
-      }
-      if (result.harmonyOctave === undefined && parent.harmonyOctave !== undefined) {
-        result.harmonyOctave = parent.harmonyOctave;
+      if (result.harmonyOctave === undefined && parentLayers.harmonyOctave !== undefined) {
+        result.harmonyOctave = parentLayers.harmonyOctave;
       }
     }
   }
@@ -256,6 +375,42 @@ function resolveMelody(melody: string[], knot: ResolvedKnot): MelodyPitch[] {
   }
 }
 
+
+/**
+ * Expands a melody array supporting repeat padding numbers and space-separated tokens.
+ * E.g. [Do, 3] -> [Do, Do, Do, Do]
+ * E.g. [Do, Re, 2, Mi] -> [Do, Re, Re, Re, Mi]
+ */
+export function expandMelodyArray(
+  melody: (string | number)[],
+): string[] {
+  const expanded: string[] = [];
+  let lastPitch: string | null = null;
+
+  for (const item of melody) {
+    const isNum =
+      typeof item === 'number' ||
+      (typeof item === 'string' && /^\d+$/.test(item.trim()));
+
+    if (isNum) {
+      const count = typeof item === 'number' ? item : parseInt(item.trim(), 10);
+      if (lastPitch === null) {
+        throw new Error(`Melody array cannot start with a repeat padding number: ${item}`);
+      }
+      for (let k = 0; k < count; k++) {
+        expanded.push(lastPitch);
+      }
+    } else {
+      const tokens = String(item).trim().split(/\s+/).filter(Boolean);
+      for (const token of tokens) {
+        expanded.push(token);
+        lastPitch = token;
+      }
+    }
+  }
+
+  return expanded;
+}
 
 /**
  * Expands a harmony array supporting repeat padding numbers.

@@ -98,6 +98,177 @@ tapestry:
     // Harmony: Do (D# major) -> <dis' g' ais'>1*2/4
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_1 <dis' g' ais'>1*2/4");
   });
+
+  it('compiles coil harmony staff notation with geometric glyphs and chord modifiers (DoMe, Dox)', () => {
+    const yaml = `
+tapestry:
+  knot:
+    do: C4
+    harmonyStaffStyle: coil
+  weave:
+    id: verse
+    layout: concatenate
+    children:
+      - coil:
+          id: part1
+          melody: [Do, Re, Mi, Fa]
+          harmony: [Dox, DoMe]
+      - coil:
+          id: part2
+          melody: [So, La, Ti, Do^]
+          harmony: [So]
+`;
+    const result = compileYamlString(yaml);
+    expect(result.warnings).toHaveLength(0);
+    expect(result.lilypondSource).toContain('\\override StaffSymbol.line-positions = #\'(-2.0 2.0)');
+    expect(result.lilypondSource).toContain('\\override StaffSymbol.stencil = #ppt-row-band-stencil');
+    expect(result.lilypondSource).toContain('\\override StaffSymbol.layer = #-2');
+    expect(result.lilypondSource).toContain('\\override NoteHead.no-ledgers = ##t');
+    expect(result.lilypondSource).toContain('\\override Clef.stencil = #pptClefHStencil');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #t) } b\'1*2/4');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_3 \\tweak NoteHead.text \\markup \\vcenter \\concat { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) \\lower #0.35 \\stencil #(make-solfege-glyph-sub pptPathBase 270 colorMi #f) } b\'1*2/4');
+    expect(result.lilypondSource).toContain('\\bar "|"');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part2_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathSharp 180 colorSo #f) } b\'1');
+    expect(result.lilypondSource).toContain('melodyVoice = {');
+    expect(result.lilypondSource).toContain('harmonyCoilVoice = {');
+    expect(result.lilypondSource).toContain('harmonyVoice = {');
+    expect(result.lilypondSource).toContain('\\melodyVoice');
+    expect(result.lilypondSource).toContain('\\harmonyCoilVoice');
+    expect(result.lilypondSource).toContain('\\harmonyVoice');
+  });
+
+  it('compiles score with both Melody Coil Absolute and Melody Coil Interval layers', () => {
+    const yaml = `
+tapestry:
+  knot:
+    do: C4
+    showMelodyCoilAbsolute: true
+    showMelodyCoilInterval: true
+    showHarmonyCoil: true
+  weave:
+    id: verse
+    layout: concatenate
+    children:
+      - coil:
+          id: part1
+          melody: [Do, Re, Mi, Fa]
+          harmony: [Do]
+`;
+    const result = compileYamlString(yaml);
+    expect(result.warnings).toHaveLength(0);
+    expect(result.lilypondSource).toContain('melodyCoilAbsoluteVoice = {');
+    expect(result.lilypondSource).toContain('melodyCoilIntervalVoice = {');
+    expect(result.lilypondSource).toContain('harmonyCoilVoice = {');
+    // Absolute melody layer contains Do, Re, Mi, Fa glyphs
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) } b\'4');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_2 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathFlat 270 colorRe #f) } b\'4');
+    // Interval melody layer starts with Dox (anchor), followed by Re (+2), Re (+2), Ra (+1)
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #t) } b\'4');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_4 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathSharp 0 colorRe #f) } b\'4');
+    expect(result.lilypondSource).toContain('\\melodyCoilAbsoluteVoice');
+    expect(result.lilypondSource).toContain('\\melodyCoilIntervalVoice');
+  });
+
+  it('compiles score with custom zoom in knot', () => {
+    const yaml = `
+tapestry:
+  knot:
+    do: C4
+    zoom: 1.2
+  weave:
+    id: song
+    children:
+      - coil:
+          id: part1
+          melody: [Do]
+`;
+    const result = compileYamlString(yaml);
+    expect(result.lilypondSource).toContain('#(set-global-staff-size 24)');
+  });
+
+  it('compiles score with Solfège rhythmic array grammar (16ths, 8ths, beat skips)', () => {
+    const yaml = `
+tapestry:
+  knot:
+    do: Eb4
+  weave:
+    id: song
+    children:
+      - coil:
+          id: riff
+          rhythm: [Do, Me, Fi, La, Do, Fi, Do, DoxDo]
+          melody: [Do, Re, Me, Fa, So, Fa, Mi, Do^]
+          harmony: [Do, 3, DoMe, 1, So, 1]
+`;
+    const result = compileYamlString(yaml);
+    expect(result.warnings).toHaveLength(0);
+    expect(result.onsets).toHaveLength(8);
+
+    // 16th notes on beat 1
+    expect(result.onsets[0].duration).toBe('16');
+    expect(result.onsets[1].duration).toBe('16');
+    expect(result.onsets[2].duration).toBe('16');
+    expect(result.onsets[3].duration).toBe('16');
+    // 8th notes on beat 2
+    expect(result.onsets[4].duration).toBe('8');
+    expect(result.onsets[5].duration).toBe('8');
+    // Half note across beats 2 and 3 (before DoxDo on beat 4)
+    expect(result.onsets[6].duration).toBe('2');
+    // Final delayed note on beat 4
+    expect(result.onsets[7].duration).toBe('4');
+
+    // Check LilyPond melody emission contains 16 and 8 durations
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_1");
+    expect(result.lilypondSource).toContain("16");
+    expect(result.lilypondSource).toContain("8");
+  });
+
+  it('compiles score with Rhythm Coil staff enabled in knot (showRhythmCoil: true)', () => {
+    const yaml = `
+tapestry:
+  knot:
+    do: Eb4
+    showRhythmCoil: true
+  weave:
+    id: song
+    children:
+      - coil:
+          id: riff
+          rhythm: [Do, Fi, Do, Fi]
+          melody: [Do, Re, Mi, Fa]
+`;
+    const result = compileYamlString(yaml);
+    expect(result.lilypondSource).toContain('\\rhythmCoilVoice');
+    expect(ly => expect(result.lilypondSource).toContain('\\override Clef.stencil = #pptClefRStencil'));
+  });
+
+  it('compiles score where rhythm extends past melody, emitting rests in melody', () => {
+    const yaml = `
+tapestry:
+  knot:
+    do: C4
+  weave:
+    id: song
+    children:
+      - coil:
+          id: riff
+          rhythm: [Do, Fi, Do, Fi]
+          melody: [Do, Re]
+          harmony: [Do, 1, So, 1]
+`;
+    const result = compileYamlString(yaml);
+    expect(result.onsets).toHaveLength(4);
+    expect(result.onsets[0].pitch).toBe('C4');
+    expect(result.onsets[1].pitch).toBe('D4');
+    expect(result.onsets[2].pitch).toBe('r');
+    expect(result.onsets[2].isRest).toBe(true);
+    expect(result.onsets[3].pitch).toBe('r');
+    expect(result.onsets[3].isRest).toBe(true);
+
+    // LilyPond melody contains spacer rest tokens (invisible in cadenza mode)
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_3 s8");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_4 s8");
+  });
 });
 
 

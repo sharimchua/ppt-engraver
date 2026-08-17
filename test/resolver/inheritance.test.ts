@@ -131,4 +131,92 @@ tapestry:
 `;
     expect(() => resolveYaml(yaml)).toThrow(/unknown parent coil "ghostParent"/);
   });
+
+  it('supports single parent attribute (parent: rhythmParent)', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: Eb4
+  coils:
+    rhythmTemplate:
+      rhythm: [Do, Fi, Do, Fi]
+  weave:
+    id: testWeave
+    children:
+      - coil:
+          id: childCoil
+          parent: rhythmTemplate
+          melody: [Do, Re, Mi, Fa]
+          harmony: [Do]
+`;
+    const { onsets } = resolveYaml(yaml);
+    expect(onsets).toHaveLength(4);
+    expect(onsets[0].rhythmToken).toBe('Do');
+    expect(onsets[1].rhythmToken).toBe('Fi');
+    expect(onsets[2].rhythmToken).toBe('Do');
+    expect(onsets[3].rhythmToken).toBe('Fi');
+  });
+
+  it('resolves multi-level transitive inheritance (grandchild -> child -> grandparent)', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: C4
+  coils:
+    grandparentRhythm:
+      rhythm: [Do, Fi, Do, Fi]
+    parentHarmony:
+      parent: grandparentRhythm
+      harmony: [So]
+  weave:
+    id: testWeave
+    children:
+      - coil:
+          id: grandchild
+          parent: parentHarmony
+          melody: [Do, Re, Mi, Fa]
+`;
+    const { onsets } = resolveYaml(yaml);
+    expect(onsets).toHaveLength(4);
+    expect(onsets[0].chordRoot).toBe('So');
+    expect(onsets[0].rhythmToken).toBe('Do');
+    expect(onsets[1].rhythmToken).toBe('Fi');
+  });
+
+  it('resolves root weave from knot.weave and open weaves map', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: Eb4
+    weave: song
+    engraving:
+      title: "Test Song"
+      show:
+        - melody
+        - rhythmCoil
+        - rhythmGrid
+  coils:
+    riffRhythm:
+      rhythm: [Do, Fi, La, Do]
+  weaves:
+    verse:
+      children:
+        - coil:
+            id: v1
+            parent: riffRhythm
+            melody: [Do, Re, Mi, Fa]
+            harmony: [Do]
+    song:
+      children:
+        - weave: verse
+`;
+    const { onsets, knot } = resolveYaml(yaml);
+    expect(onsets).toHaveLength(4);
+    expect(knot.title).toBe('Test Song');
+    expect(knot.showMelody).toBe(true);
+    expect(knot.showRhythmCoil).toBe(true);
+    expect(knot.showRhythmGrid).toBe(true);
+    expect(knot.showMelodyCoilInterval).toBe(false);
+    expect(onsets[0].tag).toBe('ppt_verse_v1_1');
+  });
 });

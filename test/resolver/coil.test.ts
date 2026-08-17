@@ -30,6 +30,23 @@ describe('resolveCoil', () => {
       expect(onsets[1].scaleDegree).toBe('Ti');
       expect(onsets[2].scaleDegree).toBe('Do');
     });
+
+    it('expands repeat numbers in melody array', () => {
+      const coil: Coil = { id: 'test', melody: ['Do', 3, 'Mi', 1] };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(6);
+      expect(onsets[0].melodyMidi).toBe(60); // Do
+      expect(onsets[1].melodyMidi).toBe(60); // Do
+      expect(onsets[2].melodyMidi).toBe(60); // Do
+      expect(onsets[3].melodyMidi).toBe(60); // Do
+      expect(onsets[4].melodyMidi).toBe(64); // Mi
+      expect(onsets[5].melodyMidi).toBe(64); // Mi
+    });
+
+    it('throws when melody array starts with repeat padding number', () => {
+      const coil: Coil = { id: 'test', melody: [2, 'Do'] };
+      expect(() => resolveCoil(coil, knotC4)).toThrow(/Melody array cannot start with a repeat padding number/);
+    });
   });
 
   describe('interval mode melody', () => {
@@ -152,6 +169,92 @@ describe('resolveCoil', () => {
       const coil: Coil = { id: 'test', melody: ['Do', 'Re', 'Mi'] };
       const { onsets } = resolveCoil(coil, knotC4);
       expect(onsets).toHaveLength(3);
+    });
+
+    it('resolves fine-grained Solfège rhythm array into exact onset durations', () => {
+      const coil: Coil = {
+        id: 'test',
+        rhythm: ['Do', 'Me', 'Fi', 'La'],
+        melody: ['Do', 'Re', 'Me', 'Fa'],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(4);
+      expect(onsets[0].rhythmToken).toBe('Do');
+      expect(onsets[0].durationBeats).toBeCloseTo(0.25);
+      expect(onsets[0].duration).toBe('16');
+
+      expect(onsets[3].rhythmToken).toBe('La');
+      expect(onsets[3].durationBeats).toBeCloseTo(0.25);
+      expect(onsets[3].duration).toBe('16');
+    });
+
+    it('resolves Solfège rhythm array with repeat numbers', () => {
+      const coil: Coil = {
+        id: 'test',
+        rhythm: ['Do', 2, 'Fi'],
+        melody: ['Do', 'Re', 'Me', 'Fa'],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(4);
+      expect(onsets[0].rhythmToken).toBe('Do');
+      expect(onsets[1].rhythmToken).toBe('Do');
+      expect(onsets[2].rhythmToken).toBe('Do');
+      expect(onsets[3].rhythmToken).toBe('Fi');
+    });
+
+    it('allows rhythm layer to extend past melody length, creating rests for trailing onsets', () => {
+      const coil: Coil = {
+        id: 'test',
+        rhythm: ['Do', 'Fi', 'Do', 'Fi'],
+        melody: ['Do', 'Re'],
+        harmony: ['Do', 1, 'So', 1],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(4);
+      expect(onsets[0].isRest).toBe(false);
+      expect(onsets[0].scaleDegree).toBe('Do');
+      expect(onsets[1].isRest).toBe(false);
+      expect(onsets[1].scaleDegree).toBe('Re');
+      expect(onsets[2].isRest).toBe(true);
+      expect(onsets[2].scaleDegree).toBe('');
+      expect(onsets[3].isRest).toBe(true);
+      expect(onsets[3].scaleDegree).toBe('');
+      // Harmony continues across the rests
+      expect(onsets[2].chordRoot).toBe('So');
+      expect(onsets[3].chordRoot).toBe('So');
+    });
+
+    it('inserts an initial rest onset when the first rhythm token is delayed (e.g. DoxDo)', () => {
+      const coil: Coil = {
+        id: 'test',
+        rhythm: ['DoxDo', 'Fi', 'Do', 1],
+        melody: ['Re', 'Mi'],
+        harmony: ['So', 3],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      // 1 initial rest (1 beat from Dox) + 2 melody notes + 2 trailing rests = 5 onsets
+      expect(onsets).toHaveLength(5);
+      // Initial rest at beat 0.0 of 1.0 beat duration (silent spacer on rhythm layer)
+      expect(onsets[0].isRest).toBe(true);
+      expect(onsets[0].durationBeats).toBe(1.0);
+      expect(onsets[0].duration).toBe('4');
+      expect(onsets[0].rhythmToken).toBeUndefined();
+
+      // First melody note starts at beat 1.0 with DoxDo rhythm token (adjacent glyphs)
+      expect(onsets[1].isRest).toBe(false);
+      expect(onsets[1].scaleDegree).toBe('Re');
+      expect(onsets[1].rhythmToken).toBe('DoxDo');
+      expect(onsets[1].durationBeats).toBe(0.5);
+      expect(onsets[1].duration).toBe('8');
+
+      // Second melody note at beat 1.5
+      expect(onsets[2].isRest).toBe(false);
+      expect(onsets[2].scaleDegree).toBe('Mi');
+      expect(onsets[2].rhythmToken).toBe('Fi');
+
+      // Trailing rests
+      expect(onsets[3].isRest).toBe(true);
+      expect(onsets[4].isRest).toBe(true);
     });
   });
 });

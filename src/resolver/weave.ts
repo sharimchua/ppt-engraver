@@ -42,17 +42,19 @@ export function resolveWeave(
   activeWeaveStack: string[] = [],
   inheritedDefaultCoil?: Coil,
 ): WeaveResolutionResult {
+  const effectiveWeaveId = weave.id ?? 'weave';
+
   // 1. Cycle detection in weave hierarchy
-  if (activeWeaveStack.includes(weave.id)) {
+  if (activeWeaveStack.includes(effectiveWeaveId)) {
     throw new Error(
-      `Circular weave reference detected: ${[...activeWeaveStack, weave.id].join(' -> ')}`
+      `Circular weave reference detected: ${[...activeWeaveStack, effectiveWeaveId].join(' -> ')}`
     );
   }
 
   // 2. Register this weave in library for future reference by ID
-  weaveLibrary.set(weave.id, weave);
+  weaveLibrary.set(effectiveWeaveId, { ...weave, id: effectiveWeaveId });
 
-  const currentStack = [...activeWeaveStack, weave.id];
+  const currentStack = [...activeWeaveStack, effectiveWeaveId];
   const allOnsets: Onset[] = [];
   const allWarnings: string[] = [];
 
@@ -63,7 +65,7 @@ export function resolveWeave(
       const found = coilLibrary.get(weave.defaultCoil);
       if (!found) {
         throw new Error(
-          `Weave "${weave.id}" defaultCoil references unknown coil "${weave.defaultCoil}"`
+          `Weave "${effectiveWeaveId}" defaultCoil references unknown coil "${weave.defaultCoil}"`
         );
       }
       effectiveDefaultCoil = found;
@@ -71,6 +73,8 @@ export function resolveWeave(
       effectiveDefaultCoil = weave.defaultCoil;
     }
   }
+
+  let anonymousCoilCounter = 0;
 
   // 4. Process children in order
   for (const child of weave.children) {
@@ -81,14 +85,15 @@ export function resolveWeave(
         const found = weaveLibrary.get(child.weave);
         if (!found) {
           throw new Error(
-            `Weave "${weave.id}" child references unknown weave "${child.weave}"`
+            `Weave "${effectiveWeaveId}" child references unknown weave "${child.weave}"`
           );
         }
         childWeave = found;
       } else {
-        childWeave = child.weave;
+        const childWeaveId = child.weave.id ?? `${effectiveWeaveId}_nested`;
+        childWeave = { ...child.weave, id: childWeaveId };
         // Register inline child weave in library
-        weaveLibrary.set(childWeave.id, childWeave);
+        weaveLibrary.set(childWeaveId, childWeave);
       }
 
       const childResult = resolveWeave(
@@ -109,15 +114,17 @@ export function resolveWeave(
         const found = coilLibrary.get(child.coil);
         if (!found) {
           throw new Error(
-            `Weave "${weave.id}" child references unknown coil "${child.coil}"`
+            `Weave "${effectiveWeaveId}" child references unknown coil "${child.coil}"`
           );
         }
         coil = found;
       } else {
-        coil = child.coil;
+        anonymousCoilCounter++;
+        const coilId = child.coil.id ?? `${effectiveWeaveId}_coil_${anonymousCoilCounter}`;
+        coil = { ...child.coil, id: coilId };
         // Register inline coil if not already in library
-        if (!coilLibrary.has(coil.id)) {
-          coilLibrary.set(coil.id, coil);
+        if (!coilLibrary.has(coilId)) {
+          coilLibrary.set(coilId, coil);
         }
       }
 
@@ -130,32 +137,34 @@ export function resolveWeave(
       allWarnings.push(...warnings);
 
       // Map resolved onsets to tagged Onset objects
+      const coilId = coil.id ?? `coil_${anonymousCoilCounter}`;
       for (let i = 0; i < onsets.length; i++) {
         const onset = onsets[i];
         const onsetIndex = i + 1; // 1-based
-        const tag = `ppt_${weave.id}_${coil.id}_${onsetIndex}`;
+        const tag = `ppt_${effectiveWeaveId}_${coilId}_${onsetIndex}`;
 
         allOnsets.push({
           tag,
-          pitch: midiToPitchName(onset.melodyMidi, knot.accidentalMode),
+          pitch: onset.isRest ? 'r' : midiToPitchName(onset.melodyMidi, knot.accidentalMode),
           midiNote: onset.melodyMidi,
           scaleDegree: onset.scaleDegree,
+          isRest: onset.isRest,
           chordTones: onset.chordMidi.map(m => midiToPitchName(m, knot.accidentalMode)),
           chordMidi: [...onset.chordMidi],
           chordRoot: onset.chordRoot,
-          coilId: coil.id,
-          weaveId: weave.id,
+          coilId: coilId,
+          weaveId: effectiveWeaveId,
           onsetIndex,
+          rhythmToken: onset.rhythmToken,
+          durationBeats: onset.durationBeats,
+          duration: onset.duration,
         });
       }
     } else {
-      throw new Error(
-        `Invalid child in Weave "${weave.id}": child must specify either "coil" or "weave"`
-      );
+      throw new Error(`Invalid Weave child in weave "${effectiveWeaveId}"`);
     }
   }
 
   return { onsets: allOnsets, warnings: allWarnings };
 }
-
 

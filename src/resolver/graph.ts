@@ -1,18 +1,8 @@
-/**
- * Graph traversal for the Tapestry.
- * 
- * V1: linear traversal only (no cyclic weaves, no DAG).
- * Walks the Tapestry from the top-level weave, resolves Knot first,
- * then each child coil in sequence via the Weave resolver.
- * 
- * The structure is set up to support DAG traversal in later phases.
- */
-import type { Tapestry, Coil } from '../schema/tapestry.js';
+import type { Tapestry, Coil, Weave } from '../schema/tapestry.js';
 import type { OnsetStream } from '../schema/onset.js';
 import type { ResolvedKnot } from '../solfege/pitch.js';
 import { resolveKnot } from './knot.js';
 import { resolveWeave } from './weave.js';
-
 
 export interface ResolutionResult {
   /** The resolved onset stream */
@@ -28,9 +18,11 @@ export interface ResolutionResult {
  * 
  * Pipeline:
  * 1. Build reusable Coil library (if tapestry.coils is defined)
- * 2. Resolve Knot (absolute anchor)
- * 3. Resolve Weave (walks children, applies priority-fill inheritance & default coil, resolves each coil)
- * 4. Return flat onset stream with provenance tags
+ * 2. Build reusable Weave library (if tapestry.weaves is defined)
+ * 3. Resolve Knot (absolute anchor, root weave selection & engraving config)
+ * 4. Determine root Weave (knot.weave -> tapestry.weave -> weaves.main/song -> first weave)
+ * 5. Resolve Weave hierarchy
+ * 6. Return flat onset stream with provenance tags
  * 
  * @param tapestry - The validated Tapestry IR
  * @returns Complete onset stream + accumulated warnings
@@ -44,24 +36,88 @@ export function resolveTapestry(tapestry: Tapestry): ResolutionResult {
   if (rawCoils) {
     if (Array.isArray(rawCoils)) {
       for (const c of rawCoils) {
-        coilLibrary.set(c.id, c);
+        if (c.id) {
+          coilLibrary.set(c.id, c);
+        }
       }
     } else {
       for (const [id, c] of Object.entries(rawCoils)) {
-        coilLibrary.set(id, { ...c, id });
+        coilLibrary.set(id, { ...c, id: c.id ?? id });
       }
     }
   }
 
-  // 2. Resolve Knot
+  // 2. Build Weave library
+  const weaveLibrary = new Map<string, Weave>();
+  const rawWeaves = tapestry.tapestry.weaves;
+  if (rawWeaves) {
+    if (Array.isArray(rawWeaves)) {
+      for (const w of rawWeaves) {
+        if (w.id) {
+          weaveLibrary.set(w.id, w);
+        }
+      }
+    } else {
+      for (const [id, w] of Object.entries(rawWeaves)) {
+        weaveLibrary.set(id, { ...w, id: w.id ?? id });
+      }
+    }
+  }
+
+  // 3. Resolve Knot
   const { knot, warnings: knotWarnings } = resolveKnot(tapestry);
   allWarnings.push(...knotWarnings);
+
+  // 4. Identify Root Weave
+  let rootWeave: Weave | undefined = undefined;
+
+  // Priority 4a: Knot rootWeaveId
+  if (knot.rootWeaveId) {
+    rootWeave = weaveLibrary.get(knot.rootWeaveId);
+    if (!rootWeave && typeof tapestry.tapestry.weave === 'object' && tapestry.tapestry.weave.id === knot.rootWeaveId) {
+      rootWeave = tapestry.tapestry.weave;
+    }
+    if (!rootWeave) {
+      throw new Error(`Knot references unknown root weave "${knot.rootWeaveId}"`);
+    }
+  }
+
+  // Priority 4b: Top-level tapestry.weave
+  if (!rootWeave && tapestry.tapestry.weave) {
+    if (typeof tapestry.tapestry.weave === 'string') {
+      rootWeave = weaveLibrary.get(tapestry.tapestry.weave);
+      if (!rootWeave) {
+        throw new Error(`Tapestry weave references unknown weave "${tapestry.tapestry.weave}"`);
+      }
+    } else {
+      rootWeave = tapestry.tapestry.weave;
+      const topWeaveId = rootWeave.id ?? 'main';
+      weaveLibrary.set(topWeaveId, { ...rootWeave, id: topWeaveId });
+    }
+  }
+
+  // Priority 4c: Standard named weaves ('main', 'song') in weaveLibrary
+  if (!rootWeave) {
+    rootWeave = weaveLibrary.get('main') ?? weaveLibrary.get('song');
+  }
+
+  // Priority 4d: First weave in weaveLibrary
+  if (!rootWeave && weaveLibrary.size > 0) {
+    rootWeave = weaveLibrary.values().next().value;
+  }
+
+  if (!rootWeave) {
+    throw new Error(
+      'No root weave found. Define a weave under tapestry.weave, tapestry.weaves, or specify weave in knot.'
+    );
+  }
   
-  // 3. Resolve Weave
+  // 5. Resolve Weave hierarchy
   const { onsets, warnings: weaveWarnings } = resolveWeave(
-    tapestry.tapestry.weave,
+    rootWeave,
     knot,
     coilLibrary,
+    weaveLibrary,
   );
   allWarnings.push(...weaveWarnings);
   

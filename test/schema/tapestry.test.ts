@@ -183,18 +183,19 @@ describe('TapestrySchema', () => {
     }
   });
 
-  it('accepts noteheadStyle and omitStem in knot', () => {
+  it('accepts noteheadStyle, omitStem, and zoom in knot', () => {
     const withNotehead = {
       tapestry: {
         knot: {
           do: 'Eb4',
           noteheadStyle: 'sacredHarp',
           omitStem: true,
+          zoom: 1.25,
         },
         weave: {
           id: 'song',
           children: [
-            { coil: { id: 'motif', melody: ['Do'] } },
+            { coil: { id: 'motif', melody: ['Do', 3, 'Mi', 1] } },
           ],
         },
       },
