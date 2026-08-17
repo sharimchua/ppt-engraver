@@ -259,6 +259,8 @@ export interface Weave {
   id?: string;
   /** Layout mode — v1 supports only 'concatenate' */
   layout?: 'concatenate';
+  /** Local/in-place library of reusable named Coils */
+  coils?: Record<string, Coil> | Coil[];
   /** Default coil ID or inline Coil providing fallback layers for child coils */
   defaultCoil?: string | Coil;
   /** Ordered list of child coils and/or child weaves */
@@ -296,6 +298,8 @@ export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
     id: z.string().min(1).optional(),
     /** Layout mode — v1 supports only 'concatenate' */
     layout: z.enum(['concatenate']).default('concatenate'),
+    /** Local/in-place library of reusable named Coils */
+    coils: z.record(z.string(), CoilSchema).or(z.array(CoilSchema)).optional(),
     /** Default coil ID or inline Coil providing fallback layers for child coils */
     defaultCoil: z.string().or(CoilSchema).optional(),
     /** Ordered list of child coils and/or child weaves */

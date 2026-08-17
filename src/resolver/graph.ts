@@ -27,27 +27,32 @@ export interface ResolutionResult {
  * @param tapestry - The validated Tapestry IR
  * @returns Complete onset stream + accumulated warnings
  */
+function registerCoils(
+  rawCoils: Record<string, Coil> | Coil[] | undefined,
+  coilLibrary: Map<string, Coil>,
+) {
+  if (!rawCoils) return;
+  if (Array.isArray(rawCoils)) {
+    for (const c of rawCoils) {
+      if (c.id) {
+        coilLibrary.set(c.id, c);
+      }
+    }
+  } else {
+    for (const [id, c] of Object.entries(rawCoils)) {
+      coilLibrary.set(id, { ...c, id: c.id ?? id });
+    }
+  }
+}
+
 export function resolveTapestry(tapestry: Tapestry): ResolutionResult {
   const allWarnings: string[] = [];
   
-  // 1. Build Coil library
+  // 1. Build Coil library from top-level coils
   const coilLibrary = new Map<string, Coil>();
-  const rawCoils = tapestry.tapestry.coils;
-  if (rawCoils) {
-    if (Array.isArray(rawCoils)) {
-      for (const c of rawCoils) {
-        if (c.id) {
-          coilLibrary.set(c.id, c);
-        }
-      }
-    } else {
-      for (const [id, c] of Object.entries(rawCoils)) {
-        coilLibrary.set(id, { ...c, id: c.id ?? id });
-      }
-    }
-  }
+  registerCoils(tapestry.tapestry.coils, coilLibrary);
 
-  // 2. Build Weave library
+  // 2. Build Weave library and register in-place coils from weaves
   const weaveLibrary = new Map<string, Weave>();
   const rawWeaves = tapestry.tapestry.weaves;
   if (rawWeaves) {
@@ -56,12 +61,19 @@ export function resolveTapestry(tapestry: Tapestry): ResolutionResult {
         if (w.id) {
           weaveLibrary.set(w.id, w);
         }
+        registerCoils(w.coils, coilLibrary);
       }
     } else {
       for (const [id, w] of Object.entries(rawWeaves)) {
-        weaveLibrary.set(id, { ...w, id: w.id ?? id });
+        const effectiveId = w.id ?? id;
+        weaveLibrary.set(id, { ...w, id: effectiveId });
+        registerCoils(w.coils, coilLibrary);
       }
     }
+  }
+
+  if (typeof tapestry.tapestry.weave === 'object') {
+    registerCoils(tapestry.tapestry.weave.coils, coilLibrary);
   }
 
   // 3. Resolve Knot

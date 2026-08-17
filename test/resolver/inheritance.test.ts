@@ -219,4 +219,44 @@ tapestry:
     expect(knot.showMelodyCoilInterval).toBe(false);
     expect(onsets[0].tag).toBe('ppt_verse_v1_1');
   });
+
+  it('supports in-place coils map inside weaves with global library access', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: A4
+    weave: song
+  weaves:
+    song:
+      children:
+        - weave: sectionA
+        - weave: sectionB
+    sectionA:
+      coils:
+        sharedTemplate:
+          rhythm: [Do, Fi, Do, Fi]
+          harmony: [Do]
+      children:
+        - coil:
+            id: partA
+            parent: sharedTemplate
+            melody: [Do, Re, Mi, Fa]
+    sectionB:
+      children:
+        - coil:
+            id: partB
+            parent: sharedTemplate
+            melody: [So, La, Ti, Do^]
+`;
+    const { onsets } = resolveYaml(yaml);
+    expect(onsets).toHaveLength(8);
+    // sectionA.partA inherits sharedTemplate defined inside sectionA.coils
+    expect(onsets[0].tag).toBe('ppt_sectionA_partA_1');
+    expect(onsets[0].rhythmToken).toBe('Do');
+    expect(onsets[0].chordRoot).toBe('Do');
+    // sectionB.partB also has global access to sharedTemplate defined in sectionA.coils
+    expect(onsets[4].tag).toBe('ppt_sectionB_partB_1');
+    expect(onsets[4].rhythmToken).toBe('Do');
+    expect(onsets[4].chordRoot).toBe('Do');
+  });
 });

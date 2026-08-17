@@ -54,6 +54,21 @@ export function resolveWeave(
   // 2. Register this weave in library for future reference by ID
   weaveLibrary.set(effectiveWeaveId, { ...weave, id: effectiveWeaveId });
 
+  // 2b. Register any in-place coils defined on this weave into the global coilLibrary
+  if (weave.coils) {
+    if (Array.isArray(weave.coils)) {
+      for (const c of weave.coils) {
+        if (c.id) {
+          coilLibrary.set(c.id, c);
+        }
+      }
+    } else {
+      for (const [id, c] of Object.entries(weave.coils)) {
+        coilLibrary.set(id, { ...c, id: c.id ?? id });
+      }
+    }
+  }
+
   const currentStack = [...activeWeaveStack, effectiveWeaveId];
   const allOnsets: Onset[] = [];
   const allWarnings: string[] = [];
