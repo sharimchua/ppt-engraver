@@ -53,7 +53,7 @@
     <!-- Main Split Area -->
     <main class="main-container">
       <!-- Left Panel: Code Editor -->
-      <section class="panel editor-panel">
+      <section id="editor-panel" class="panel editor-panel">
         <div class="panel-header">
           <span class="panel-title">Tapestry Score (.ppt.yaml)</span>
           <div class="editor-actions">
@@ -67,8 +67,13 @@
         </div>
       </section>
 
+      <!-- Draggable Splitter Gutter -->
+      <div id="split-gutter" class="split-gutter" title="Drag to resize editor and preview panels">
+        <div class="gutter-handle"></div>
+      </div>
+
       <!-- Right Panel: Output & Inspector -->
-      <section class="panel preview-panel">
+      <section id="preview-panel" class="panel preview-panel">
         <div class="panel-header">
           <div class="tab-bar">
             <button class="tab-btn active" data-tab="score-view">🎼 Sheet Music</button>

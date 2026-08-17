@@ -202,10 +202,12 @@ html, body {
 /* Main Split View */
 .main-container {
   flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: row;
+  width: 100vw;
   height: calc(100vh - 48px);
   overflow: hidden;
+  position: relative;
 }
 
 .panel {
@@ -217,7 +219,59 @@ html, body {
 }
 
 .editor-panel {
-  border-right: 1px solid var(--border-color);
+  flex: 0 0 50%;
+  width: 50%;
+  min-width: 320px;
+  max-width: calc(100% - 360px);
+  position: relative;
+}
+
+.preview-panel {
+  flex: 1 1 0;
+  min-width: 360px;
+  position: relative;
+}
+
+/* Draggable Splitter Gutter */
+.split-gutter {
+  width: 7px;
+  flex: 0 0 7px;
+  cursor: col-resize;
+  background-color: var(--border-color);
+  user-select: none;
+  position: relative;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.split-gutter:hover,
+.split-gutter.dragging {
+  background-color: var(--primary);
+}
+
+.gutter-handle {
+  width: 3px;
+  height: 32px;
+  border-radius: 2px;
+  background-color: var(--text-dim);
+  transition: background-color 0.15s ease;
+}
+
+.split-gutter:hover .gutter-handle,
+.split-gutter.dragging .gutter-handle {
+  background-color: #ffffff;
+}
+
+body.resizing-panels {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+body.resizing-panels iframe {
+  pointer-events: none !important;
 }
 
 .panel-header {
