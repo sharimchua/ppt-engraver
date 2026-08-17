@@ -226,7 +226,6 @@ if (window.pdfjsLib) {
 let currentPdfDoc = null;
 let lastPdfBase64 = null;
 let pdfZoomMode = 'FitH'; // 'FitH' | 'percent'
-let currentZoom = 1.0;
 let isRenderingPdf = false;
 
 // --- Rendering Functions ---
