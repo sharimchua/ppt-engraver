@@ -234,16 +234,16 @@ describe('resolveCoil', () => {
       const { onsets } = resolveCoil(coil, knotC4);
       // 1 initial rest (1 beat from Dox) + 2 melody notes + 2 trailing rests = 5 onsets
       expect(onsets).toHaveLength(5);
-      // Initial rest at beat 0.0 of 1.0 beat duration (silent spacer on rhythm layer)
+      // Initial Dox at beat 0.0 of 1.0 beat duration aligned on downbeat grid line
       expect(onsets[0].isRest).toBe(true);
       expect(onsets[0].durationBeats).toBe(1.0);
       expect(onsets[0].duration).toBe('4');
-      expect(onsets[0].rhythmToken).toBeUndefined();
+      expect(onsets[0].rhythmToken).toBe('Dox');
 
-      // First melody note starts at beat 1.0 with DoxDo rhythm token (adjacent glyphs)
+      // First melody note starts at beat 1.0 with Do rhythm token
       expect(onsets[1].isRest).toBe(false);
       expect(onsets[1].scaleDegree).toBe('Re');
-      expect(onsets[1].rhythmToken).toBe('DoxDo');
+      expect(onsets[1].rhythmToken).toBe('Do');
       expect(onsets[1].durationBeats).toBe(0.5);
       expect(onsets[1].duration).toBe('8');
 

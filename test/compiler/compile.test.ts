@@ -202,7 +202,7 @@ tapestry:
 `;
     const result = compileYamlString(yaml);
     expect(result.warnings).toHaveLength(0);
-    expect(result.onsets).toHaveLength(8);
+    expect(result.onsets).toHaveLength(9);
 
     // 16th notes on beat 1
     expect(result.onsets[0].duration).toBe('16');
@@ -212,10 +212,15 @@ tapestry:
     // 8th notes on beat 2
     expect(result.onsets[4].duration).toBe('8');
     expect(result.onsets[5].duration).toBe('8');
-    // Half note across beats 2 and 3 (before DoxDo on beat 4)
+    // Half note across beats 2 and 3 (beat 2.0 to 4.0)
     expect(result.onsets[6].duration).toBe('2');
-    // Final delayed note on beat 4
+    // Dox skip on beat 4 (beat 3.0 to 4.0)
+    expect(result.onsets[7].rhythmToken).toBe('Dox');
+    expect(result.onsets[7].isRest).toBe(true);
     expect(result.onsets[7].duration).toBe('4');
+    // Final delayed note on beat 5
+    expect(result.onsets[8].rhythmToken).toBe('Do');
+    expect(result.onsets[8].duration).toBe('4');
 
     // Check LilyPond melody emission contains 16 and 8 durations
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_1");

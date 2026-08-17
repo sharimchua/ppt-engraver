@@ -437,14 +437,15 @@ describe('rhythmTokenToCoilMarkup', () => {
     expect(markup).toBe('\\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) }');
   });
 
-  it('combines Dox shifted prior to origin so that main syllable aligns with grid line', () => {
-    const markup = rhythmTokenToCoilMarkup('DoxDo');
-    expect(markup).toBe('\\markup \\vcenter { \\stencil #(make-solfege-glyph-with-prefix pptPathBase 0 colorDo #f 1) }');
+  it('formats Dox rhythm token as Do with axis line', () => {
+    const markup = rhythmTokenToCoilMarkup('Dox');
+    expect(markup).toBe('\\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #t) }');
   });
 
-  it('handles multiple Dox prefixes with count passed to make-solfege-glyph-with-prefix', () => {
-    const markup = rhythmTokenToCoilMarkup('DoxDoxDo');
-    expect(markup).toBe('\\markup \\vcenter { \\stencil #(make-solfege-glyph-with-prefix pptPathBase 0 colorDo #f 2) }');
+  it('formats compound sub-beat syllables (e.g. LeFi)', () => {
+    const markup = rhythmTokenToCoilMarkup('LeFi');
+    expect(markup).toContain('make-solfege-glyph');
+    expect(markup).toContain('make-solfege-glyph-sub');
   });
 });
 

@@ -128,16 +128,24 @@ export function expandRhythmEntries(
     } else {
       const tokens = String(entry).trim().split(/\s+/).filter(Boolean);
       for (const token of tokens) {
-        result.push(token);
-        lastToken = token;
+        let t = token;
+        while (t.startsWith('Dox') && t.length > 3) {
+          result.push('Dox');
+          t = t.slice(3);
+        }
+        result.push(t);
+        lastToken = t;
       }
     }
   }
 
-  // If fewer rhythm entries than target count, pad with the last token
-  const effectiveCount = Math.max(result.length, targetCount ?? 0);
-  while (result.length < effectiveCount) {
-    result.push(lastToken);
+  // Count audible melody-matching rhythm entries (non-Dox tokens)
+  const audibleCount = result.filter(t => t !== 'Dox').length;
+  if (targetCount !== undefined && audibleCount < targetCount) {
+    const needed = targetCount - audibleCount;
+    for (let i = 0; i < needed; i++) {
+      result.push(lastToken === 'Dox' ? 'Do' : lastToken);
+    }
   }
 
   return result;

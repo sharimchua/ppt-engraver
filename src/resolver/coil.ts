@@ -104,11 +104,7 @@ export function resolveCoil(
   if (Array.isArray(rhythm)) {
     const expanded = expandRhythmEntries(rhythm, melody.length);
     resolvedRhythmOnsets = resolveRhythmTimeline(expanded);
-    if (resolvedRhythmOnsets.length > 0 && resolvedRhythmOnsets[0].startBeat > 0) {
-      hasInitialRest = true;
-      initialOffsetBeats = resolvedRhythmOnsets[0].startBeat;
-    }
-    totalOnsets = (hasInitialRest ? 1 : 0) + resolvedRhythmOnsets.length;
+    totalOnsets = resolvedRhythmOnsets.length;
   } else if (typeof rhythm === 'string') {
     const expectedCount = RHYTHM_BLOCK_LENGTHS[rhythm];
     if (expectedCount === undefined) {
@@ -134,33 +130,25 @@ export function resolveCoil(
   // --- Pair melody + harmony into onsets ---
   const onsets: ResolvedOnset[] = [];
   
-  // 1. Initial rest if the first rhythm onset does not start on beat 0.0
-  if (hasInitialRest) {
-    onsets.push({
-      melodyMidi: 0,
-      scaleDegree: '',
-      isRest: true,
-      chordMidi: harmonyChords[0].triad,
-      chordRoot: harmonyChords[0].root,
-      rhythmToken: undefined,
-      durationBeats: initialOffsetBeats,
-      duration: beatsToLilyPondDuration(initialOffsetBeats),
-    });
-  }
-
-  // 2. Audible rhythm onsets + trailing rests
   if (resolvedRhythmOnsets) {
+    let melodyIndex = 0;
     for (let k = 0; k < resolvedRhythmOnsets.length; k++) {
-      const onsetIndexInFull = (hasInitialRest ? 1 : 0) + k;
-      const mp = melodyPitches[k];
-      const isRest = k >= melodyPitches.length;
       const ro = resolvedRhythmOnsets[k];
+      const isRestToken = ro.token === 'Dox';
+      let mp = undefined;
+      let isRest = true;
+      if (!isRestToken && melodyIndex < melodyPitches.length) {
+        mp = melodyPitches[melodyIndex];
+        isRest = false;
+        melodyIndex++;
+      }
+      const chord = harmonyChords[k] ?? harmonyChords[harmonyChords.length - 1];
       onsets.push({
         melodyMidi: mp ? mp.midi : 0,
         scaleDegree: mp ? mp.scaleDegree : '',
         isRest,
-        chordMidi: harmonyChords[onsetIndexInFull].triad,
-        chordRoot: harmonyChords[onsetIndexInFull].root,
+        chordMidi: chord.triad,
+        chordRoot: chord.root,
         rhythmToken: ro.token,
         durationBeats: ro.durationBeats,
         duration: ro.lilypondDuration,

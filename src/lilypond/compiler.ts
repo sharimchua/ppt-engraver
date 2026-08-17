@@ -555,17 +555,7 @@ export function chordTokenToCoilMarkup(token: string): string {
  * into a LilyPond markup string. Dox prefixes are rendered adjacent to the main syllable.
  */
 export function rhythmTokenToCoilMarkup(token: string): string {
-  let remaining = token;
-  let doxCount = 0;
-  while (remaining.startsWith("Dox")) {
-    doxCount++;
-    remaining = remaining.slice(3);
-  }
-  if (remaining.length === 0) {
-    remaining = "Do";
-  }
-
-  const parsed = parseHarmonyChord(remaining);
+  const parsed = parseHarmonyChord(token);
   const rootSpec = getSolfegeGlyphSpec(parsed.rootSyllable, parsed.hasAxis);
   const basePathVar =
     rootSpec.glyphType === "base"
@@ -575,10 +565,7 @@ export function rhythmTokenToCoilMarkup(token: string): string {
         : "pptPathFlat";
   const rootAxisBool = rootSpec.hasAxis ? "#t" : "#f";
 
-  const rootStencil =
-    doxCount > 0
-      ? `\\stencil #(make-solfege-glyph-with-prefix ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool} ${doxCount})`
-      : `\\stencil #(make-solfege-glyph ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool})`;
+  const rootStencil = `\\stencil #(make-solfege-glyph ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool})`;
 
   if (parsed.modifiers.length === 0) {
     return `\\markup \\vcenter { ${rootStencil} }`;
