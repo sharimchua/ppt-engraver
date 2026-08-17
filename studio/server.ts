@@ -121,7 +121,7 @@ async function compileToSvg(yamlContent: string) {
     const lilyStartTime = Date.now();
     await execFileAsync(lilypondPath, [
       '-dbackend=svg',
-      '-dcrop',
+      '-dno-point-and-click',
       '-o',
       tempOutPrefix,
       tempLyPath,
@@ -129,14 +129,14 @@ async function compileToSvg(yamlContent: string) {
     const lilyTimeMs = Date.now() - lilyStartTime;
 
     // Look for generated SVG
-    const croppedSvgPath = tempOutPrefix + '.cropped.svg';
     const standardSvgPath = tempOutPrefix + '.svg';
+    const croppedSvgPath = tempOutPrefix + '.cropped.svg';
     let svgContent = '';
 
-    if (existsSync(croppedSvgPath)) {
-      svgContent = readFileSync(croppedSvgPath, 'utf-8');
-    } else if (existsSync(standardSvgPath)) {
+    if (existsSync(standardSvgPath)) {
       svgContent = readFileSync(standardSvgPath, 'utf-8');
+    } else if (existsSync(croppedSvgPath)) {
+      svgContent = readFileSync(croppedSvgPath, 'utf-8');
     } else {
       throw new Error('LilyPond did not output expected SVG file');
     }

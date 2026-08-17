@@ -362,9 +362,12 @@ html, body {
 
 .svg-container {
   background: #ffffff;
-  padding: 20px;
-  border-radius: 4px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  color: #000000 !important;
+  fill: #000000;
+  stroke: #000000;
+  padding: 24px 32px;
+  border-radius: 6px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
   transform-origin: top center;
   transition: transform 0.1s ease-out;
 }
@@ -373,6 +376,12 @@ html, body {
   display: block;
   max-width: 100%;
   height: auto;
+  color: #000000 !important;
+}
+
+.svg-container svg text {
+  fill: #000000 !important;
+  color: #000000 !important;
 }
 
 .placeholder-message {
