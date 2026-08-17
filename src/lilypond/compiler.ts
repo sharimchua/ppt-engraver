@@ -1477,6 +1477,7 @@ ${chordChangesDirective}      \\chordNamesVoice
       \\Staff
       \\consists "Grid_point_engraver"
       gridInterval = #(ly:make-moment 1/4)
+      \\override GridPoint.X-offset = #0.65
       \\override GridPoint.Y-offset = #0
     }\n`
     : "";

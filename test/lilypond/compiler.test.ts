@@ -272,6 +272,7 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('\\consists "Grid_line_span_engraver"');
     expect(ly).toContain('\\consists "Grid_point_engraver"');
     expect(ly).toContain('gridInterval = #(ly:make-moment 1/4)');
+    expect(ly).toContain('\\override GridPoint.X-offset = #0.65');
     expect(ly).toContain('\\override GridPoint.Y-offset = #0');
     expect(ly).toContain('\\override GridLine.stencil = #ly:grid-line-interface::print');
     expect(ly).toContain('rhythmGridVoice = {');
