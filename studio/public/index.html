@@ -148,6 +148,22 @@
             <input type="text" id="setting-lilypond-path" class="input-text" placeholder="e.g. C:\lilypond-2.24.4\bin\lilypond.exe">
             <small id="setting-status-hint" class="hint-text"></small>
           </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label for="setting-loupe-size">Magnifying Lens Size (Diameter):</label>
+              <span id="label-loupe-size" style="font-family: var(--font-mono); font-size: 11px; color: var(--primary);">220 px</span>
+            </div>
+            <input type="range" id="setting-loupe-size" min="140" max="400" step="10" value="220" style="cursor: pointer;">
+          </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label for="setting-loupe-power">Magnification Power (Zoom):</label>
+              <span id="label-loupe-power" style="font-family: var(--font-mono); font-size: 11px; color: var(--primary);">2.5x</span>
+            </div>
+            <input type="range" id="setting-loupe-power" min="1.5" max="5.0" step="0.25" value="2.5" style="cursor: pointer;">
+          </div>
         </div>
         <div class="modal-footer">
           <button id="btn-save-settings" class="btn btn-primary">Save Settings</button>

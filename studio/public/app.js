@@ -97,6 +97,10 @@ const btnCloseSettings = document.getElementById('btn-close-settings');
 const btnSaveSettings = document.getElementById('btn-save-settings');
 const settingLilypondPath = document.getElementById('setting-lilypond-path');
 const settingStatusHint = document.getElementById('setting-status-hint');
+const settingLoupeSize = document.getElementById('setting-loupe-size');
+const labelLoupeSize = document.getElementById('label-loupe-size');
+const settingLoupePower = document.getElementById('setting-loupe-power');
+const labelLoupePower = document.getElementById('label-loupe-power');
 
 // --- API Helpers ---
 async function fetchScores() {
@@ -485,7 +489,22 @@ btnCopyLy.addEventListener('click', () => {
   setTimeout(() => { btnCopyLy.textContent = 'Copy Code'; }, 1500);
 });
 
-// Settings Modal
+// --- Settings Modal & Preferences ---
+let loupeSize = parseInt(localStorage.getItem('ppt_loupe_size') || '220', 10);
+let loupePower = parseFloat(localStorage.getItem('ppt_loupe_power') || '2.5');
+
+if (settingLoupeSize && labelLoupeSize) {
+  settingLoupeSize.addEventListener('input', (e) => {
+    labelLoupeSize.textContent = `${e.target.value} px`;
+  });
+}
+
+if (settingLoupePower && labelLoupePower) {
+  settingLoupePower.addEventListener('input', (e) => {
+    labelLoupePower.textContent = `${e.target.value}x`;
+  });
+}
+
 btnSettings.addEventListener('click', async () => {
   try {
     const res = await fetch('/api/config');
@@ -493,6 +512,16 @@ btnSettings.addEventListener('click', async () => {
     settingLilypondPath.value = data.lilypondPath || '';
     settingStatusHint.textContent = data.exists ? '✓ LilyPond binary verified' : '⚠️ Binary not found at path';
     settingStatusHint.style.color = data.exists ? 'var(--success)' : 'var(--danger)';
+
+    if (settingLoupeSize && labelLoupeSize) {
+      settingLoupeSize.value = loupeSize;
+      labelLoupeSize.textContent = `${loupeSize} px`;
+    }
+    if (settingLoupePower && labelLoupePower) {
+      settingLoupePower.value = loupePower;
+      labelLoupePower.textContent = `${loupePower}x`;
+    }
+
     settingsModal.classList.remove('hidden');
   } catch (err) {
     console.error('Failed to load settings:', err);
@@ -505,6 +534,15 @@ btnCloseSettings.addEventListener('click', () => {
 
 btnSaveSettings.addEventListener('click', async () => {
   const newPath = settingLilypondPath.value.trim();
+  if (settingLoupeSize) {
+    loupeSize = parseInt(settingLoupeSize.value, 10);
+    localStorage.setItem('ppt_loupe_size', String(loupeSize));
+  }
+  if (settingLoupePower) {
+    loupePower = parseFloat(settingLoupePower.value);
+    localStorage.setItem('ppt_loupe_power', String(loupePower));
+  }
+
   try {
     const res = await fetch('/api/config', {
       method: 'POST',
@@ -512,16 +550,15 @@ btnSaveSettings.addEventListener('click', async () => {
       body: JSON.stringify({ lilypondPath: newPath }),
     });
     const data = await res.json();
-    alert(data.exists ? 'Settings saved! LilyPond found.' : 'Settings saved, but binary was not found at specified path.');
+    alert(data.exists ? 'Settings saved! LilyPond verified.' : 'Settings saved, but LilyPond binary was not found at specified path.');
     settingsModal.classList.add('hidden');
   } catch (err) {
-    alert('Failed to save settings');
+    alert('Failed to save backend settings');
+    settingsModal.classList.add('hidden');
   }
 });
 
 // --- Magnifier Lens (Loupe) Logic ---
-const LENS_DIAMETER = 220;
-const MAGNIFIER_POWER = 2.5;
 let isMagnifierToggled = false;
 let isAltHeld = false;
 
@@ -541,6 +578,8 @@ function updateMagnifier(e) {
   }
 
   magnifierLens.classList.remove('hidden');
+  magnifierLens.style.width = `${loupeSize}px`;
+  magnifierLens.style.height = `${loupeSize}px`;
   magnifierLens.style.left = `${e.clientX}px`;
   magnifierLens.style.top = `${e.clientY}px`;
 
@@ -549,11 +588,11 @@ function updateMagnifier(e) {
   const relY = (e.clientY - rect.top) * (targetCanvas.height / rect.height);
 
   const dpr = window.devicePixelRatio || 1;
-  magnifierCanvas.width = LENS_DIAMETER * dpr;
-  magnifierCanvas.height = LENS_DIAMETER * dpr;
+  magnifierCanvas.width = loupeSize * dpr;
+  magnifierCanvas.height = loupeSize * dpr;
 
-  const srcW = (LENS_DIAMETER / MAGNIFIER_POWER) * (targetCanvas.width / rect.width);
-  const srcH = (LENS_DIAMETER / MAGNIFIER_POWER) * (targetCanvas.height / rect.height);
+  const srcW = (loupeSize / loupePower) * (targetCanvas.width / rect.width);
+  const srcH = (loupeSize / loupePower) * (targetCanvas.height / rect.height);
   const srcX = relX - srcW / 2;
   const srcY = relY - srcH / 2;
 
