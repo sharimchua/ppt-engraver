@@ -269,6 +269,49 @@ tapestry:
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_3 s8");
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_4 s8");
   });
+
+  it('omits ChordNames block when chordNames is not in engraving.show', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: C4
+    engraving:
+      show:
+        - melody
+        - harmony
+  weave:
+    id: song
+    children:
+      - coil:
+          id: c1
+          melody: [Do, Re]
+          harmony: [Do, So]
+`;
+    const result = compileYamlString(yaml);
+    expect(result.lilypondSource).not.toContain('\\new ChordNames');
+  });
+
+  it('includes ChordNames block when chordNames is explicitly in engraving.show', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: C4
+    engraving:
+      show:
+        - melody
+        - harmony
+        - chordNames
+  weave:
+    id: song
+    children:
+      - coil:
+          id: c1
+          melody: [Do, Re]
+          harmony: [Do, So]
+`;
+    const result = compileYamlString(yaml);
+    expect(result.lilypondSource).toContain('\\new ChordNames');
+  });
 });
 
 
