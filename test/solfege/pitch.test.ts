@@ -377,18 +377,26 @@ describe('buildChordFromToken & parseHarmonyChord', () => {
     });
   });
 
-  it('builds slash chord voicings with bass note positioned at the bottom', () => {
-    // C major (60, 64, 67) with G bass (55) -> [55, 60, 64, 67]
-    const chordSoxDo = buildChordFromToken(60, 'SoxDo', 60);
-    expect(chordSoxDo).toEqual([55, 60, 64, 67]);
+  it('builds chord inversions by revoicing chord tones starting from the bass', () => {
+    // DoxFa: F major (65, 69, 72) in 2nd inversion with C4 bass -> [60, 65, 69] (C-F-A)
+    const chordDoxFa = buildChordFromToken(65, 'DoxFa', 60);
+    expect(chordDoxFa).toEqual([60, 65, 69]);
 
-    // C major (60, 64, 67) with E bass (52) -> [52, 60, 64, 67]
+    // MiexDo: C major (60, 64, 67) in 1st inversion with E4 bass -> [64, 67, 72] (E-G-C)
     const chordMiexDo = buildChordFromToken(60, 'MiexDo', 60);
-    expect(chordMiexDo).toEqual([52, 60, 64, 67]);
+    expect(chordMiexDo).toEqual([64, 67, 72]);
 
-    // C minor (60, 63, 67) with Eb bass (51) -> [51, 60, 63, 67]
+    // SoxDo: C major (60, 64, 67) in 2nd inversion with G3 bass -> [55, 60, 64] (G-C-E)
+    const chordSoxDo = buildChordFromToken(60, 'SoxDo', 60);
+    expect(chordSoxDo).toEqual([55, 60, 64]);
+
+    // MexDoMe: C minor (60, 63, 67) in 1st inversion with Eb4 bass -> [63, 67, 72] (Eb-G-C)
     const chordMexDoMe = buildChordFromToken(60, 'MexDoMe', 60);
-    expect(chordMexDoMe).toEqual([51, 60, 63, 67]);
+    expect(chordMexDoMe).toEqual([63, 67, 72]);
+
+    // TexDo: C major (60, 64, 67) with non-chord Bb3 bass -> [58, 60, 64, 67] (Bb-C-E-G)
+    const chordTexDo = buildChordFromToken(60, 'TexDo', 60);
+    expect(chordTexDo).toEqual([58, 60, 64, 67]);
   });
 });
 

@@ -163,21 +163,25 @@ describe('resolveCoil', () => {
     it('resolves harmony chords with Axis Bass prefix (slash chords / inversions)', () => {
       const coil: Coil = {
         id: 'test',
-        melody: ['Do', 'Re', 'Mi'],
-        harmony: ['SoxDo', 'MiexDo', 'RexSo'],
+        melody: ['Do', 'Re', 'Mi', 'Fa'],
+        harmony: ['DoxFa', 'SoxDo', 'MiexDo', 'RexSo'],
       };
       const { onsets } = resolveCoil(coil, knotC4);
-      // SoxDo: C major with G3 bass (55) -> [55, 60, 64, 67]
-      expect(onsets[0].chordRoot).toBe('SoxDo');
-      expect(onsets[0].chordMidi).toEqual([55, 60, 64, 67]);
+      // DoxFa: F3 major (53, 57, 60) in 2nd inversion with C3 bass (48) -> [48, 53, 57] (C-F-A)
+      expect(onsets[0].chordRoot).toBe('DoxFa');
+      expect(onsets[0].chordMidi).toEqual([48, 53, 57]);
 
-      // MiexDo: C major with E3 bass (52) -> [52, 60, 64, 67]
-      expect(onsets[1].chordRoot).toBe('MiexDo');
-      expect(onsets[1].chordMidi).toEqual([52, 60, 64, 67]);
+      // SoxDo: C major (60, 64, 67) in 2nd inversion with G3 bass (55) -> [55, 60, 64] (G-C-E)
+      expect(onsets[1].chordRoot).toBe('SoxDo');
+      expect(onsets[1].chordMidi).toEqual([55, 60, 64]);
 
-      // RexSo: G3 major (55, 59, 62) with D3 bass (50) -> [50, 55, 59, 62]
-      expect(onsets[2].chordRoot).toBe('RexSo');
-      expect(onsets[2].chordMidi).toEqual([50, 55, 59, 62]);
+      // MiexDo: C major (60, 64, 67) in 1st inversion with E4 bass (64) -> [64, 67, 72] (E-G-C)
+      expect(onsets[2].chordRoot).toBe('MiexDo');
+      expect(onsets[2].chordMidi).toEqual([64, 67, 72]);
+
+      // RexSo: G3 major (55, 59, 62) in 2nd inversion with D3 bass (50) -> [50, 55, 59] (D-G-B)
+      expect(onsets[3].chordRoot).toBe('RexSo');
+      expect(onsets[3].chordMidi).toEqual([50, 55, 59]);
     });
 
     it('throws when harmony starts with a repeat number', () => {

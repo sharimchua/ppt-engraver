@@ -697,14 +697,38 @@ export function buildChordFromToken(rootMidi: number, chordToken: string, knotDo
   if (parsed.hasAxisBass && parsed.bassSyllable) {
     const doRef = knotDoMidi !== undefined ? knotDoMidi : (rootMidi - solfegeToHarmonyRootOffset(parsed.rootSyllable));
     const bassOffset = solfegeToHarmonyRootOffset(parsed.bassSyllable);
-    let bassMidi = doRef + bassOffset + ((parsed.bassOctaveShift ?? 0) * 12);
-    
-    // Ensure bassMidi is positioned as the lowest tone in the chord
-    while (bassMidi >= upperTones[0]) {
-      bassMidi -= 12;
+    const bassPc = ((bassOffset % 12) + 12) % 12;
+    const chordPcs = upperTones.map(t => ((t % 12) + 12) % 12);
+
+    const invIndex = chordPcs.indexOf(bassPc);
+
+    if (invIndex !== -1) {
+      // Inversion: revoice the existing chord tones starting from the bass note
+      const rotatedPcs = [...chordPcs.slice(invIndex), ...chordPcs.slice(0, invIndex)];
+      
+      let baseBassMidi = shiftedRoot + ((bassPc - chordPcs[0] + 12) % 12);
+      if (invIndex > 1) {
+        // 2nd inversion or higher: drop bass octave so it stays within normal triad span
+        baseBassMidi -= 12;
+      }
+      if (parsed.bassOctaveShift) {
+        baseBassMidi += parsed.bassOctaveShift * 12;
+      }
+
+      const invertedChord: number[] = [baseBassMidi];
+      for (let i = 1; i < rotatedPcs.length; i++) {
+        const diff = ((rotatedPcs[i] - bassPc) % 12 + 12) % 12;
+        invertedChord.push(baseBassMidi + diff);
+      }
+      return invertedChord;
+    } else {
+      // Non-chord tone slash bass: add bass note below upper chord tones
+      let bassMidi = doRef + bassOffset + ((parsed.bassOctaveShift ?? 0) * 12);
+      while (bassMidi >= upperTones[0]) {
+        bassMidi -= 12;
+      }
+      return [bassMidi, ...upperTones];
     }
-    
-    return [bassMidi, ...upperTones];
   }
 
   return upperTones;
