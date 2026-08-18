@@ -2,9 +2,6 @@ node_modules/
 dist/
 *.tsbuildinfo
 .DS_Store
-scores/*.pdf
-scores/*.svg
-scores/*.mid
-scores/*.ly
-scores/*.cropped.svg
+scores/*
+!scores/AGENTS.md
 tmp_*
