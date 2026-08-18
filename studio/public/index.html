@@ -66,6 +66,14 @@
           </div>
         </div>
         <div id="editor-container" class="editor-container"></div>
+        <!-- Live Contextual Solfège Strip for Line / Coil under Cursor -->
+        <div id="solfege-context-bar" class="solfege-context-bar hidden">
+          <div class="context-bar-header">
+            <span class="context-coil-title" id="context-coil-title">🎵 Coil Context</span>
+            <span class="context-key-badge" id="context-key-badge">Key: A</span>
+          </div>
+          <div id="context-tokens-grid" class="context-tokens-grid"></div>
+        </div>
         <div id="error-banner" class="error-banner hidden">
           <div class="error-title">⚠️ Schema Validation Error</div>
           <pre id="error-content" class="error-content"></pre>
@@ -189,6 +197,10 @@
               <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
                 <input type="checkbox" id="setting-enable-coil-suggestions" checked>
                 <span>Dynamic Coil & Weave ID Suggestions</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
+                <input type="checkbox" id="setting-enable-solfege-context" checked>
+                <span>Show Live Solfège & Interval Context Strip</span>
               </label>
             </div>
           </div>
