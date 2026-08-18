@@ -412,7 +412,7 @@
 chordNamesVoice = {
   \tag #'ppt_verse_introMotif_chordName_1 <c' e' g'>1
   \bar "|"
-  \tag #'ppt_verse_cadence_chordName_1 <g b d'>1*2/4
+  \tag #'ppt_verse_cadence_chordName_1 <g b d'>2
   \bar "|."
 }
 
@@ -439,7 +439,7 @@ harmonyVoice = {
   \cadenzaOn
   \tag #'ppt_verse_introMotif_harmonyStaff_1 <c' e' g'>1
   \bar "|"
-  \tag #'ppt_verse_cadence_harmonyStaff_1 <g b d'>1*2/4
+  \tag #'ppt_verse_cadence_harmonyStaff_1 <g b d'>2
   \bar "|."
   \cadenzaOff
 }

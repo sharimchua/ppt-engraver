@@ -4,6 +4,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "introMotif",
@@ -34,6 +35,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 1,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 1,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C4",
+      "midiNote": 60
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melody_v1_1": {
+    "tag": "ppt_verse_introMotif_1",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "introMotif",
@@ -64,6 +97,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 1,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 1,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C4",
+      "midiNote": 60
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melodyAbs_v1_1": {
+    "tag": "ppt_verse_introMotif_1",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "introMotif",
@@ -94,6 +159,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 1,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 1,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C4",
+      "midiNote": 60
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melodyInt_v1_1": {
+    "tag": "ppt_verse_introMotif_1",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "introMotif",
@@ -124,6 +221,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "introMotif",
@@ -154,6 +252,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "introMotif",
@@ -184,6 +283,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "introMotif",
@@ -214,6 +314,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "introMotif",
@@ -244,6 +345,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "introMotif",
@@ -274,6 +376,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "introMotif",
@@ -304,6 +407,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 2,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 2,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "Mi",
+      "pitch": "E4",
+      "midiNote": 64
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melody_v1_2": {
+    "tag": "ppt_verse_introMotif_2",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "introMotif",
@@ -334,6 +469,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 2,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 2,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "Mi",
+      "pitch": "E4",
+      "midiNote": 64
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melodyAbs_v1_2": {
+    "tag": "ppt_verse_introMotif_2",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "introMotif",
@@ -364,6 +531,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 2,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 2,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "Mi",
+      "pitch": "E4",
+      "midiNote": 64
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melodyInt_v1_2": {
+    "tag": "ppt_verse_introMotif_2",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "introMotif",
@@ -394,6 +593,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "introMotif",
@@ -424,6 +624,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "introMotif",
@@ -454,6 +655,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "introMotif",
@@ -484,6 +686,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "introMotif",
@@ -514,6 +717,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "introMotif",
@@ -544,6 +748,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 3,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 3,
     "melodySourceCoil": "introMotif",
@@ -574,6 +779,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 3,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 3,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "So",
+      "pitch": "G4",
+      "midiNote": 67
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melody_v1_3": {
+    "tag": "ppt_verse_introMotif_3",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 3,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 3,
     "melodySourceCoil": "introMotif",
@@ -604,6 +841,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 3,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 3,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "So",
+      "pitch": "G4",
+      "midiNote": 67
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melodyAbs_v1_3": {
+    "tag": "ppt_verse_introMotif_3",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 3,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 3,
     "melodySourceCoil": "introMotif",
@@ -634,6 +903,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 3,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 3,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "So",
+      "pitch": "G4",
+      "midiNote": 67
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melodyInt_v1_3": {
+    "tag": "ppt_verse_introMotif_3",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 3,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 3,
     "melodySourceCoil": "introMotif",
@@ -664,6 +965,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 3,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 3,
     "melodySourceCoil": "introMotif",
@@ -694,6 +996,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 3,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 3,
     "melodySourceCoil": "introMotif",
@@ -724,6 +1027,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 3,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 3,
     "melodySourceCoil": "introMotif",
@@ -754,6 +1058,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 3,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 3,
     "melodySourceCoil": "introMotif",
@@ -784,6 +1089,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 3,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 3,
     "melodySourceCoil": "introMotif",
@@ -814,6 +1120,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 4,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 4,
     "melodySourceCoil": "introMotif",
@@ -844,6 +1151,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 4,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 4,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C5",
+      "midiNote": 72
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melody_v1_4": {
+    "tag": "ppt_verse_introMotif_4",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 4,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 4,
     "melodySourceCoil": "introMotif",
@@ -874,6 +1213,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 4,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 4,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C5",
+      "midiNote": 72
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melodyAbs_v1_4": {
+    "tag": "ppt_verse_introMotif_4",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 4,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 4,
     "melodySourceCoil": "introMotif",
@@ -904,6 +1275,38 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 4,
+    "voiceIndex": 1,
+    "sourceCoilId": "introMotif",
+    "sourceOnsetIndex": 4,
+    "melodySourceCoil": "introMotif",
+    "rhythmSourceCoil": "introMotif",
+    "harmonySourceCoil": "introMotif",
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C5",
+      "midiNote": 72
+    },
+    "harmony": {
+      "root": "Do",
+      "quality": "major",
+      "chordTones": [
+        "C4",
+        "E4",
+        "G4"
+      ],
+      "chordMidi": [
+        60,
+        64,
+        67
+      ]
+    }
+  },
+  "ppt_verse_introMotif_melodyInt_v1_4": {
+    "tag": "ppt_verse_introMotif_4",
+    "weaveId": "verse",
+    "coilId": "introMotif",
+    "onsetIndex": 4,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 4,
     "melodySourceCoil": "introMotif",
@@ -934,6 +1337,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 4,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 4,
     "melodySourceCoil": "introMotif",
@@ -964,6 +1368,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 4,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 4,
     "melodySourceCoil": "introMotif",
@@ -994,6 +1399,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 4,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 4,
     "melodySourceCoil": "introMotif",
@@ -1024,6 +1430,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 4,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 4,
     "melodySourceCoil": "introMotif",
@@ -1054,6 +1461,7 @@
     "weaveId": "verse",
     "coilId": "introMotif",
     "onsetIndex": 4,
+    "voiceIndex": 1,
     "sourceCoilId": "introMotif",
     "sourceOnsetIndex": 4,
     "melodySourceCoil": "introMotif",
@@ -1084,6 +1492,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "cadence",
@@ -1114,6 +1523,38 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 1,
+    "voiceIndex": 1,
+    "sourceCoilId": "cadence",
+    "sourceOnsetIndex": 1,
+    "melodySourceCoil": "cadence",
+    "rhythmSourceCoil": "cadence",
+    "harmonySourceCoil": "cadence",
+    "melody": {
+      "scaleDegree": "Ti",
+      "pitch": "B4",
+      "midiNote": 71
+    },
+    "harmony": {
+      "root": "So",
+      "quality": "major",
+      "chordTones": [
+        "G3",
+        "B3",
+        "D4"
+      ],
+      "chordMidi": [
+        55,
+        59,
+        62
+      ]
+    }
+  },
+  "ppt_verse_cadence_melody_v1_1": {
+    "tag": "ppt_verse_cadence_1",
+    "weaveId": "verse",
+    "coilId": "cadence",
+    "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "cadence",
@@ -1144,6 +1585,38 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 1,
+    "voiceIndex": 1,
+    "sourceCoilId": "cadence",
+    "sourceOnsetIndex": 1,
+    "melodySourceCoil": "cadence",
+    "rhythmSourceCoil": "cadence",
+    "harmonySourceCoil": "cadence",
+    "melody": {
+      "scaleDegree": "Ti",
+      "pitch": "B4",
+      "midiNote": 71
+    },
+    "harmony": {
+      "root": "So",
+      "quality": "major",
+      "chordTones": [
+        "G3",
+        "B3",
+        "D4"
+      ],
+      "chordMidi": [
+        55,
+        59,
+        62
+      ]
+    }
+  },
+  "ppt_verse_cadence_melodyAbs_v1_1": {
+    "tag": "ppt_verse_cadence_1",
+    "weaveId": "verse",
+    "coilId": "cadence",
+    "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "cadence",
@@ -1174,6 +1647,38 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 1,
+    "voiceIndex": 1,
+    "sourceCoilId": "cadence",
+    "sourceOnsetIndex": 1,
+    "melodySourceCoil": "cadence",
+    "rhythmSourceCoil": "cadence",
+    "harmonySourceCoil": "cadence",
+    "melody": {
+      "scaleDegree": "Ti",
+      "pitch": "B4",
+      "midiNote": 71
+    },
+    "harmony": {
+      "root": "So",
+      "quality": "major",
+      "chordTones": [
+        "G3",
+        "B3",
+        "D4"
+      ],
+      "chordMidi": [
+        55,
+        59,
+        62
+      ]
+    }
+  },
+  "ppt_verse_cadence_melodyInt_v1_1": {
+    "tag": "ppt_verse_cadence_1",
+    "weaveId": "verse",
+    "coilId": "cadence",
+    "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "cadence",
@@ -1204,6 +1709,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "cadence",
@@ -1234,6 +1740,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "cadence",
@@ -1264,6 +1771,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "cadence",
@@ -1294,6 +1802,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "cadence",
@@ -1324,6 +1833,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 1,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 1,
     "melodySourceCoil": "cadence",
@@ -1354,6 +1864,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "cadence",
@@ -1384,6 +1895,38 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 2,
+    "voiceIndex": 1,
+    "sourceCoilId": "cadence",
+    "sourceOnsetIndex": 2,
+    "melodySourceCoil": "cadence",
+    "rhythmSourceCoil": "cadence",
+    "harmonySourceCoil": "cadence",
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C5",
+      "midiNote": 72
+    },
+    "harmony": {
+      "root": "So",
+      "quality": "major",
+      "chordTones": [
+        "G3",
+        "B3",
+        "D4"
+      ],
+      "chordMidi": [
+        55,
+        59,
+        62
+      ]
+    }
+  },
+  "ppt_verse_cadence_melody_v1_2": {
+    "tag": "ppt_verse_cadence_2",
+    "weaveId": "verse",
+    "coilId": "cadence",
+    "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "cadence",
@@ -1414,6 +1957,38 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 2,
+    "voiceIndex": 1,
+    "sourceCoilId": "cadence",
+    "sourceOnsetIndex": 2,
+    "melodySourceCoil": "cadence",
+    "rhythmSourceCoil": "cadence",
+    "harmonySourceCoil": "cadence",
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C5",
+      "midiNote": 72
+    },
+    "harmony": {
+      "root": "So",
+      "quality": "major",
+      "chordTones": [
+        "G3",
+        "B3",
+        "D4"
+      ],
+      "chordMidi": [
+        55,
+        59,
+        62
+      ]
+    }
+  },
+  "ppt_verse_cadence_melodyAbs_v1_2": {
+    "tag": "ppt_verse_cadence_2",
+    "weaveId": "verse",
+    "coilId": "cadence",
+    "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "cadence",
@@ -1444,6 +2019,38 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 2,
+    "voiceIndex": 1,
+    "sourceCoilId": "cadence",
+    "sourceOnsetIndex": 2,
+    "melodySourceCoil": "cadence",
+    "rhythmSourceCoil": "cadence",
+    "harmonySourceCoil": "cadence",
+    "melody": {
+      "scaleDegree": "Do",
+      "pitch": "C5",
+      "midiNote": 72
+    },
+    "harmony": {
+      "root": "So",
+      "quality": "major",
+      "chordTones": [
+        "G3",
+        "B3",
+        "D4"
+      ],
+      "chordMidi": [
+        55,
+        59,
+        62
+      ]
+    }
+  },
+  "ppt_verse_cadence_melodyInt_v1_2": {
+    "tag": "ppt_verse_cadence_2",
+    "weaveId": "verse",
+    "coilId": "cadence",
+    "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "cadence",
@@ -1474,6 +2081,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "cadence",
@@ -1504,6 +2112,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "cadence",
@@ -1534,6 +2143,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "cadence",
@@ -1564,6 +2174,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "cadence",
@@ -1594,6 +2205,7 @@
     "weaveId": "verse",
     "coilId": "cadence",
     "onsetIndex": 2,
+    "voiceIndex": 1,
     "sourceCoilId": "cadence",
     "sourceOnsetIndex": 2,
     "melodySourceCoil": "cadence",

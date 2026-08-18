@@ -1396,10 +1396,11 @@ function updateInlineSolfegeWidget() {
   const cur = editor.getCursor();
   const currentLine = editor.getLine(cur.line) || '';
 
-  // Strictly scope preview to melody, harmony, and rhythm lines
-  const isMusicLine = /^\s*(melody|harmony|rhythm)\s*:\s*\[/i.test(currentLine) ||
-                      /^\s*(melody|harmony|rhythm)\s*:/i.test(currentLine) ||
-                      /^\s*-\s+(?:Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)/i.test(currentLine);
+  // Strictly scope preview to melody, harmony, rhythm, chords, pitches lines, or bullet arrays
+  const isMusicLine = /^\s*(melody|harmony|rhythm|chords|pitches)\s*:\s*\[/i.test(currentLine) ||
+                      /^\s*(melody|harmony|rhythm|chords|pitches)\s*:/i.test(currentLine) ||
+                      /^\s*-\s*\[/i.test(currentLine) ||
+                      /^\s*-\s+(?:Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti|Dox)/i.test(currentLine);
 
   if (!isMusicLine) {
     clearInlineWidget();
@@ -1800,15 +1801,10 @@ let latestLilypondSource = '';
 let latestOnsets = [];
 
 function findTokenInArray(lineText, onsetIndex) {
-  const colonIdx = lineText.indexOf(':');
-  if (colonIdx === -1) return 0;
-
-  const afterColon = lineText.slice(colonIdx + 1);
-  const arrayMatch = afterColon.match(/\[(.*?)\]/);
-
+  const arrayMatch = lineText.match(/\[(.*?)\]/);
   if (arrayMatch) {
     const inner = arrayMatch[1];
-    const arrayStartCh = colonIdx + 1 + lineText.slice(colonIdx + 1).indexOf('[');
+    const arrayStartCh = lineText.indexOf('[');
     const rawItems = inner.split(',');
     const tokenMap = [];
     let currentOnset = 1;
@@ -1830,7 +1826,7 @@ function findTokenInArray(lineText, onsetIndex) {
         const windowSize = parts[1] ? parseInt(parts[1], 10) : 1;
         const totalItemsAdded = repeatCount * windowSize;
         for (let k = 0; k < totalItemsAdded; k++) {
-          tokenMap.push({ onsetIndex: currentOnset++, startCh: itemStartCh, token: trimmed });
+          tokenMap.push({ onsetIndex: currentOnset++, startCh: itemStartCh !== -1 ? itemStartCh : runningOffset, token: trimmed });
         }
       } else {
         const subTokens = trimmed.split(/\s+/).filter(Boolean);
@@ -1849,8 +1845,11 @@ function findTokenInArray(lineText, onsetIndex) {
     if (match) return match.startCh;
     if (tokenMap.length > 0) return tokenMap[tokenMap.length - 1].startCh;
     return arrayStartCh;
-  } else {
-    // Unbracketed or string: e.g. rhythm: Do Me Fi La
+  }
+
+  const colonIdx = lineText.indexOf(':');
+  if (colonIdx !== -1) {
+    const afterColon = lineText.slice(colonIdx + 1);
     const tokens = afterColon.trim().split(/\s+/).filter(Boolean);
     let currentOffset = colonIdx + 1;
     for (let i = 0; i < tokens.length; i++) {
@@ -1863,9 +1862,11 @@ function findTokenInArray(lineText, onsetIndex) {
     }
     return colonIdx + 2;
   }
+
+  return 0;
 }
 
-function findYamlTarget(yamlText, coilId, onsetIndex, targetLayer = 'melody') {
+function findYamlTarget(yamlText, coilId, onsetIndex, targetLayer = 'melody', voiceIndex = 1) {
   if (!yamlText || !coilId) return { targetLine: -1, targetCh: 0 };
   const lines = yamlText.split('\n');
 
@@ -1895,13 +1896,9 @@ function findYamlTarget(yamlText, coilId, onsetIndex, targetLayer = 'melody') {
     return { targetLine: -1, targetCh: 0 };
   }
 
-  const primaryRegex = new RegExp(`^\\s*${targetLayer}\\s*:`, 'i');
-  const fallbackRegex = /^\s*(melody|harmony|rhythm)\s*:/i;
-
-  // Pass 1: Try to find candidate block containing the specific targetLayer
   for (const cand of candidates) {
     const startL = cand.lineIndex;
-    const maxLookahead = Math.min(lines.length, startL + 40);
+    const maxLookahead = Math.min(lines.length, startL + 60);
     const startIndent = (lines[startL].match(/^\s*/) || [''])[0].length;
 
     for (let l = startL; l < maxLookahead; l++) {
@@ -1918,33 +1915,54 @@ function findYamlTarget(yamlText, coilId, onsetIndex, targetLayer = 'melody') {
           break;
         }
       }
-      if (primaryRegex.test(line)) {
+
+      // 1. Melody target
+      if (targetLayer === 'melody' && /^\s*melody\s*:/i.test(line)) {
+        const afterColon = line.slice(line.indexOf(':') + 1).trim();
+        if (afterColon.startsWith('[')) {
+          // Inline array: melody: [Do, Re, Mi]
+          return { targetLine: l, targetCh: findTokenInArray(line, onsetIndex) };
+        }
+        // Polyphonic / multi-line voice bullets
+        let vCount = 0;
+        for (let subL = l + 1; subL < maxLookahead; subL++) {
+          const subLine = lines[subL];
+          const subIndent = (subLine.match(/^\s*/) || [''])[0].length;
+          if (subIndent <= (line.match(/^\s*/) || [''])[0].length && subLine.trim().length > 0) break;
+          if (/^\s*-\s*/.test(subLine)) {
+            vCount++;
+            if (vCount === (voiceIndex || 1)) {
+              return { targetLine: subL, targetCh: findTokenInArray(subLine, onsetIndex) };
+            }
+          }
+        }
         return { targetLine: l, targetCh: findTokenInArray(line, onsetIndex) };
       }
-    }
-  }
 
-  // Pass 2: Fallback to any music layer in the candidate blocks
-  for (const cand of candidates) {
-    const startL = cand.lineIndex;
-    const maxLookahead = Math.min(lines.length, startL + 40);
-    const startIndent = (lines[startL].match(/^\s*/) || [''])[0].length;
-
-    for (let l = startL; l < maxLookahead; l++) {
-      const line = lines[l];
-      if (l > startL) {
-        const curIndent = (line.match(/^\s*/) || [''])[0].length;
-        if (/^\s*-\s*(coil|weave)\s*:/.test(line)) {
-          break;
+      // 2. Harmony target
+      if (targetLayer === 'harmony' && /^\s*(harmony|chords)\s*:/i.test(line)) {
+        const afterColon = line.slice(line.indexOf(':') + 1).trim();
+        if (afterColon.startsWith('[')) {
+          // Inline array: harmony: [Do, Fa, Do] or chords: [Do, Fa, Do]
+          return { targetLine: l, targetCh: findTokenInArray(line, onsetIndex) };
         }
-        if (curIndent < startIndent && line.trim().length > 0) {
-          break;
+        // Check for nested chords: or bullets
+        for (let subL = l + 1; subL < maxLookahead; subL++) {
+          const subLine = lines[subL];
+          const subIndent = (subLine.match(/^\s*/) || [''])[0].length;
+          if (subIndent <= (line.match(/^\s*/) || [''])[0].length && subLine.trim().length > 0) break;
+          if (/^\s*chords\s*:/i.test(subLine)) {
+            return { targetLine: subL, targetCh: findTokenInArray(subLine, onsetIndex) };
+          }
+          if (/^\s*-\s*/.test(subLine)) {
+            return { targetLine: subL, targetCh: findTokenInArray(subLine, onsetIndex) };
+          }
         }
-        if (cand.type === 'dict' && curIndent <= startIndent && /^\s*[_a-zA-Z0-9]+\s*:/.test(line) && line.trim().length > 0) {
-          break;
-        }
+        return { targetLine: l, targetCh: findTokenInArray(line, onsetIndex) };
       }
-      if (fallbackRegex.test(line)) {
+
+      // 3. Rhythm target
+      if (targetLayer === 'rhythm' && /^\s*rhythm\s*:/i.test(line)) {
         return { targetLine: l, targetCh: findTokenInArray(line, onsetIndex) };
       }
     }
@@ -1966,7 +1984,13 @@ function handlePointAndClick(url) {
 
   const doc = editor.getDoc();
   const yamlText = doc.getValue();
-  const { targetLine, targetCh } = findYamlTarget(yamlText, tagInfo.coilId, tagInfo.sourceOnsetIndex || tagInfo.onsetIndex, tagInfo.targetLayer);
+  const { targetLine, targetCh } = findYamlTarget(
+    yamlText,
+    tagInfo.coilId,
+    tagInfo.sourceOnsetIndex || tagInfo.onsetIndex,
+    tagInfo.targetLayer,
+    tagInfo.voiceIndex || 1,
+  );
 
   if (targetLine !== -1) {
     editor.setCursor({ line: targetLine, ch: targetCh });
@@ -2035,11 +2059,29 @@ function resolveTagFromLyLine(lyLineNum) {
   let targetLayer = 'melody';
   let coilId = null;
   let onsetIndex = 1;
+  let voiceIndex = 1;
 
+  const voiceLayerMatch = rawTag.match(/^ppt_(.+)_([a-zA-Z]+)_v(\d+)_(\d+)$/);
+  const voiceDirectMatch = rawTag.match(/^ppt_(.+)_v(\d+)_(\d+)$/);
   const newFormatMatch = rawTag.match(/^ppt_(.+)_([a-zA-Z]+)_(\d+)$/);
   const suffixFormatMatch = rawTag.match(/^ppt_(.+)_(\d+)_([a-zA-Z]+)$/);
 
-  if (newFormatMatch) {
+  if (voiceLayerMatch) {
+    voiceIndex = parseInt(voiceLayerMatch[3], 10) || 1;
+    const layerKey = voiceLayerMatch[2];
+    onsetIndex = parseInt(voiceLayerMatch[4], 10) || 1;
+    if (layerKey.startsWith('rhythm')) {
+      targetLayer = 'rhythm';
+    } else if (layerKey.startsWith('harm') || layerKey.startsWith('chord')) {
+      targetLayer = 'harmony';
+    } else {
+      targetLayer = 'melody';
+    }
+  } else if (voiceDirectMatch) {
+    voiceIndex = parseInt(voiceDirectMatch[2], 10) || 1;
+    onsetIndex = parseInt(voiceDirectMatch[3], 10) || 1;
+    targetLayer = 'melody';
+  } else if (newFormatMatch) {
     const layerKey = newFormatMatch[2];
     onsetIndex = parseInt(newFormatMatch[3], 10) || 1;
     if (layerKey.startsWith('rhythm')) {
@@ -2065,7 +2107,7 @@ function resolveTagFromLyLine(lyLineNum) {
   if (latestSidecarMap) {
     sidecarEntry = latestSidecarMap[rawTag];
     if (!sidecarEntry) {
-      const strippedTag = rawTag.replace(/_(?:melody|melodyAbs|melodyInt|rhythm|harmony|harmCoil|harmStaff|chordName|mel|melAbs|melInt)/g, '');
+      const strippedTag = rawTag.replace(/_(?:melody|melodyAbs|melodyInt|rhythm|harmony|harmCoil|harmStaff|chordName|mel|melAbs|melInt)(?:_v\d+)?/g, '');
       sidecarEntry = latestSidecarMap[strippedTag];
     }
   }
@@ -2076,6 +2118,9 @@ function resolveTagFromLyLine(lyLineNum) {
   let melodySourceCoil = sidecarEntry ? sidecarEntry.melodySourceCoil : '';
   let rhythmSourceCoil = sidecarEntry ? sidecarEntry.rhythmSourceCoil : '';
   let harmonySourceCoil = sidecarEntry ? sidecarEntry.harmonySourceCoil : '';
+  if (sidecarEntry && sidecarEntry.voiceIndex) {
+    voiceIndex = sidecarEntry.voiceIndex;
+  }
 
   if (sidecarEntry) {
     onsetIndex = sidecarEntry.onsetIndex || onsetIndex;
@@ -2105,6 +2150,7 @@ function resolveTagFromLyLine(lyLineNum) {
   return {
     rawTag,
     targetLayer,
+    voiceIndex,
     coilId,
     sourceCoilId: sourceCoilId || coilId,
     melodySourceCoil: melodySourceCoil || coilId,
@@ -2152,20 +2198,79 @@ function updateScoreHighlights(cm) {
       return;
     }
 
-    // 1. Check if on a Declarative Music Layer Line (melody, harmony, rhythm)
+    // Exclude known YAML properties and top-level block keys from coil dict header detection
+    const EXCLUDED_KEYS = new Set([
+      'tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children',
+      'melody', 'rhythm', 'harmony', 'chords', 'pitches', 'concat',
+      'parents', 'show', 'song', 'title', 'composer', 'arranger',
+      'tempo', 'tonic', 'colorNotes', 'omitStem', 'octave', 'meter',
+      'duration', 'harmonyOctave', 'harmonyClef', 'melodyClef',
+      'voice', 'voices', 'harmonyStaffStyle', 'showHarmonyCoil',
+      'showTraditionalHarmony', 'harmonyChangesOnly', 'color'
+    ]);
+
+    // 1. Check if on a Declarative Music Layer Line (melody, harmony, rhythm, chords, pitches)
     let declarativeLayer = null;
-    if (/^\s*melody\s*:/i.test(currentLine)) declarativeLayer = 'melody';
-    else if (/^\s*rhythm\s*:/i.test(currentLine)) declarativeLayer = 'rhythm';
-    else if (/^\s*harmony\s*:/i.test(currentLine)) declarativeLayer = 'harmony';
+    let targetVoiceIndex = null;
+
+    if (/^\s*melody\s*:/i.test(currentLine)) {
+      declarativeLayer = 'melody';
+      const afterColon = currentLine.slice(currentLine.indexOf(':') + 1).trim();
+      if (afterColon.startsWith('[')) {
+        targetVoiceIndex = 1;
+      }
+    } else if (/^\s*(harmony|chords)\s*:/i.test(currentLine)) {
+      declarativeLayer = 'harmony';
+    } else if (/^\s*rhythm\s*:/i.test(currentLine)) {
+      // Check if this rhythm: is nested under harmony:
+      let isUnderHarmony = false;
+      const curIndent = (currentLine.match(/^\s*/) || [''])[0].length;
+      for (let l = currentLineNum - 1; l >= Math.max(0, currentLineNum - 20); l--) {
+        const prevL = lines[l];
+        const prevIndent = (prevL.match(/^\s*/) || [''])[0].length;
+        if (/^\s*harmony\s*:/i.test(prevL) && prevIndent < curIndent) {
+          isUnderHarmony = true;
+          break;
+        }
+        if (prevIndent < curIndent && /^\s*[_a-zA-Z0-9]+\s*:/.test(prevL)) break;
+      }
+      declarativeLayer = isUnderHarmony ? 'harmony' : 'rhythm';
+    }
 
     // Also handle bullet list items directly under a music layer
     if (!declarativeLayer && /^\s*-\s+/.test(currentLine)) {
-      for (let l = currentLineNum - 1; l >= Math.max(0, currentLineNum - 20); l--) {
+      let bulletIndex = 1;
+      const curLineIndent = (currentLine.match(/^\s*/) || [''])[0].length;
+      for (let l = currentLineNum - 1; l >= Math.max(0, currentLineNum - 40); l--) {
         const prevL = lines[l];
-        if (/^\s*melody\s*:/i.test(prevL)) { declarativeLayer = 'melody'; break; }
-        if (/^\s*rhythm\s*:/i.test(prevL)) { declarativeLayer = 'rhythm'; break; }
-        if (/^\s*harmony\s*:/i.test(prevL)) { declarativeLayer = 'harmony'; break; }
-        if (/^\s*[a-zA-Z0-9_]+\s*:/i.test(prevL) && !/^\s*-\s+/.test(prevL)) break;
+        const prevIndent = (prevL.match(/^\s*/) || [''])[0].length;
+        if (/^\s*-\s+/.test(prevL) && prevIndent === curLineIndent) {
+          bulletIndex++;
+        } else if (/^\s*melody\s*:/i.test(prevL)) {
+          declarativeLayer = 'melody';
+          targetVoiceIndex = bulletIndex;
+          break;
+        } else if (/^\s*rhythm\s*:/i.test(prevL)) {
+          declarativeLayer = 'rhythm';
+          break;
+        } else if (/^\s*(harmony|chords)\s*:/i.test(prevL)) {
+          declarativeLayer = 'harmony';
+          break;
+        } else if (/^\s*[a-zA-Z0-9_]+\s*:/i.test(prevL) && !/^\s*-\s+/.test(prevL) && prevIndent < curLineIndent) {
+          break;
+        }
+      }
+    } else if (!declarativeLayer && /^\s*chords\s*:/i.test(currentLine)) {
+      declarativeLayer = 'harmony';
+    } else if (!declarativeLayer && /^\s*pitches\s*:/i.test(currentLine)) {
+      declarativeLayer = 'melody';
+      let bulletIndex = 1;
+      for (let l = currentLineNum - 1; l >= Math.max(0, currentLineNum - 40); l--) {
+        const prevL = lines[l];
+        if (/^\s*melody\s*:/i.test(prevL)) {
+          targetVoiceIndex = bulletIndex;
+          break;
+        }
       }
     }
 
@@ -2179,7 +2284,7 @@ function updateScoreHighlights(cm) {
         const coilRefMatch = lText.match(/^\s*-\s*coil\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
         if (coilRefMatch) { enclosingCoil = coilRefMatch[1]; break; }
         const dictMatch = lText.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
-        if (dictMatch && !['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem'].includes(dictMatch[1])) {
+        if (dictMatch && !EXCLUDED_KEYS.has(dictMatch[1].toLowerCase())) {
           enclosingCoil = dictMatch[1];
           break;
         }
@@ -2213,7 +2318,24 @@ function updateScoreHighlights(cm) {
         }
       });
 
-      // Highlight STRICTLY within the declarative layer for this coil
+      // For harmony chords, collect the sorted unique onset indices present in this coil's harmony layer
+      let harmonyOnsetOrder = [];
+      if (declarativeLayer === 'harmony') {
+        const onsetSet = new Set();
+        previewElements.forEach(el => {
+          const isCoil = (
+            el.dataset.coilId === enclosingCoil ||
+            el.dataset.sourceCoilId === enclosingCoil ||
+            el.dataset.harmonySourceCoil === enclosingCoil
+          );
+          if (isCoil && el.dataset.layer === 'harmony' && el.dataset.onsetIndex) {
+            onsetSet.add(parseInt(el.dataset.onsetIndex, 10));
+          }
+        });
+        harmonyOnsetOrder = Array.from(onsetSet).sort((a, b) => a - b);
+      }
+
+      // Highlight STRICTLY within the declarative layer for this coil and specific voice
       previewElements.forEach(el => {
         const isCoilMatch = (
           el.dataset.coilId === enclosingCoil ||
@@ -2224,12 +2346,29 @@ function updateScoreHighlights(cm) {
         );
 
         const isLayerMatch = (el.dataset.layer === declarativeLayer);
+        const isVoiceMatch = (
+          declarativeLayer !== 'melody' ||
+          targetVoiceIndex === null ||
+          !el.dataset.voiceIndex ||
+          el.dataset.voiceIndex === String(targetVoiceIndex)
+        );
 
-        if (isCoilMatch && isLayerMatch) {
-          const isTokenMatch = (
-            targetOnsetIndex !== null &&
-            (el.dataset.sourceOnsetIndex === String(targetOnsetIndex) || el.dataset.onsetIndex === String(targetOnsetIndex))
-          );
+        if (isCoilMatch && isLayerMatch && isVoiceMatch) {
+          let isTokenMatch = false;
+          if (targetOnsetIndex !== null) {
+            if (declarativeLayer === 'harmony' && harmonyOnsetOrder.length > 0) {
+              const matchedOnsetNum = harmonyOnsetOrder[targetOnsetIndex - 1];
+              isTokenMatch = (
+                matchedOnsetNum !== undefined &&
+                parseInt(el.dataset.onsetIndex, 10) === matchedOnsetNum
+              );
+            } else {
+              isTokenMatch = (
+                el.dataset.sourceOnsetIndex === String(targetOnsetIndex) ||
+                el.dataset.onsetIndex === String(targetOnsetIndex)
+              );
+            }
+          }
 
           if (isTokenMatch) {
             el.classList.add('score-highlight-primary', 'score-highlight-active');
@@ -2450,6 +2589,7 @@ async function renderPdfPages() {
                 linkEl.dataset.harmonySourceCoil = tagInfo.harmonySourceCoil || '';
                 linkEl.dataset.weaveId = tagInfo.weaveId || '';
                 linkEl.dataset.layer = tagInfo.targetLayer || '';
+                linkEl.dataset.voiceIndex = String(tagInfo.voiceIndex || '1');
                 linkEl.dataset.onsetIndex = String(tagInfo.onsetIndex || '');
                 linkEl.dataset.sourceOnsetIndex = String(tagInfo.sourceOnsetIndex || '');
               }
@@ -2528,6 +2668,7 @@ async function renderPreview(data) {
             link.dataset.harmonySourceCoil = tagInfo.harmonySourceCoil || '';
             link.dataset.weaveId = tagInfo.weaveId || '';
             link.dataset.layer = tagInfo.targetLayer || '';
+            link.dataset.voiceIndex = String(tagInfo.voiceIndex || '1');
             link.dataset.onsetIndex = String(tagInfo.onsetIndex || '');
             link.dataset.sourceOnsetIndex = String(tagInfo.sourceOnsetIndex || '');
           }

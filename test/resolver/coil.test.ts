@@ -311,4 +311,123 @@ describe('resolveCoil', () => {
       expect(onsets[4].isRest).toBe(true);
     });
   });
+
+  describe('polymorphic melody and harmony', () => {
+    it('resolves structured single voice with dedicated rhythm and structured harmony', () => {
+      const coil: Coil = {
+        id: 'structured_test',
+        melody: {
+          pitches: ['Dox', 'Do', 'Me', 'La'],
+          rhythm: ['Do', 'Me', 'Fi', 'La'],
+        },
+        harmony: {
+          chords: ['DoMe', 'Fa'],
+          rhythm: ['Do', 'Do'],
+          harmonyOctave: -1,
+        },
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(4);
+      expect(onsets[0].voiceIndex).toBe(1);
+      expect(onsets[0].scaleDegree).toBe('Do');
+      expect(onsets[0].rhythmToken).toBe('Do');
+      expect(onsets[0].chordRoot).toBe('DoMe');
+      // Bass octave shift
+      expect(onsets[0].chordMidi[0]).toBe(48); // C3 instead of C4 (60 - 12)
+    });
+
+    it('resolves polyphonic multi-voice coil with array of arrays', () => {
+      const coil: Coil = {
+        id: 'poly_test',
+        melody: [
+          ['Dox', 'Do', 'Me', 'La'],
+          ['Mex', 'Me', 'So', 'Do^'],
+        ],
+        rhythm: ['Do', 'Me', 'Fi', 'La'],
+        harmony: ['DoMe'],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      // 4 onsets in voice 1 + 4 onsets in voice 2 = 8 onsets
+      expect(onsets).toHaveLength(8);
+
+      const v1 = onsets.filter(o => o.voiceIndex === 1);
+      const v2 = onsets.filter(o => o.voiceIndex === 2);
+      expect(v1).toHaveLength(4);
+      expect(v2).toHaveLength(4);
+
+      expect(v1[0].scaleDegree).toBe('Do');
+      expect(v2[0].scaleDegree).toBe('Me');
+      expect(v1[0].sourceOnsetIndex).toBe(1);
+      expect(v2[0].sourceOnsetIndex).toBe(1);
+    });
+
+    it('resolves polyphonic multi-voice coil with independent voice rhythms', () => {
+      const coil: Coil = {
+        id: 'poly_rhythm_test',
+        melody: [
+          { pitches: ['Dox', 'Do', 'Me', 'La'], rhythm: ['Do', 'Me', 'Fi', 'La'] },
+          { pitches: ['Mex', 'So'], rhythm: ['Do', 'Do'] },
+        ],
+        harmony: ['DoMe'],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(6);
+
+      const v1 = onsets.filter(o => o.voiceIndex === 1);
+      const v2 = onsets.filter(o => o.voiceIndex === 2);
+      expect(v1).toHaveLength(4);
+      expect(v2).toHaveLength(2);
+      expect(v2[0].rhythmToken).toBe('Do');
+      expect(v2[1].rhythmToken).toBe('Do');
+    });
+
+    it('aligns harmonic rhythm [Do, DoxDo, Do] to beats 1, 3, and 4 across 8th-note melody', () => {
+      const coil: Coil = {
+        id: 'harmonic_rhythm_test',
+        melody: ['Dox', 'Do', 'So^', 'Do', 'Re', 'Do', 'Te'],
+        rhythm: ['Do', 'Fi', 2.2, 'Do'],
+        harmony: {
+          chords: ['Do', 'Fa', 'Do'],
+          rhythm: ['Do', 'DoxDo', 'Do'],
+        },
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(7);
+      // Onsets 0, 1, 2, 3 (beats 0.0, 0.5, 1.0, 1.5) belong to first chord 'Do' (beats 1 & 2)
+      expect(onsets[0].chordRoot).toBe('Do');
+      expect(onsets[1].chordRoot).toBe('Do');
+      expect(onsets[2].chordRoot).toBe('Do');
+      expect(onsets[3].chordRoot).toBe('Do');
+
+      // Onsets 4, 5 (beats 2.0, 2.5) belong to second chord 'Fa' (beat 3)
+      expect(onsets[4].chordRoot).toBe('Fa');
+      expect(onsets[5].chordRoot).toBe('Fa');
+
+      // Onset 6 (beat 3.0) belongs to third chord 'Do' (beat 4)
+      expect(onsets[6].chordRoot).toBe('Do');
+    });
+
+    it('does not apply coil-level rhythm to standard harmony array, preserving stretch logic', () => {
+      const coil: Coil = {
+        id: 'standard_harmony_with_rhythm',
+        melody: ['Fax', 'Do', 'Ti', 'Do', 'Te', 'Do', 'Te'],
+        rhythm: ['Do', 'Fi', 2.2, 'Do'],
+        harmony: ['Fa', 'Do', 'So^', 'Do'],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(7);
+      // 4 chords stretched across 7 onsets (onsetsPerChord = ceil(7/4) = 2)
+      // Onsets 0, 1 -> Fa
+      expect(onsets[0].chordRoot).toBe('Fa');
+      expect(onsets[1].chordRoot).toBe('Fa');
+      // Onsets 2, 3 -> Do
+      expect(onsets[2].chordRoot).toBe('Do');
+      expect(onsets[3].chordRoot).toBe('Do');
+      // Onsets 4, 5 -> So^
+      expect(onsets[4].chordRoot).toBe('So^');
+      expect(onsets[5].chordRoot).toBe('So^');
+      // Onset 6 -> Do
+      expect(onsets[6].chordRoot).toBe('Do');
+    });
+  });
 });

@@ -15,11 +15,12 @@ Generated `.ly` documents contain:
 2. **Engraving Visibility Config**:
    - `\layout` and `\paper` blocks configured for Frescobaldi and PPT Studio rendering.
 3. **Voice Lines**:
-   - `\melodyVoice`: Standard notation staff with custom notehead stencils.
-   - `\melodyCoilInterval`: Lyric line rendering interval tokens above each onset.
-   - `\melodyCoilAbsolute`: Lyric line rendering absolute scale degrees above each onset.
-   - `\rhythmCoil`: Lyric line displaying rhythm solfège syllables.
-   - `\harmonyCoil`: Chord names and Roman numeral / triad indicators.
+   - `\melodyVoice`: Standard notation staff with custom notehead stencils (`<< \new Voice = "v1" \\ \new Voice = "v2" >>` when polyphonic).
+   - `\melodyCoilAbsolute`: Row band displaying absolute Solfège pitch classes (emits `M1`, `M2`, etc. clefs when polyphonic, or `M` when single-voice).
+   - `\melodyCoilInterval`: Lyric line rendering interval tokens with `M` / `M1` clef.
+   - `\rhythmCoil`: Unified collapsed rhythm row band with `R` clef, merging all active subdivisions across melody voices and harmony into a single chronological rhythmic spine.
+   - `\harmonyCoil`: Row band with `H` clef displaying Solfège chord glyphs and alterations.
+   - `\harmonyVoice`: Traditional 5-line harmony chord staff (e.g. Bass clef).
    - `\rhythmGrid`: Subdivision tick marks and beat pulse indicators.
 
 ---
@@ -27,16 +28,17 @@ Generated `.ly` documents contain:
 ## Point-and-Click Source Tagging
 
 - Every musical onset in LilyPond is tagged with an explicit layer-encoded identifier:
-  `\tag #'ppt_${weaveId}_${coilId}_${layer}_${onsetIndex}`
-  - Melody staff: `melody` (e.g. `ppt_verse_introMotif_melody_1`)
+  - Single Voice: `\tag #'ppt_${weaveId}_${coilId}_${layer}_${onsetIndex}`
+  - Polyphonic Voice: `\tag #'ppt_${weaveId}_${coilId}_${layer}_v${voiceIndex}_${onsetIndex}`
+  - Melody staff: `melody` (e.g. `ppt_verse_introMotif_melody_1` or `ppt_verse_poly_melody_v2_1`)
   - Melody Absolute coil: `melodyAbs` (e.g. `ppt_verse_introMotif_melodyAbs_1`)
   - Melody Interval coil: `melodyInt` (e.g. `ppt_verse_introMotif_melodyInt_1`)
   - Rhythm coil: `rhythm` (e.g. `ppt_verse_introMotif_rhythm_1`)
   - Harmony coil: `harmony` (e.g. `ppt_verse_introMotif_harmony_1`)
   - Harmony staff: `harmonyStaff` (e.g. `ppt_verse_introMotif_harmonyStaff_1`)
   - Chord names: `chordName` (e.g. `ppt_verse_introMotif_chordName_1`)
-- Example: `\tag #'ppt_verse_introMotif_melody_1 c'4`
-- This enables PPT Studio point-and-click navigation to route clicks unambiguously to the exact layer line (`melody:`, `rhythm:`, or `harmony:`), and trace concatenated / inherited sub-coils back to their definition in YAML.
+- Polyphony compiles into `\new Voice = "v1" { \voiceOne ... }` and `\new Voice = "v2" { \voiceTwo ... }` inside the top staff.
+- This enables PPT Studio point-and-click navigation to route clicks unambiguously to the exact layer line (`melody:`, `rhythm:`, or `harmony:`) and voice, tracing concatenated / inherited sub-coils back to their definition in YAML.
 
 ---
 

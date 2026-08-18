@@ -11,7 +11,7 @@
  * - Manual barlines \bar "|" between coils
  */
 import { writeFileSync } from "node:fs";
-import type { OnsetStream } from "../schema/onset.js";
+import type { Onset, OnsetStream } from "../schema/onset.js";
 import {
   midiToLilyPondPitch,
   chordMidiToLilyPond,
@@ -26,6 +26,7 @@ import {
   parseHarmonyChord,
   getSolfegeGlyphSpec,
   semitoneIntervalToSolfege,
+  SOLFEGE_POSITIONS,
 } from "../solfege/pitch.js";
 import { beatsToLilyPondDuration } from "../solfege/rhythm.js";
 
@@ -714,52 +715,156 @@ export function compileToLilyPond(
 
   melodyLines.push("  \\override NoteHead.duration-log = #2");
   melodyLines.push("  \\cadenzaOn");
+  const isMultiVoice = onsets.some((o) => (o.voiceIndex ?? 1) > 1);
+  const voiceIndices = isMultiVoice
+    ? Array.from(new Set(onsets.map((o) => o.voiceIndex ?? 1))).sort((a, b) => a - b)
+    : [1];
 
-  let lastMelodyCoilId: string | null = null;
-  let lastMelodyWeaveId: string | null = null;
+  // Group all onsets by contiguous coil segment for aligned multi-voice rendering
+  interface CoilGroup {
+    weaveId: string;
+    coilId: string;
+    onsets: Onset[];
+  }
+  const coilGroups: CoilGroup[] = [];
+  let currentGroup: CoilGroup | null = null;
 
   for (let i = 0; i < onsets.length; i++) {
     const onset = onsets[i];
+    const isNewCoil =
+      !currentGroup ||
+      (onset.onsetIndex === 1 && (onset.voiceIndex ?? 1) === 1 && currentGroup.onsets.length > 0) ||
+      onset.coilId !== currentGroup.coilId ||
+      onset.weaveId !== currentGroup.weaveId;
 
-    // Emit coil boundary barline when transitioning between distinct coils or repeating a coil
-    if (
-      i > 0 &&
-      (onset.onsetIndex === 1 ||
-        onset.coilId !== lastMelodyCoilId ||
-        onset.weaveId !== lastMelodyWeaveId)
-    ) {
-      melodyLines.push('  \\bar "|"');
+    if (isNewCoil) {
+      if (currentGroup) {
+        coilGroups.push(currentGroup);
+      }
+      currentGroup = {
+        weaveId: onset.weaveId,
+        coilId: onset.coilId,
+        onsets: [onset],
+      };
+    } else if (currentGroup) {
+      currentGroup.onsets.push(onset);
     }
-    lastMelodyCoilId = onset.coilId;
-    lastMelodyWeaveId = onset.weaveId;
+  }
+  if (currentGroup) {
+    coilGroups.push(currentGroup);
+  }
 
-    const onsetDur = onset.duration ?? dur;
-    if (onset.isRest) {
-      melodyLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} s${onsetDur}`);
-    } else {
-      // Melody: \tag #'ppt_weave_coil_melody_index pitch4
-      const melPitch = midiToLilyPondPitch(
-        onset.midiNote,
-        accMode,
-        forceAccidentals,
-      );
-      const stencilTweak =
-        noteheadStyle === "ppt"
-          ? `\\tweak NoteHead.stencil #${SOLFEGE_TO_PPT_STENCIL[onset.scaleDegree] ?? "stencilDo"} `
+  if (isMultiVoice) {
+    melodyLines.push("  <<");
+    const voiceCommands = ["\\voiceOne", "\\voiceTwo", "\\voiceThree", "\\voiceFour"];
+
+    for (let vIdx = 0; vIdx < voiceIndices.length; vIdx++) {
+      const vNum = voiceIndices[vIdx];
+      const voiceCmd = voiceCommands[vIdx] ?? "\\voiceOne";
+
+      melodyLines.push(`    \\new Voice = "v${vNum}" {`);
+      melodyLines.push(`      ${voiceCmd}`);
+      if (omitStem) {
+        melodyLines.push("      \\omit Stem");
+        melodyLines.push("      \\omit Flag");
+        melodyLines.push("      \\omit Beam");
+        melodyLines.push("      \\omit Dots");
+      }
+
+      for (let c = 0; c < coilGroups.length; c++) {
+        const group = coilGroups[c];
+        if (c > 0) {
+          melodyLines.push('      \\bar "|"');
+        }
+        const vOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === vNum);
+        if (vOnsets.length > 0) {
+          for (const onset of vOnsets) {
+            const onsetDur = onset.duration ?? dur;
+            if (onset.isRest) {
+              melodyLines.push(
+                `      \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_v${vNum}_${onset.onsetIndex} s${onsetDur}`,
+              );
+            } else {
+              const melPitch = midiToLilyPondPitch(
+                onset.midiNote,
+                accMode,
+                forceAccidentals,
+              );
+              const stencilTweak =
+                noteheadStyle === "ppt"
+                  ? `\\tweak NoteHead.stencil #${SOLFEGE_TO_PPT_STENCIL[onset.scaleDegree] ?? "stencilDo"} `
+                  : "";
+              const colorTweak = colorNotes
+                ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[onset.scaleDegree] ?? "colorDo"} `
+                : "";
+              melodyLines.push(
+                `      \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_v${vNum}_${onset.onsetIndex} ${stencilTweak}${colorTweak}${melPitch}${onsetDur}`,
+              );
+            }
+          }
+        } else {
+          // Coil has no notes for this voice: fill with skips matching primary voice onsets
+          const primaryGroupOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
+          for (const pOnset of primaryGroupOnsets) {
+            const onsetDur = pOnset.duration ?? dur;
+            melodyLines.push(`      s${onsetDur}`);
+          }
+        }
+      }
+      if (coilGroups.length > 0) {
+        melodyLines.push('      \\bar "|."');
+      }
+      melodyLines.push("    }");
+    }
+    melodyLines.push("  >>");
+    melodyLines.push("  \\cadenzaOff");
+  } else {
+    let lastMelodyCoilId: string | null = null;
+    let lastMelodyWeaveId: string | null = null;
+
+    for (let i = 0; i < onsets.length; i++) {
+      const onset = onsets[i];
+
+      // Emit coil boundary barline when transitioning between distinct coils or repeating a coil
+      if (
+        i > 0 &&
+        (onset.onsetIndex === 1 ||
+          onset.coilId !== lastMelodyCoilId ||
+          onset.weaveId !== lastMelodyWeaveId)
+      ) {
+        melodyLines.push('  \\bar "|"');
+      }
+      lastMelodyCoilId = onset.coilId;
+      lastMelodyWeaveId = onset.weaveId;
+
+      const onsetDur = onset.duration ?? dur;
+      if (onset.isRest) {
+        melodyLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} s${onsetDur}`);
+      } else {
+        // Melody: \tag #'ppt_weave_coil_melody_index pitch4
+        const melPitch = midiToLilyPondPitch(
+          onset.midiNote,
+          accMode,
+          forceAccidentals,
+        );
+        const stencilTweak =
+          noteheadStyle === "ppt"
+            ? `\\tweak NoteHead.stencil #${SOLFEGE_TO_PPT_STENCIL[onset.scaleDegree] ?? "stencilDo"} `
+            : "";
+        const colorTweak = colorNotes
+          ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[onset.scaleDegree] ?? "colorDo"} `
           : "";
-      const colorTweak = colorNotes
-        ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[onset.scaleDegree] ?? "colorDo"} `
-        : "";
-      melodyLines.push(
-        `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} ${stencilTweak}${colorTweak}${melPitch}${onsetDur}`,
-      );
+        melodyLines.push(
+          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} ${stencilTweak}${colorTweak}${melPitch}${onsetDur}`,
+        );
+      }
     }
-  }
 
-  if (onsets.length > 0) {
-    melodyLines.push('  \\bar "|."');
+    if (onsets.length > 0) {
+      melodyLines.push('  \\bar "|."');
+    }
+    melodyLines.push("  \\cadenzaOff");
   }
-  melodyLines.push("  \\cadenzaOff");
 
   const harmonyStaffStyle = options.harmonyStaffStyle ?? "standard";
   const showMelody = options.showMelody ?? true;
@@ -772,41 +877,94 @@ export function compileToLilyPond(
     (harmonyStaffStyle === "coil" || harmonyStaffStyle === "both");
   const harmonyChangesOnly = options.harmonyChangesOnly ?? true;
 
+  const VOICE_NUMBER_WORDS = [
+    "Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+  ];
+  const voiceNumberToWord = (n: number) => VOICE_NUMBER_WORDS[n] ?? `V${n}`;
+
+  const primaryOnsets = isMultiVoice ? onsets.filter((o) => (o.voiceIndex ?? 1) === 1) : onsets;
+
   // ---------------------------------------------------------------------------
-  // 1. Melody Coil Absolute Voice (Row band displaying absolute Solfège pitch classes)
+  // 1. Melody Coil Absolute Voice(s) (Row band displaying absolute Solfège pitch classes)
   // ---------------------------------------------------------------------------
-  const melodyCoilAbsoluteLines: string[] = [
+  const melodyCoilAbsoluteVoiceMap = new Map<number, string>();
+  const melodyCoilAbsoluteLinesSingle: string[] = [
     "  \\override NoteHead.stencil = #ly:text-interface::print",
     "  \\cadenzaOn",
   ];
+
   if (showMelodyCoilAbsolute) {
-    let lastAbsCoilId: string | null = null;
-    let lastAbsWeaveId: string | null = null;
-    for (let i = 0; i < onsets.length; i++) {
-      const onset = onsets[i];
-      if (
-        i > 0 &&
-        (onset.onsetIndex === 1 ||
-          onset.coilId !== lastAbsCoilId ||
-          onset.weaveId !== lastAbsWeaveId)
-      ) {
-        melodyCoilAbsoluteLines.push('  \\bar "|"');
+    if (isMultiVoice) {
+      for (const v of voiceIndices) {
+        const vLines: string[] = [
+          "  \\override NoteHead.stencil = #ly:text-interface::print",
+          "  \\cadenzaOn",
+        ];
+        for (let c = 0; c < coilGroups.length; c++) {
+          const group = coilGroups[c];
+          if (c > 0) {
+            vLines.push('  \\bar "|"');
+          }
+          const vOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === v);
+          if (vOnsets.length > 0) {
+            for (const onset of vOnsets) {
+              const onsetDur = onset.duration ?? dur;
+              if (onset.isRest) {
+                vLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_v${v}_${onset.onsetIndex} s${onsetDur}`);
+              } else {
+                const markup = chordTokenToCoilMarkup(onset.scaleDegree);
+                vLines.push(
+                  `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_v${v}_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
+                );
+              }
+            }
+          } else {
+            // Coil has no notes for this voice: fill with skips matching primary onsets
+            const primaryGroupOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
+            for (const pOnset of primaryGroupOnsets) {
+              const onsetDur = pOnset.duration ?? dur;
+              vLines.push(`  s${onsetDur}`);
+            }
+          }
+        }
+        if (coilGroups.length > 0) {
+          vLines.push('  \\bar "|."');
+        }
+        vLines.push("  \\cadenzaOff");
+        melodyCoilAbsoluteVoiceMap.set(v, vLines.join("\n"));
       }
-      lastAbsCoilId = onset.coilId;
-      lastAbsWeaveId = onset.weaveId;
-      const onsetDur = onset.duration ?? dur;
-      if (onset.isRest) {
-        melodyCoilAbsoluteLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_${onset.onsetIndex} s${onsetDur}`);
-      } else {
-        const markup = chordTokenToCoilMarkup(onset.scaleDegree);
-        melodyCoilAbsoluteLines.push(
-          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
-        );
+    } else {
+      let lastAbsCoilId: string | null = null;
+      let lastAbsWeaveId: string | null = null;
+      for (let i = 0; i < onsets.length; i++) {
+        const onset = onsets[i];
+        if (
+          i > 0 &&
+          (onset.onsetIndex === 1 ||
+            onset.coilId !== lastAbsCoilId ||
+            onset.weaveId !== lastAbsWeaveId)
+        ) {
+          melodyCoilAbsoluteLinesSingle.push('  \\bar "|"');
+        }
+        lastAbsCoilId = onset.coilId;
+        lastAbsWeaveId = onset.weaveId;
+        const onsetDur = onset.duration ?? dur;
+        if (onset.isRest) {
+          melodyCoilAbsoluteLinesSingle.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_${onset.onsetIndex} s${onsetDur}`);
+        } else {
+          const markup = chordTokenToCoilMarkup(onset.scaleDegree);
+          melodyCoilAbsoluteLinesSingle.push(
+            `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
+          );
+        }
       }
+      if (onsets.length > 0) {
+        melodyCoilAbsoluteLinesSingle.push('  \\bar "|."');
+      }
+      melodyCoilAbsoluteLinesSingle.push("  \\cadenzaOff");
     }
-    melodyCoilAbsoluteLines.push('  \\bar "|."');
   }
-  melodyCoilAbsoluteLines.push("  \\cadenzaOff");
 
   // ---------------------------------------------------------------------------
   // 2. Melody Coil Interval Voice (Row band displaying relative interval Solfège glyphs)
@@ -818,8 +976,8 @@ export function compileToLilyPond(
   if (showMelodyCoilInterval) {
     let lastIntCoilId: string | null = null;
     let lastIntWeaveId: string | null = null;
-    for (let i = 0; i < onsets.length; i++) {
-      const onset = onsets[i];
+    for (let i = 0; i < primaryOnsets.length; i++) {
+      const onset = primaryOnsets[i];
       const isNewCoil =
         i > 0 &&
         (onset.onsetIndex === 1 ||
@@ -842,10 +1000,10 @@ export function compileToLilyPond(
           token = `${onset.scaleDegree}x`;
         } else {
           // Subsequent note: interval from previous non-rest pitch
-          let prevMidi = onsets[i - 1].midiNote;
+          let prevMidi = primaryOnsets[i - 1].midiNote;
           for (let p = i - 1; p >= 0; p--) {
-            if (!onsets[p].isRest) {
-              prevMidi = onsets[p].midiNote;
+            if (!primaryOnsets[p].isRest) {
+              prevMidi = primaryOnsets[p].midiNote;
               break;
             }
           }
@@ -863,40 +1021,71 @@ export function compileToLilyPond(
   melodyCoilIntervalLines.push("  \\cadenzaOff");
 
   // ---------------------------------------------------------------------------
-  // 3. Rhythm Coil Voice (Row band displaying Solfège rhythm tokens / glyphs)
+  // 3. Unified Collapsed Rhythm Coil Voice (Row band displaying collapsed Solfège rhythm tokens)
   // ---------------------------------------------------------------------------
   const rhythmCoilLines: string[] = [
     "  \\override NoteHead.stencil = #ly:text-interface::print",
     "  \\cadenzaOn",
   ];
-  if (showRhythmCoil) {
-    let lastRhythmCoilId: string | null = null;
-    let lastRhythmWeaveId: string | null = null;
-    for (let i = 0; i < onsets.length; i++) {
-      const onset = onsets[i];
-      const isNewCoil =
-        i > 0 &&
-        (onset.onsetIndex === 1 ||
-          onset.coilId !== lastRhythmCoilId ||
-          onset.weaveId !== lastRhythmWeaveId);
 
-      if (isNewCoil) {
+  if (showRhythmCoil) {
+    for (let g = 0; g < coilGroups.length; g++) {
+      const group = coilGroups[g];
+      if (g > 0) {
         rhythmCoilLines.push('  \\bar "|"');
       }
-      lastRhythmCoilId = onset.coilId;
-      lastRhythmWeaveId = onset.weaveId;
 
-      const onsetDur = onset.duration ?? dur;
-      if (!onset.rhythmToken) {
-        rhythmCoilLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_rhythm_${onset.onsetIndex} s${onsetDur}`);
-      } else {
-        const markup = rhythmTokenToCoilMarkup(onset.rhythmToken);
+      // Collect distinct start timestamps within this coil group
+      const timestampMap = new Map<number, { rhythmToken?: string }>();
+      let maxEndBeat = 0;
+
+      for (const o of group.onsets) {
+        const start = o.startBeat ?? (o.onsetIndex - 1);
+        const durB = o.durationBeats ?? 1.0;
+        const end = start + durB;
+        if (end > maxEndBeat) {
+          maxEndBeat = end;
+        }
+
+        const existing = timestampMap.get(start);
+        if (!existing) {
+          timestampMap.set(start, { rhythmToken: o.rhythmToken });
+        } else if (!existing.rhythmToken && o.rhythmToken) {
+          existing.rhythmToken = o.rhythmToken;
+        }
+      }
+
+      // Sort distinct timestamps
+      const sortedTimes = Array.from(timestampMap.keys()).sort((a, b) => a - b);
+      if (sortedTimes.length === 0) {
+        sortedTimes.push(0);
+        maxEndBeat = 1.0;
+      }
+
+      for (let tIdx = 0; tIdx < sortedTimes.length; tIdx++) {
+        const startBeat = sortedTimes[tIdx];
+        const nextBeat = tIdx < sortedTimes.length - 1 ? sortedTimes[tIdx + 1] : maxEndBeat;
+        const durationBeats = Math.max(0.125, nextBeat - startBeat);
+        const durationStr = beatsToLilyPondDuration(durationBeats);
+
+        let rhythmToken = timestampMap.get(startBeat)?.rhythmToken;
+        if (!rhythmToken) {
+          // Derive Solfège rhythm token from fractional position within beat [0, 1)
+          const f = startBeat - Math.floor(startBeat);
+          const s = Math.round(f * 12) % 12;
+          rhythmToken = SOLFEGE_POSITIONS[s] ?? "Do";
+        }
+
+        const markup = rhythmTokenToCoilMarkup(rhythmToken);
         rhythmCoilLines.push(
-          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_rhythm_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
+          `  \\tag #'ppt_${group.weaveId}_${group.coilId}_rhythm_${tIdx + 1} \\tweak NoteHead.text ${markup} b'${durationStr}`,
         );
       }
     }
-    rhythmCoilLines.push('  \\bar "|."');
+
+    if (coilGroups.length > 0) {
+      rhythmCoilLines.push('  \\bar "|."');
+    }
   }
   rhythmCoilLines.push("  \\cadenzaOff");
 
@@ -931,13 +1120,13 @@ export function compileToLilyPond(
       isBarStart: boolean;
     } | null = null;
 
-    for (let i = 0; i < onsets.length; i++) {
-      const onset = onsets[i];
+    for (let i = 0; i < primaryOnsets.length; i++) {
+      const onset = primaryOnsets[i];
       const isNewCoil =
         i > 0 &&
         (onset.onsetIndex === 1 ||
-          onset.coilId !== onsets[i - 1].coilId ||
-          onset.weaveId !== onsets[i - 1].weaveId);
+          onset.coilId !== primaryOnsets[i - 1].coilId ||
+          onset.weaveId !== primaryOnsets[i - 1].weaveId);
 
       const isSameRoot =
         currentChunk &&
@@ -988,8 +1177,8 @@ export function compileToLilyPond(
   } else {
     let lastCoilId: string | null = null;
     let lastWeaveId: string | null = null;
-    for (let i = 0; i < onsets.length; i++) {
-      const onset = onsets[i];
+    for (let i = 0; i < primaryOnsets.length; i++) {
+      const onset = primaryOnsets[i];
       if (
         i > 0 &&
         (onset.onsetIndex === 1 ||
@@ -1008,7 +1197,7 @@ export function compileToLilyPond(
     }
   }
 
-  if (onsets.length > 0) {
+  if (primaryOnsets.length > 0) {
     harmonyCoilLines.push('  \\bar "|."');
   }
   harmonyCoilLines.push("  \\cadenzaOff");
@@ -1058,13 +1247,13 @@ export function compileToLilyPond(
       isBarStart: boolean;
     } | null = null;
 
-    for (let i = 0; i < onsets.length; i++) {
-      const onset = onsets[i];
+    for (let i = 0; i < primaryOnsets.length; i++) {
+      const onset = primaryOnsets[i];
       const isNewCoil =
         i > 0 &&
         (onset.onsetIndex === 1 ||
-          onset.coilId !== onsets[i - 1].coilId ||
-          onset.weaveId !== onsets[i - 1].weaveId);
+          onset.coilId !== primaryOnsets[i - 1].coilId ||
+          onset.weaveId !== primaryOnsets[i - 1].weaveId);
 
       const isSameChord =
         currentChunk &&
@@ -1129,8 +1318,8 @@ export function compileToLilyPond(
     let lastCoilId: string | null = null;
     let lastWeaveId: string | null = null;
 
-    for (let i = 0; i < onsets.length; i++) {
-      const onset = onsets[i];
+    for (let i = 0; i < primaryOnsets.length; i++) {
+      const onset = primaryOnsets[i];
       if (
         i > 0 &&
         (onset.onsetIndex === 1 ||
@@ -1161,14 +1350,14 @@ export function compileToLilyPond(
     }
   }
 
-  if (onsets.length > 0) {
+  if (primaryOnsets.length > 0) {
     harmonyLines.push('  \\bar "|."');
     chordNamesLines.push('  \\bar "|."');
   }
   harmonyLines.push("  \\cadenzaOff");
 
   const melodyVoiceStr = melodyLines.join("\n");
-  const melodyCoilAbsoluteVoiceStr = melodyCoilAbsoluteLines.join("\n");
+  const melodyCoilAbsoluteVoiceStr = melodyCoilAbsoluteLinesSingle.join("\n");
   const melodyCoilIntervalVoiceStr = melodyCoilIntervalLines.join("\n");
   const rhythmCoilVoiceStr = rhythmCoilLines.join("\n");
   const harmonyCoilVoiceStr = harmonyCoilLines.join("\n");
@@ -1180,14 +1369,12 @@ export function compileToLilyPond(
   const wrapWithGrid = (voiceName: string) =>
     options.showRhythmGrid ? `<< ${voiceName}${gridSuffix}` : voiceName;
 
-  const coilStaffLines: string[] = [];
-  if (showMelodyCoilAbsolute) {
-    coilStaffLines.push(`      \\new Staff \\with {
+  const makeCoilStaff = (voiceName: string, clefStencil: string) => `      \\new Staff \\with {
         \\override StaffSymbol.line-positions = #'(-2.0 2.0)
         \\override StaffSymbol.thickness = #1.0
         \\override StaffSymbol.stencil = #ppt-row-band-stencil
         \\override StaffSymbol.layer = #-2
-        \\override Clef.stencil = #pptClefMStencil
+        \\override Clef.stencil = ${clefStencil}
         \\override Clef.Y-offset = #0
         \\override Clef.staff-position = #0
         \\override Clef.X-extent = #'(-0.2 . 1.2)
@@ -1199,105 +1386,53 @@ export function compileToLilyPond(
         \\override Beam.stencil = ##f
         \\override Dots.stencil = ##f
         \\override NoteHead.no-ledgers = ##t
-      } ${wrapWithGrid("\\melodyCoilAbsoluteVoice")}`);
+      } ${wrapWithGrid(voiceName)}`;
+
+  const coilStaffLines: string[] = [];
+  if (showMelodyCoilAbsolute) {
+    if (isMultiVoice) {
+      for (const v of voiceIndices) {
+        coilStaffLines.push(
+          makeCoilStaff(
+            `\\melodyCoilAbsoluteVoice${voiceNumberToWord(v)}`,
+            `#(make-clef-text-stencil "M${v}")`,
+          ),
+        );
+      }
+    } else {
+      coilStaffLines.push(makeCoilStaff("\\melodyCoilAbsoluteVoice", "#pptClefMStencil"));
+    }
   }
 
   if (showMelodyCoilInterval) {
-    coilStaffLines.push(`      \\new Staff \\with {
-        \\override StaffSymbol.line-positions = #'(-2.0 2.0)
-        \\override StaffSymbol.thickness = #1.0
-        \\override StaffSymbol.stencil = #ppt-row-band-stencil
-        \\override StaffSymbol.layer = #-2
-        \\override Clef.stencil = #pptClefMStencil
-        \\override Clef.Y-offset = #0
-        \\override Clef.staff-position = #0
-        \\override Clef.X-extent = #'(-0.2 . 1.2)
-        \\override Clef.Y-extent = #'(-1.0 . 1.0)
-        \\override NoteHead.Y-extent = #'(-1.0 . 1.0)
-        \\override TimeSignature.stencil = ##f
-        \\override Stem.stencil = ##f
-        \\override Flag.stencil = ##f
-        \\override Beam.stencil = ##f
-        \\override Dots.stencil = ##f
-        \\override NoteHead.no-ledgers = ##t
-      } ${wrapWithGrid("\\melodyCoilIntervalVoice")}`);
+    coilStaffLines.push(
+      makeCoilStaff(
+        "\\melodyCoilIntervalVoice",
+        isMultiVoice ? '#(make-clef-text-stencil "M1")' : "#pptClefMStencil",
+      ),
+    );
   }
 
   if (showRhythmCoil) {
-    coilStaffLines.push(`      \\new Staff \\with {
-        \\override StaffSymbol.line-positions = #'(-2.0 2.0)
-        \\override StaffSymbol.thickness = #1.0
-        \\override StaffSymbol.stencil = #ppt-row-band-stencil
-        \\override StaffSymbol.layer = #-2
-        \\override Clef.stencil = #pptClefRStencil
-        \\override Clef.Y-offset = #0
-        \\override Clef.staff-position = #0
-        \\override Clef.X-extent = #'(-0.2 . 1.2)
-        \\override Clef.Y-extent = #'(-1.0 . 1.0)
-        \\override NoteHead.Y-extent = #'(-1.0 . 1.0)
-        \\override TimeSignature.stencil = ##f
-        \\override Stem.stencil = ##f
-        \\override Flag.stencil = ##f
-        \\override Beam.stencil = ##f
-        \\override Dots.stencil = ##f
-        \\override NoteHead.no-ledgers = ##t
-      } ${wrapWithGrid("\\rhythmCoilVoice")}`);
+    coilStaffLines.push(makeCoilStaff("\\rhythmCoilVoice", "#pptClefRStencil"));
   }
 
   if (showHarmonyCoil) {
-    coilStaffLines.push(`      \\new Staff \\with {
-        \\override StaffSymbol.line-positions = #'(-2.0 2.0)
-        \\override StaffSymbol.thickness = #1.0
-        \\override StaffSymbol.stencil = #ppt-row-band-stencil
-        \\override StaffSymbol.layer = #-2
-        \\override Clef.stencil = #pptClefHStencil
-        \\override Clef.Y-offset = #0
-        \\override Clef.staff-position = #0
-        \\override Clef.X-extent = #'(-0.2 . 1.2)
-        \\override Clef.Y-extent = #'(-1.0 . 1.0)
-        \\override NoteHead.Y-extent = #'(-1.0 . 1.0)
-        \\override TimeSignature.stencil = ##f
-        \\override Stem.stencil = ##f
-        \\override Flag.stencil = ##f
-        \\override Beam.stencil = ##f
-        \\override Dots.stencil = ##f
-        \\override NoteHead.no-ledgers = ##t
-      } ${wrapWithGrid("\\harmonyCoilVoice")}`);
+    coilStaffLines.push(makeCoilStaff("\\harmonyCoilVoice", "#pptClefHStencil"));
   }
 
   const rhythmGridLines: string[] = ["  \\cadenzaOn"];
   if (options.showRhythmGrid) {
-    const coilDurations: Array<{ totalBeats: number }> = [];
-    let currentCoilId: string | null = null;
-    let currentWeaveId: string | null = null;
-    let currentBeats = 0;
-
-    for (let i = 0; i < onsets.length; i++) {
-      const onset = onsets[i];
-      const isNewCoil =
-        i > 0 &&
-        (onset.onsetIndex === 1 ||
-          onset.coilId !== currentCoilId ||
-          onset.weaveId !== currentWeaveId);
-
-      if (isNewCoil && currentCoilId !== null) {
-        coilDurations.push({ totalBeats: currentBeats });
-        currentBeats = 0;
-      }
-      currentCoilId = onset.coilId;
-      currentWeaveId = onset.weaveId;
-      const durBeats =
-        onset.durationBeats !== undefined ? onset.durationBeats : 1.0;
-      currentBeats += durBeats;
-    }
-    if (currentCoilId !== null) {
-      coilDurations.push({ totalBeats: currentBeats });
-    }
-
-    for (let c = 0; c < coilDurations.length; c++) {
-      const totalBeats = Math.round(coilDurations[c].totalBeats * 48) / 48;
-      const fullBeats = Math.floor(totalBeats);
-      const fracBeats = totalBeats - fullBeats;
+    for (let c = 0; c < coilGroups.length; c++) {
+      const group = coilGroups[c];
+      const pOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
+      const totalBeats = pOnsets.reduce(
+        (sum, o) => sum + (o.durationBeats !== undefined ? o.durationBeats : 1.0),
+        0,
+      );
+      const roundedBeats = Math.round(totalBeats * 48) / 48;
+      const fullBeats = Math.floor(roundedBeats);
+      const fracBeats = roundedBeats - fullBeats;
       const spacers: string[] = [];
       for (let b = 0; b < fullBeats; b++) {
         spacers.push("s4");
@@ -1306,7 +1441,7 @@ export function compileToLilyPond(
         spacers.push(`s${beatsToLilyPondDuration(fracBeats)}`);
       }
       rhythmGridLines.push(`  ${spacers.join(" ")}`);
-      if (c < coilDurations.length - 1) {
+      if (c < coilGroups.length - 1) {
         rhythmGridLines.push('  \\bar "|"');
       } else {
         rhythmGridLines.push('  \\bar "|."');
@@ -1465,9 +1600,17 @@ ${chordChangesDirective}      \\chordNamesVoice
     voiceDefs.push(`melodyVoice = {\n${melodyVoiceStr}\n}`);
   }
   if (showMelodyCoilAbsolute) {
-    voiceDefs.push(
-      `melodyCoilAbsoluteVoice = {\n${melodyCoilAbsoluteVoiceStr}\n}`,
-    );
+    if (isMultiVoice) {
+      for (const v of voiceIndices) {
+        voiceDefs.push(
+          `melodyCoilAbsoluteVoice${voiceNumberToWord(v)} = {\n${melodyCoilAbsoluteVoiceMap.get(v)}\n}`,
+        );
+      }
+    } else {
+      voiceDefs.push(
+        `melodyCoilAbsoluteVoice = {\n${melodyCoilAbsoluteVoiceStr}\n}`,
+      );
+    }
   }
   if (showMelodyCoilInterval) {
     voiceDefs.push(
@@ -1518,6 +1661,16 @@ ${chordChangesDirective}      \\chordNamesVoice
     }\n`
     : "";
 
+  const omitStemLayoutContext = omitStem
+    ? `    \\context {
+      \\Voice
+      \\omit Stem
+      \\omit Flag
+      \\omit Beam
+      \\omit Dots
+    }\n`
+    : "";
+
   return `\\version "${version}"
 ${zoomPreamble}${preambles}${headerBlock}${paperBlock}
 ${voiceDefs.join("\n\n")}
@@ -1527,7 +1680,7 @@ ${scoreBody}
   \\layout {
     indent = ${indentMm}\\mm
     short-indent = 0\\mm
-${outlineLayoutContext}${gridLayoutContext}    \\context {
+${outlineLayoutContext}${gridLayoutContext}${omitStemLayoutContext}    \\context {
       \\Staff
       \\remove "Time_signature_engraver"
 ${dropNaturalsContext}    }

@@ -38,4 +38,27 @@ describe('generateSidecarMap', () => {
     expect(entry.harmony.chordTones).toEqual(['C4', 'E4', 'G4']);
     expect(entry.harmony.chordMidi).toEqual([60, 64, 67]);
   });
+
+  it('generates voice-indexed tags for polyphonic onsets', () => {
+    const multiVoiceOnsets: OnsetStream = [
+      {
+        tag: 'ppt_verse_poly_v2_1',
+        pitch: 'Eb4',
+        midiNote: 63,
+        scaleDegree: 'Me',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'poly',
+        weaveId: 'verse',
+        onsetIndex: 1,
+        voiceIndex: 2,
+      },
+    ];
+
+    const map = generateSidecarMap(multiVoiceOnsets);
+    expect(map['ppt_verse_poly_v2_1']).toBeDefined();
+    expect(map['ppt_verse_poly_melody_v2_1']).toBeDefined();
+    expect(map['ppt_verse_poly_v2_1'].voiceIndex).toBe(2);
+  });
 });

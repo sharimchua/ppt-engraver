@@ -54,6 +54,8 @@ export const HarmonyEntrySchema = z.union([
   z.string().regex(/^\d+(?:\.\d+)?$/),
 ]);
 
+export type HarmonyEntry = z.infer<typeof HarmonyEntrySchema>;
+
 /**
  * Solfège rhythm token: optional 'Dox' prefixes (beat skips) + base syllable + optional suffix syllables.
  * Examples: "Do", "Fi", "Me", "La", "DoxDo", "DoxFi", "LeFi", "MeFi"
@@ -228,6 +230,78 @@ export const KnotSchema = z.object({
 });
 
 /**
+ * Structured voice object within a melody layer.
+ * Allows bundling pitches and dedicated rhythm per voice.
+ */
+export const MelodyVoiceObjectSchema = z.object({
+  /** Pitch tokens for this voice (e.g. ["Dox", "Do", "Me"]) */
+  pitches: z.array(MelodyEntrySchema).min(1).optional(),
+  /** Alias for pitches */
+  melody: z.array(MelodyEntrySchema).min(1).optional(),
+  /** Rhythm layer for this voice */
+  rhythm: z.union([RhythmLabel, z.array(RhythmEntrySchema)]).optional(),
+  /** Metric block-length label for this voice */
+  meter: RhythmLabel.optional(),
+  /** Optional clef override for this voice */
+  clef: z.string().optional(),
+  /** Optional name/label for this voice (e.g. "Soprano", "Alto") */
+  name: z.string().optional(),
+});
+
+export type MelodyVoiceObject = z.infer<typeof MelodyVoiceObjectSchema>;
+
+/**
+ * Polymorphic melody layer:
+ * 1. Flat array of pitch tokens: [Dox, Do, Me]
+ * 2. Structured voice object: { pitches: [Dox, Do], rhythm: [Do, Do] }
+ * 3. Polyphonic voices: array of arrays or array of voice objects
+ */
+export const MelodyLayerSchema = z.union([
+  // Flat pitch array (single voice)
+  z.array(MelodyEntrySchema).min(1),
+  // Structured single voice object
+  MelodyVoiceObjectSchema,
+  // Polyphonic array of voices (either pitch arrays or structured voice objects)
+  z.array(z.union([z.array(MelodyEntrySchema).min(1), MelodyVoiceObjectSchema])).min(1),
+]);
+
+export type MelodyLayer =
+  | MelodyEntry[]
+  | MelodyVoiceObject
+  | Array<MelodyEntry[] | MelodyVoiceObject>;
+
+/**
+ * Structured harmony layer object.
+ * Allows bundling chords and dedicated rhythm/octave.
+ */
+export const HarmonyObjectSchema = z.object({
+  /** Chord root solfège syllables and/or repeat padding counts */
+  chords: z.array(HarmonyEntrySchema).min(1).optional(),
+  /** Alias for chords */
+  harmony: z.array(HarmonyEntrySchema).min(1).optional(),
+  /** Rhythm layer for harmony */
+  rhythm: z.union([RhythmLabel, z.array(RhythmEntrySchema)]).optional(),
+  /** Metric block-length label for harmony */
+  meter: RhythmLabel.optional(),
+  /** Optional octave shift for this harmony layer */
+  harmonyOctave: z.number().int().optional(),
+});
+
+export type HarmonyObject = z.infer<typeof HarmonyObjectSchema>;
+
+/**
+ * Polymorphic harmony layer:
+ * 1. Flat array of chord tokens: [DoMe, Fa, So]
+ * 2. Structured harmony object: { chords: [DoMe], rhythm: [Do, Do] }
+ */
+export const HarmonyLayerSchema = z.union([
+  z.array(HarmonyEntrySchema).min(1),
+  HarmonyObjectSchema,
+]);
+
+export type HarmonyLayer = HarmonyEntry[] | HarmonyObject;
+
+/**
  * Coil interface for TypeScript typing with recursive concat support.
  */
 export interface Coil {
@@ -243,10 +317,10 @@ export interface Coil {
   rhythm?: RhythmLabelType | Array<string | number>;
   /** Metric block-length label: macro time grouping (e.g. "DoLa", "DoSo") */
   meter?: RhythmLabelType;
-  /** Melody layer: array of solfège pitch tokens and/or repeat padding counts (optional if inherited, min 1 if specified) */
-  melody?: Array<string | number>;
-  /** Harmony layer: array of chord root solfège syllables and/or repeat padding counts */
-  harmony?: Array<string | number>;
+  /** Melody layer: flat array, structured voice object, or polyphonic array of voices */
+  melody?: MelodyLayer;
+  /** Harmony layer: flat array or structured harmony object */
+  harmony?: HarmonyLayer;
   /** Optional octave shift for this coil's harmony layer (e.g. 0, -1, 1) */
   harmonyOctave?: number;
 }
@@ -269,10 +343,10 @@ export const CoilSchema: z.ZodType<Coil> = z.lazy(() =>
     rhythm: z.union([RhythmLabel, z.array(RhythmEntrySchema)]).optional(),
     /** Metric block-length label: macro time grouping (e.g. "DoLa", "DoSo") */
     meter: RhythmLabel.optional(),
-    /** Melody layer: array of solfège pitch tokens and/or repeat padding counts (optional if inherited, min 1 if specified) */
-    melody: z.array(MelodyEntrySchema).min(1).optional(),
-    /** Harmony layer: array of chord root solfège syllables and/or repeat padding counts */
-    harmony: z.array(HarmonyEntrySchema).min(1).optional(),
+    /** Melody layer: flat array, structured voice object, or polyphonic array of voices */
+    melody: MelodyLayerSchema.optional(),
+    /** Harmony layer: flat array or structured harmony object */
+    harmony: HarmonyLayerSchema.optional(),
     /** Optional octave shift for this coil's harmony layer (e.g. 0, -1, 1) */
     harmonyOctave: z.number().int().optional(),
   })

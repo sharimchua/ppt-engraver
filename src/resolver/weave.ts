@@ -153,10 +153,19 @@ export function resolveWeave(
 
       // Map resolved onsets to tagged Onset objects
       const coilId = coil.id ?? `coil_${anonymousCoilCounter}`;
+      const isMultiVoiceCoil = onsets.some(o => (o.voiceIndex ?? 1) > 1);
+      const voiceOnsetCounters = new Map<number, number>();
+
       for (let i = 0; i < onsets.length; i++) {
         const onset = onsets[i];
-        const onsetIndex = i + 1; // 1-based
-        const tag = `ppt_${effectiveWeaveId}_${coilId}_${onsetIndex}`;
+        const voiceIndex = onset.voiceIndex ?? 1;
+        const currentVoiceCount = (voiceOnsetCounters.get(voiceIndex) ?? 0) + 1;
+        voiceOnsetCounters.set(voiceIndex, currentVoiceCount);
+        const onsetIndex = currentVoiceCount;
+
+        const tag = isMultiVoiceCoil
+          ? `ppt_${effectiveWeaveId}_${coilId}_v${voiceIndex}_${onsetIndex}`
+          : `ppt_${effectiveWeaveId}_${coilId}_${onsetIndex}`;
 
         allOnsets.push({
           tag,
@@ -170,7 +179,9 @@ export function resolveWeave(
           coilId: coilId,
           weaveId: effectiveWeaveId,
           onsetIndex,
+          voiceIndex,
           rhythmToken: onset.rhythmToken,
+          startBeat: onset.startBeat,
           durationBeats: onset.durationBeats,
           duration: onset.duration,
           sourceCoilId: onset.sourceCoilId || coilId,

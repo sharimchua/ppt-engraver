@@ -36,6 +36,8 @@ export interface SidecarEntry {
   coilId: string;
   /** 1-based index within the coil */
   onsetIndex: number;
+  /** Optional 1-based voice index for polyphonic coils */
+  voiceIndex?: number;
   /** Underlying source coil ID (for concatenated sub-coils) */
   sourceCoilId?: string;
   /** 1-based index within the underlying sub-coil */
@@ -72,6 +74,7 @@ export function generateSidecarMap(onsets: OnsetStream): SidecarMap {
       weaveId: onset.weaveId,
       coilId: onset.coilId,
       onsetIndex: onset.onsetIndex,
+      voiceIndex: onset.voiceIndex,
       sourceCoilId: onset.sourceCoilId,
       sourceOnsetIndex: onset.sourceOnsetIndex,
       melodySourceCoil: onset.melodySourceCoil,
@@ -90,15 +93,20 @@ export function generateSidecarMap(onsets: OnsetStream): SidecarMap {
       },
     };
 
-    // Primary tag: ppt_weave_coil_index
+    // Primary tag
     map[onset.tag] = entry;
 
     // Layer-specific tags: ppt_weave_coil_layer_index
     const prefix = `ppt_${onset.weaveId}_${onset.coilId}`;
     const idx = onset.onsetIndex;
+    const vIdx = onset.voiceIndex ?? 1;
+
     map[`${prefix}_melody_${idx}`] = entry;
+    map[`${prefix}_melody_v${vIdx}_${idx}`] = entry;
     map[`${prefix}_melodyAbs_${idx}`] = entry;
+    map[`${prefix}_melodyAbs_v${vIdx}_${idx}`] = entry;
     map[`${prefix}_melodyInt_${idx}`] = entry;
+    map[`${prefix}_melodyInt_v${vIdx}_${idx}`] = entry;
     map[`${prefix}_rhythm_${idx}`] = entry;
     map[`${prefix}_harmony_${idx}`] = entry;
     map[`${prefix}_harmCoil_${idx}`] = entry;

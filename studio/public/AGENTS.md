@@ -64,30 +64,29 @@ The `studio/public/` directory contains the client-side single-page application 
   - Seamlessly injected into CodeMirror contextual autocomplete (`Ctrl+Space`) and registered into the Command Palette (`Ctrl+Shift+P`) dynamically.
   - Adding or modifying snippet files in `snippets/` takes effect immediately on reload without code modifications.
 - **Searchable Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P` / `F1` / `⌨ Commands` button)**:
-  - Filterable command list with instant fuzzy search across all project operations, refactorings, score metadata, dynamically registered snippets, folding, navigation, and compilation tools with full keyboard navigation (`↑`/`↓`/`Enter`/`Esc`).
-
-### 5. Lightweight Text-Aligned Solfège Preview Strip
+  - Filterable command list with instant fuzzy search across all project operations, refactorings, score metadata, dynamically registered snippets, folding, navigation, and compilation tools with full keyboard navigation (`↑`/`↓`### 5. Lightweight Text-Aligned Solfège Preview Strip
 - **Line Widget (`.cm-token-solfege-strip`)**:
-  - Active strictly on `melody:`, `harmony:`, and `rhythm:` lines.
+  - Active on `melody:`, `harmony:`, `rhythm:`, `chords:`, `pitches:` lines, and nested polyphonic voice arrays (`- [...]`, `- pitches:`).
   - Floats directly above the line being edited.
   - Dynamically calculates pixel `left` coordinates to center vector SVG Solfège glyphs directly over each token.
   - Light high-contrast background (`#edf2f7`) ensuring readability.
   - Axis diacritics dynamically stroke-colored to match the syllable's color.
 
-### 5. Bidirectional Navigation & Real-Time Score Highlighting
+### 6. Bidirectional Navigation & Real-Time Score Highlighting
 - **PDF Mode (`renderPdfPages`) & SVG Mode**:
   - Extracts annotations via `page.getAnnotations()` or SVG `textedit://` links.
-  - Non-HTTP links are decoded via `resolveTagFromLyLine` to bind full provenance metadata (`dataset.coilId`, `dataset.sourceCoilId`, `dataset.melodySourceCoil`, `dataset.rhythmSourceCoil`, `dataset.harmonySourceCoil`, `dataset.weaveId`, `dataset.layer`, `dataset.onsetIndex`, `dataset.sourceOnsetIndex`).
+  - Non-HTTP links are decoded via `resolveTagFromLyLine` to bind full provenance metadata (`dataset.coilId`, `dataset.sourceCoilId`, `dataset.melodySourceCoil`, `dataset.rhythmSourceCoil`, `dataset.harmonySourceCoil`, `dataset.weaveId`, `dataset.layer`, `dataset.voiceIndex`, `dataset.onsetIndex`, `dataset.sourceOnsetIndex`).
   - Renders transparent clickable overlays (`.pdf-point-click-link`) over every notehead.
 - **Line-to-Score Real-Time Highlighting (Editor $\to$ Preview, 1-to-Many)**:
-  - Scoped strictly to declarative music lines (`melody:`, `harmony:`, `rhythm:`) and compositional/structural lines (`coil:`, `weave:`, `concat:`, `parents:`, `children:`, structure definition headers).
-  - When focused on a specific layer line (e.g. `melody:`), only noteheads in that specific layer are illuminated (ignoring harmony/rhythm staffs).
-  - When focused on a specific token on that line, only matching onsets in that layer receive `.score-highlight-primary` (gold halo), while the rest of that layer receives `.score-highlight-active` (blue halo).
+  - Scoped strictly to declarative music lines (`melody:`, `harmony:`, `rhythm:`, `chords:`, `pitches:`), polyphonic voice bullet items, and compositional/structural lines (`coil:`, `weave:`, `concat:`, `parents:`, `children:`, structure definition headers).
+  - When focused on a specific melody voice line (e.g. voice 2 in a polyphonic melody array), only noteheads in that specific voice receive highlights (`dataset.voiceIndex === targetVoiceIndex`), ignoring other parallel melody voices and other layers.
+  - When focused on a specific token on that line, only matching onsets in that layer receive `.score-highlight-primary` (gold halo), while the rest of that layer/voice receives `.score-highlight-active` (blue halo).
   - On non-declarative lines (metadata, titles, tempos, settings, comments), preview highlighting is automatically deactivated.
 - **Navigation Handler (`handlePointAndClick`, Preview $\to$ Editor)**:
   - Traces concatenated sub-coils (e.g. `full_verse` $\to$ `_verse2`) and inherited parents (e.g. `intro4` $\to$ `intro_turnaround`) to their origin coil.
-  - Locates the exact token in the YAML array (handling repeat numbers and multi-token strings) via `findTokenInArray`.
-  - Moves cursor (`editor.setCursor`), scrolls into view (`editor.scrollIntoView`), and triggers a blue pulse highlight (`.cm-point-click-flash`).
+  - For polyphonic melody lines, navigates directly to the specific voice array line (e.g. the 2nd bullet item in `melody:`) and column for that note.
+  - For structured harmony blocks, navigates directly to `chords:` or the relevant harmony entry.
+  - Moves cursor (`editor.setCursor`), scrolls into view (`editor.scrollIntoView`), and triggers a blue pulse highlight (`.cm-point-click-flash`).-point-click-flash`).
 
 ### 6. Interactive UX & Viewport Controls
 - **Draggable Split-Pane**: Resize editor and preview with min-width constraints (320px).

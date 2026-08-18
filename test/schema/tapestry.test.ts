@@ -203,6 +203,67 @@ describe('TapestrySchema', () => {
     const result = TapestrySchema.safeParse(withNotehead);
     expect(result.success).toBe(true);
   });
+
+  it('accepts structured melody object with dedicated rhythm', () => {
+    const tap = {
+      tapestry: {
+        weave: {
+          id: 'song',
+          children: [
+            {
+              coil: {
+                id: 'motif',
+                melody: {
+                  pitches: ['Dox', 'Do', 'Me', 'La'],
+                  rhythm: ['Do', 'Me', 'Fi', 'La'],
+                },
+                harmony: {
+                  chords: ['DoMe', 'Fa'],
+                  rhythm: ['Do', 'Do'],
+                  harmonyOctave: -1,
+                },
+              },
+            },
+          ],
+        },
+      },
+    };
+    const result = TapestrySchema.safeParse(tap);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts polyphonic melody array of arrays and array of voice objects', () => {
+    const tap = {
+      tapestry: {
+        weave: {
+          id: 'poly_song',
+          children: [
+            {
+              coil: {
+                id: 'poly1',
+                melody: [
+                  ['Dox', 'Do', 'Me', 'La'],
+                  ['Mex', 'Me', 'So', 'Do^'],
+                ],
+                rhythm: ['Do', 'Me', 'Fi', 'La'],
+              },
+            },
+            {
+              coil: {
+                id: 'poly2',
+                melody: [
+                  { pitches: ['Dox', 'Do'], rhythm: ['Do', 'Me'] },
+                  { pitches: ['Mex', 'So'], rhythm: ['Do', 'Do'] },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    };
+    const result = TapestrySchema.safeParse(tap);
+    expect(result.success).toBe(true);
+  });
 });
 
 

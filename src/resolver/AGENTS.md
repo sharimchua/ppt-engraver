@@ -12,9 +12,9 @@ The `src/resolver/` directory resolves high-level declarative PPT constructs int
    - Master orchestrator resolving knots and recursively descending through weave trees.
 2. **`resolveCoil()`**:
    - Computes musical alignment across:
-     - `melody`: Sequence of Solfège tokens (e.g. `[Do, Re, Mi, Fa, So]`), integer repeats (`X`), and lookback repeat windows (`X.Y` repeating the last `Y` items `X` times).
+     - `melody`: Sequence of Solfège tokens (e.g. `[Do, Re, Mi, Fa, So]`), structured voice object (`{ pitches: [...], rhythm: [...] }`), or polyphonic array of voices (`[ [...], [...] ]` / `[ { pitches: ... }, ... ]`). Supports integer repeats (`X`) and lookback repeat windows (`X.Y`).
      - `rhythm`: Rhythmic durations, subdivisions, and `X.Y` lookback repeat tokens.
-     - `harmony`: Chords applied across the coil with optional `X.Y` lookback repetitions.
+     - `harmony`: Chords applied across the coil (or structured `{ chords: [...], rhythm: [...] }`) with optional `X.Y` lookback repetitions.
 3. **`resolveConcat()`**:
    - Combines multiple sub-coils into a single continuous weave structure, ensuring timing offsets and voice alignment remain continuous.
 4. **`resolveInheritance()`**:
@@ -25,8 +25,9 @@ The `src/resolver/` directory resolves high-level declarative PPT constructs int
 ## Output Data Structure: `ResolvedOnset`
 
 Each onset resolved by this subsystem contains:
-- `onsetIndex`: 1-based index within the coil.
-- `tag`: Tag string matching LilyPond `ppt_${coilId}_${voiceId}_${onsetIndex}`.
+- `onsetIndex`: 1-based index within the voice/coil.
+- `voiceIndex`: 1-based voice index for polyphonic coils (1 for primary/single melody, 2+ for counter-voices).
+- `tag`: Tag string matching LilyPond `ppt_${weaveId}_${coilId}_${layer}_${onsetIndex}` or `ppt_${weaveId}_${coilId}_${layer}_v${voiceIndex}_${onsetIndex}`.
 - `melodyMidi`: Absolute MIDI pitch number.
 - `scaleDegree`: Solfège syllable (e.g. `Do`, `Rex`).
 - `chordRoot` & `chordMidi`: Active harmony triad.

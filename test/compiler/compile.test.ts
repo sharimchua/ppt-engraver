@@ -49,7 +49,7 @@ tapestry:
     const result = compileYamlString(yaml);
     expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_melody_1 c'4");
     expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_melody_2 e'4");
-    expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_harmonyStaff_1 <c' e' g'>1*2/4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_harmonyStaff_1 <c' e' g'>2");
   });
 
   it('compiles flat-keyed scores using flat accidental spelling (ees, bes, etc.)', () => {
@@ -72,9 +72,9 @@ tapestry:
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_melody_2 des'4");
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_melody_3 bes4");
 
-    // Harmony: Do (Eb major) -> <ees' g' bes'>1*2/4, Fa (Ab major) -> <aes c' ees'>1*1/4
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_harmonyStaff_1 <ees' g' bes'>1*2/4");
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_harmonyStaff_3 <aes c' ees'>1*1/4");
+    // Harmony: Do (Eb major) -> <ees' g' bes'>2, Fa (Ab major) -> <aes c' ees'>4
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_harmonyStaff_1 <ees' g' bes'>2");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_harmonyStaff_3 <aes c' ees'>4");
   });
 
   it('compiles sharp-keyed scores using sharp accidental spelling (dis, ais, etc.)', () => {
@@ -95,8 +95,8 @@ tapestry:
     // Melody: Do (D#4) -> dis', Te (C#4) -> cis'
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_melody_1 dis'4");
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_melody_2 cis'4");
-    // Harmony: Do (D# major) -> <dis' g' ais'>1*2/4
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_harmonyStaff_1 <dis' g' ais'>1*2/4");
+    // Harmony: Do (D# major) -> <dis' g' ais'>2
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_harmonyStaff_1 <dis' g' ais'>2");
   });
 
   it('compiles coil harmony staff notation with geometric glyphs and chord modifiers (DoMe, Dox)', () => {
@@ -125,8 +125,8 @@ tapestry:
     expect(result.lilypondSource).toContain('\\override StaffSymbol.layer = #-2');
     expect(result.lilypondSource).toContain('\\override NoteHead.no-ledgers = ##t');
     expect(result.lilypondSource).toContain('\\override Clef.stencil = #pptClefHStencil');
-    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_harmony_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #t) } b\'1*2/4');
-    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_harmony_3 \\tweak NoteHead.text \\markup \\vcenter \\concat { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) \\lower #0.35 \\stencil #(make-solfege-glyph-sub pptPathBase 270 colorMi #f) } b\'1*2/4');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_harmony_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #t) } b\'2');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_harmony_3 \\tweak NoteHead.text \\markup \\vcenter \\concat { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) \\lower #0.35 \\stencil #(make-solfege-glyph-sub pptPathBase 270 colorMi #f) } b\'2');
     expect(result.lilypondSource).toContain('\\bar "|"');
     expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part2_harmony_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathSharp 180 colorSo #f) } b\'1');
     expect(result.lilypondSource).toContain('melodyVoice = {');

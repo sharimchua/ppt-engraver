@@ -413,6 +413,273 @@ describe('chordTokenToCoilMarkup', () => {
   });
 });
 
+describe('polyphonic voice compilation', () => {
+  it('engraves multi-voice onsets with \\new Voice, \\voiceOne, \\voiceTwo, and voice tags', () => {
+    const onsets = [
+      {
+        tag: 'ppt_song_poly_v1_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'poly',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 1,
+      },
+      {
+        tag: 'ppt_song_poly_v2_1',
+        pitch: 'Eb4',
+        midiNote: 63,
+        scaleDegree: 'Me',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'poly',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 2,
+      },
+    ];
+
+    const ly = compileToLilyPond(onsets);
+    expect(ly).toContain('\\new Voice = "v1" {');
+    expect(ly).toContain('\\voiceOne');
+    expect(ly).toContain('\\new Voice = "v2" {');
+    expect(ly).toContain('\\voiceTwo');
+    expect(ly).toContain("\\tag #'ppt_song_poly_melody_v1_1");
+    expect(ly).toContain("\\tag #'ppt_song_poly_melody_v2_1");
+  });
+
+  it('generates indexed M1 and M2 row band staves when showMelodyCoilAbsolute is enabled for multi-voice', () => {
+    const onsets = [
+      {
+        tag: 'ppt_song_poly_v1_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'poly',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 1,
+        startBeat: 0.0,
+        durationBeats: 1.0,
+        duration: '4',
+      },
+      {
+        tag: 'ppt_song_poly_v2_1',
+        pitch: 'Eb4',
+        midiNote: 63,
+        scaleDegree: 'Me',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'poly',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 2,
+        startBeat: 0.0,
+        durationBeats: 0.5,
+        duration: '8',
+      },
+      {
+        tag: 'ppt_song_poly_v2_2',
+        pitch: 'G4',
+        midiNote: 67,
+        scaleDegree: 'So',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'poly',
+        weaveId: 'song',
+        onsetIndex: 2,
+        voiceIndex: 2,
+        startBeat: 0.5,
+        durationBeats: 0.5,
+        duration: '8',
+      },
+    ];
+
+    const ly = compileToLilyPond(onsets, {
+      showMelodyCoilAbsolute: true,
+      showRhythmCoil: true,
+      showHarmonyCoil: true,
+    });
+
+    // M1 and M2 clefs emitted
+    expect(ly).toContain('\\override Clef.stencil = #(make-clef-text-stencil "M1")');
+    expect(ly).toContain('\\override Clef.stencil = #(make-clef-text-stencil "M2")');
+    expect(ly).toContain('\\override Clef.stencil = #pptClefRStencil');
+    expect(ly).toContain('\\override Clef.stencil = #pptClefHStencil');
+
+    // Voice defs
+    expect(ly).toContain('melodyCoilAbsoluteVoiceOne = {');
+    expect(ly).toContain('melodyCoilAbsoluteVoiceTwo = {');
+    expect(ly).toContain('\\melodyCoilAbsoluteVoiceOne');
+    expect(ly).toContain('\\melodyCoilAbsoluteVoiceTwo');
+    expect(ly).toContain('rhythmCoilVoice = {');
+
+    // Unified collapsed rhythm captures both 0.0 (Do) and 0.5 (Fi)
+    expect(ly).toContain("\\tag #'ppt_song_poly_rhythm_1");
+    expect(ly).toContain("\\tag #'ppt_song_poly_rhythm_2");
+  });
+
+  it('omits stems and flags inside polyphonic voice blocks and in layout context when omitStem is true', () => {
+    const onsets = [
+      {
+        tag: 'ppt_song_poly_v1_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'poly',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 1,
+      },
+      {
+        tag: 'ppt_song_poly_v2_1',
+        pitch: 'Eb4',
+        midiNote: 63,
+        scaleDegree: 'Me',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'poly',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 2,
+      },
+    ];
+
+    const ly = compileToLilyPond(onsets, { omitStem: true });
+    // Inside \new Voice blocks
+    expect(ly).toContain('\\omit Stem');
+    expect(ly).toContain('\\omit Flag');
+    // Inside layout context
+    expect(ly).toContain('\\Voice');
+  });
+
+  it('pads missing voices with skips across heterogeneous single/multi-voice coils', () => {
+    const onsets = [
+      // Coil 1 (polyphonic: v1 + v2)
+      {
+        tag: 'ppt_song_c1_v1_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'c1',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 1,
+        duration: '4',
+      },
+      {
+        tag: 'ppt_song_c1_v2_1',
+        pitch: 'G4',
+        midiNote: 67,
+        scaleDegree: 'So',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'c1',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 2,
+        duration: '4',
+      },
+      // Coil 2 (monophonic: v1 only)
+      {
+        tag: 'ppt_song_c2_v1_1',
+        pitch: 'D4',
+        midiNote: 62,
+        scaleDegree: 'Re',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'c2',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 1,
+        duration: '2',
+      },
+    ];
+
+    const ly = compileToLilyPond(onsets, { showMelodyCoilAbsolute: true });
+    // In melodyVoice, Voice 2 receives skip s2 during coil 2
+    expect(ly).toContain('s2');
+    // In melodyCoilAbsoluteVoiceTwo, Voice 2 receives skip s2 during coil 2
+    expect(ly).toContain('melodyCoilAbsoluteVoiceTwo = {\n  \\override NoteHead.stencil = #ly:text-interface::print\n  \\cadenzaOn\n  \\tag #\'ppt_song_c1_melodyAbs_v2_1');
+  });
+
+  it('generates exact number of bars in rhythmGridVoice without duplicating bars for polyphonic coils', () => {
+    const onsets = [
+      // Coil 1 (polyphonic: v1 + v2, 4 beats total)
+      {
+        tag: 'ppt_song_c1_v1_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'c1',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 1,
+        durationBeats: 4.0,
+      },
+      {
+        tag: 'ppt_song_c1_v2_1',
+        pitch: 'G4',
+        midiNote: 67,
+        scaleDegree: 'So',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'c1',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 2,
+        durationBeats: 4.0,
+      },
+      // Coil 2 (monophonic: v1 only, 4 beats total)
+      {
+        tag: 'ppt_song_c2_v1_1',
+        pitch: 'D4',
+        midiNote: 62,
+        scaleDegree: 'Re',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'c2',
+        weaveId: 'song',
+        onsetIndex: 1,
+        voiceIndex: 1,
+        durationBeats: 4.0,
+      },
+    ];
+
+    const ly = compileToLilyPond(onsets, { showRhythmGrid: true });
+    // rhythmGridVoice should contain exactly 2 bars (1 separator bar line + 1 final bar line)
+    const gridMatch = ly.match(/rhythmGridVoice = \{([\s\S]*?)\}/);
+    expect(gridMatch).not.toBeNull();
+    const gridContent = gridMatch![1];
+    const barCount = (gridContent.match(/\\bar/g) || []).length;
+    expect(barCount).toBe(2); // Exactly 2 bars for 2 coils
+  });
+});
+
 describe('rhythmTokenToCoilMarkup', () => {
   it('formats standard rhythm syllable without prefix', () => {
     const markup = rhythmTokenToCoilMarkup('Do');

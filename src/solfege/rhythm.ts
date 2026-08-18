@@ -115,6 +115,7 @@ export function parseRhythmToken(token: string): ParsedRhythmToken {
 export function expandRhythmEntries(
   entries: Array<string | number>,
   targetCount?: number,
+  splitCompoundDox: boolean = true,
 ): string[] {
   const result: string[] = [];
 
@@ -137,12 +138,16 @@ export function expandRhythmEntries(
     } else {
       const tokens = String(entry).trim().split(/\s+/).filter(Boolean);
       for (const token of tokens) {
-        let t = token;
-        while (t.startsWith('Dox') && t.length > 3) {
-          result.push('Dox');
-          t = t.slice(3);
+        if (splitCompoundDox) {
+          let t = token;
+          while (t.startsWith('Dox') && t.length > 3) {
+            result.push('Dox');
+            t = t.slice(3);
+          }
+          result.push(t);
+        } else {
+          result.push(token);
         }
-        result.push(t);
       }
     }
   }

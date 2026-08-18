@@ -34,8 +34,12 @@ export const OnsetSchema = z.object({
   weaveId: z.string(),
   /** 1-based onset index within the coil */
   onsetIndex: z.number().int().positive(),
+  /** Optional 1-based voice index for polyphonic coils (1 for top voice / single melody, 2 for second voice, etc.) */
+  voiceIndex: z.number().int().positive().optional(),
   /** Optional rhythm token string if rhythmic grammar is used */
   rhythmToken: z.string().optional(),
+  /** Start timestamp in beats (quarter note = 1.0) within the coil */
+  startBeat: z.number().nonnegative().optional(),
   /** Duration in beats (quarter note = 1.0) */
   durationBeats: z.number().positive().optional(),
   /** LilyPond duration string, e.g. "4", "8", "16", "4*1/3" */
