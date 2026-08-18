@@ -157,14 +157,49 @@ const SOLFEGE_SYLLABLES_LIST = [
   'do', 'ra', 'di', 're', 'me', 'ri', 'mi', 'fa', 'fi', 'se', 'so', 'le', 'si', 'la', 'te', 'li', 'ti'
 ];
 
+const ALL_SYLLABLES_REGEX = /^(?:(?:Do[xX]?|Ra[xX]?|Di[xX]?|Re[xX]?|Me[xX]?|Ri[xX]?|Mi[xX]?|Fa[xX]?|Fi[xX]?|Se[xX]?|So[xX]?|Le[xX]?|Si[xX]?|La[xX]?|Te[xX]?|Li[xX]?|Ti[xX]?)(?:[\^_]*))+$/i;
+
+function isValidSolfegeToken(word) {
+  return ALL_SYLLABLES_REGEX.test(word);
+}
+
 const solfegeOverlay = {
   token: function(stream) {
+    const line = stream.string;
+    const colonIdx = line.indexOf(':');
+
+    // If on a "key: value" line and before the colon, it's a YAML key - skip!
+    if (colonIdx !== -1 && stream.pos <= colonIdx) {
+      stream.next();
+      return null;
+    }
+
+    // Check if we are at the start of a word
+    const rest = line.slice(stream.pos);
+    const wordMatch = rest.match(/^[A-Za-z0-9\^_]+/);
+    if (!wordMatch) {
+      stream.next();
+      return null;
+    }
+
+    const fullWord = wordMatch[0];
+
+    // Only highlight if the word is a valid Solfège expression
+    if (!isValidSolfegeToken(fullWord)) {
+      // Advance past this entire non-solfege word
+      stream.pos += fullWord.length;
+      return null;
+    }
+
+    // Incrementally match and color each sub-syllable of the valid Solfège word
     for (const syl of SOLFEGE_SYLLABLES_LIST) {
       if (stream.match(new RegExp('^' + syl, 'i'))) {
         const baseSyl = syl.replace(/x$/i, '').toLowerCase();
         return SOLFEGE_COLOR_MAP[baseSyl] || 'ppt-do';
       }
     }
+
+    // Advance past octave indicators (^, _) or modifiers
     stream.next();
     return null;
   }
