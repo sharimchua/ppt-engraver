@@ -472,7 +472,7 @@ function resolveVoiceOnsets(
     knot,
     normalizedHarmony.harmonyOctave ?? 0,
     normalizedHarmony.rhythm,
-    resolvedRhythmOnsets,
+    resolvedRhythmOnsets ?? Array.from({ length: totalOnsets }, (_, i) => ({ startBeat: i })),
     activeVoicing,
   );
 
@@ -1165,24 +1165,44 @@ function resolveHarmony(
   ) {
     const expandedRhythm = expandRhythmEntries(harmonyRhythm, expanded.length, false);
     const harmonyTimeline = resolveRhythmTimeline(expandedRhythm);
-    let chordIdx = 0;
+
+    // Map non-Dox trigger events to chord tokens
+    const chordEvents: Array<{ startBeat: number; chordToken: string }> = [];
+    let chordIndex = 0;
+    for (const hOnset of harmonyTimeline) {
+      if (hOnset.token !== 'Dox' && chordIndex < expanded.length) {
+        chordEvents.push({
+          startBeat: hOnset.startBeat,
+          chordToken: expanded[chordIndex],
+        });
+        chordIndex++;
+      }
+    }
+
+    if (chordEvents.length === 0 && expanded.length > 0) {
+      chordEvents.push({ startBeat: 0, chordToken: expanded[0] });
+    }
 
     for (let i = 0; i < melodyLength; i++) {
       const melodyOnsetBeat = (melodyRhythmOnsets[i] && melodyRhythmOnsets[i].startBeat !== undefined)
         ? melodyRhythmOnsets[i].startBeat!
         : i;
 
-      // Find latest chord triggered on or before this melody onset
-      while (
-        chordIdx + 1 < harmonyTimeline.length &&
-        chordIdx + 1 < expanded.length &&
-        harmonyTimeline[chordIdx + 1].startBeat <= melodyOnsetBeat + 1e-4
-      ) {
-        chordIdx++;
+      // Find latest chord event triggered on or before this melody onset
+      let activeChordToken = '';
+      for (const ev of chordEvents) {
+        if (ev.startBeat <= melodyOnsetBeat + 1e-4) {
+          activeChordToken = ev.chordToken;
+        } else {
+          break;
+        }
       }
 
-      const activeChordToken = expanded[Math.min(chordIdx, expanded.length - 1)] ?? 'Do';
-      result.push(getChordForToken(activeChordToken));
+      if (!activeChordToken) {
+        result.push({ triad: [], root: '' });
+      } else {
+        result.push(getChordForToken(activeChordToken));
+      }
     }
     return result;
   }

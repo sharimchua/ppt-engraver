@@ -257,6 +257,34 @@ tapestry:
     expect(onsets[0].melodySourceCoil).toBe('motif');
   });
 
+  it('supports DoxDo prefix in harmony rhythm to delay first chord after melody pickup', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: F4
+    weave: song
+  weaves:
+    song:
+      coils:
+        verse:
+          melody: [Lax, Re, Ra, Fa, Mix, Me]
+          harmony:
+            chords: [ReMe, SoTe]
+            rhythm: [DoxDo, 2, Do]
+      children:
+        - coil: verse
+`;
+    const { onsets } = resolveYaml(yaml);
+    expect(onsets).toHaveLength(6);
+    // Onset 0 (beat 0) is before DoxDo (beat 1.0) -> pickup note with empty chord
+    expect(onsets[0].chordRoot).toBe('');
+    expect(onsets[0].chordMidi).toEqual([]);
+    // Onset 1 (beat 1) reaches DoxDo (beat 1.0) -> ReMe enters
+    expect(onsets[1].chordRoot).toBe('ReMe');
+    // Onset 4 (beat 4) reaches next Do -> SoTe enters
+    expect(onsets[4].chordRoot).toBe('SoTe');
+  });
+
   it('throws descriptive error on unknown referenced coil', () => {
     const yaml = `
 tapestry:

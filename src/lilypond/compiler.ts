@@ -1273,10 +1273,16 @@ export function compileToLilyPond(
           : chunk.spanCount === 4
             ? "1"
             : `1*${chunk.spanCount}/4`;
-      const markup = chordTokenToCoilMarkup(chunk.chordRoot);
-      harmonyCoilLines.push(
-        `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmony_${chunk.onsetIndex} \\tweak NoteHead.text ${markup} b'${chordDuration}`,
-      );
+      if (!chunk.chordRoot) {
+        harmonyCoilLines.push(
+          `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmony_${chunk.onsetIndex} s${chordDuration}`,
+        );
+      } else {
+        const markup = chordTokenToCoilMarkup(chunk.chordRoot);
+        harmonyCoilLines.push(
+          `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmony_${chunk.onsetIndex} \\tweak NoteHead.text ${markup} b'${chordDuration}`,
+        );
+      }
     }
   } else {
     let lastCoilId: string | null = null;
@@ -1293,11 +1299,17 @@ export function compileToLilyPond(
       }
       lastCoilId = onset.coilId;
       lastWeaveId = onset.weaveId;
-      const markup = chordTokenToCoilMarkup(onset.chordRoot);
       const onsetDur = onset.duration ?? dur;
-      harmonyCoilLines.push(
-        `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_harmony_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
-      );
+      if (!onset.chordRoot) {
+        harmonyCoilLines.push(
+          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_harmony_${onset.onsetIndex} s${onsetDur}`,
+        );
+      } else {
+        const markup = chordTokenToCoilMarkup(onset.chordRoot);
+        harmonyCoilLines.push(
+          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_harmony_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
+        );
+      }
     }
   }
 
@@ -1399,12 +1411,6 @@ export function compileToLilyPond(
         harmonyLines.push('  \\bar "|"');
         chordNamesLines.push('  \\bar "|"');
       }
-      const chord = chordMidiToLilyPond(
-        chunk.chordMidi,
-        harmShift,
-        accMode,
-        forceAccidentals,
-      );
       const chordDuration =
         chunk.totalDurationBeats !== undefined
           ? beatsToLilyPondDuration(chunk.totalDurationBeats, traditionalRhythms)
@@ -1413,14 +1419,26 @@ export function compileToLilyPond(
             : traditionalRhythms
               ? beatsToLilyPondDuration(chunk.spanCount, true)
               : `1*${chunk.spanCount}/4`;
-      harmonyLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmonyStaff_${chunk.onsetIndex} ${chord}${chordDuration}`);
 
-      const rootSyllable = parseHarmonyChord(chunk.chordRoot).rootSyllable;
-      const rootColor = SOLFEGE_TO_SCHEME_COLOR[rootSyllable] ?? "colorDo";
-      const colorTweak = colorNotes ? `\\tweak color #${rootColor} ` : "";
-      chordNamesLines.push(
-        `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} ${colorTweak}${chord}${chordDuration}`,
-      );
+      if (chunk.chordMidi.length === 0 || !chunk.chordRoot) {
+        harmonyLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmonyStaff_${chunk.onsetIndex} s${chordDuration}`);
+        chordNamesLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} s${chordDuration}`);
+      } else {
+        const chord = chordMidiToLilyPond(
+          chunk.chordMidi,
+          harmShift,
+          accMode,
+          forceAccidentals,
+        );
+        harmonyLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmonyStaff_${chunk.onsetIndex} ${chord}${chordDuration}`);
+
+        const rootSyllable = parseHarmonyChord(chunk.chordRoot).rootSyllable;
+        const rootColor = SOLFEGE_TO_SCHEME_COLOR[rootSyllable] ?? "colorDo";
+        const colorTweak = colorNotes ? `\\tweak color #${rootColor} ` : "";
+        chordNamesLines.push(
+          `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} ${colorTweak}${chord}${chordDuration}`,
+        );
+      }
     }
   } else {
     for (let c = 0; c < coilGroups.length; c++) {
