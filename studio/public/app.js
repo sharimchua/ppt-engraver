@@ -552,6 +552,58 @@ if (splitGutter && editorPanel && mainContainer) {
 
 let isInitialScoreLoadDone = false;
 
+// --- URL & Deeplinking Helpers ---
+function getScoreFromUrlOrStorage(scoreList) {
+  if (!scoreList || scoreList.length === 0) return null;
+
+  // 1. Check URL search param (?score=...)
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramScore = urlParams.get('score');
+  if (paramScore) {
+    const cleanParam = paramScore.toLowerCase().replace(/^scores[\\/]/, '');
+    const match = scoreList.find(s => 
+      s.path.toLowerCase() === paramScore.toLowerCase() ||
+      s.name.toLowerCase() === cleanParam ||
+      s.path.toLowerCase().endsWith(cleanParam)
+    );
+    if (match) return match.path;
+  }
+
+  // 2. Check URL hash (#...)
+  if (window.location.hash) {
+    const hashScore = window.location.hash.slice(1).toLowerCase().replace(/^scores[\\/]/, '');
+    const match = scoreList.find(s => 
+      s.name.toLowerCase() === hashScore ||
+      s.path.toLowerCase().endsWith(hashScore)
+    );
+    if (match) return match.path;
+  }
+
+  // 3. Check localStorage
+  const savedScore = localStorage.getItem('ppt_active_score');
+  if (savedScore) {
+    const cleanSaved = savedScore.toLowerCase().replace(/^scores[\\/]/, '');
+    const match = scoreList.find(s => 
+      s.path.toLowerCase() === savedScore.toLowerCase() ||
+      s.name.toLowerCase() === cleanSaved ||
+      s.path.toLowerCase().endsWith(cleanSaved)
+    );
+    if (match) return match.path;
+  }
+
+  // 4. Default to first score
+  return scoreList[0].path;
+}
+
+function updateUrlAndStorage(filePath) {
+  if (!filePath) return;
+  localStorage.setItem('ppt_active_score', filePath);
+
+  const cleanName = filePath.replace(/^scores[\\/]/, '');
+  const newUrl = `${window.location.pathname}?score=${encodeURIComponent(cleanName)}`;
+  window.history.replaceState({ score: cleanName }, '', newUrl);
+}
+
 // --- API Helpers ---
 async function fetchScores(targetPath = null) {
   try {
@@ -567,14 +619,17 @@ async function fetchScores(targetPath = null) {
         scoreSelect.appendChild(opt);
       });
 
-      const selected = targetPath || currentScoreFile || data.scores[0].path;
-      currentScoreFile = selected;
-      scoreSelect.value = selected;
-
-      // Only load and compile on the very first initial page load
       if (!isInitialScoreLoadDone) {
         isInitialScoreLoadDone = true;
-        loadScore(selected);
+        const initialScore = targetPath || getScoreFromUrlOrStorage(data.scores);
+        currentScoreFile = initialScore;
+        scoreSelect.value = initialScore;
+        loadScore(initialScore);
+      } else {
+        const selected = targetPath || currentScoreFile || data.scores[0].path;
+        currentScoreFile = selected;
+        scoreSelect.value = selected;
+        updateUrlAndStorage(selected);
       }
     } else {
       scoreSelect.innerHTML = '<option value="">No scores found</option>';
@@ -592,6 +647,7 @@ async function loadScore(filePath) {
     if (data.content) {
       currentScoreFile = filePath;
       scoreSelect.value = filePath;
+      updateUrlAndStorage(filePath);
       editor.setValue(data.content);
       setDirty(false);
       triggerCompile();
@@ -617,6 +673,7 @@ async function saveScore() {
       currentScoreFile = data.file;
       setDirty(false);
       setStatus('ready', 'Saved');
+      updateUrlAndStorage(data.file);
       await fetchScores(data.file); // Refresh list without reloading or recompiling editor!
     }
   } catch (err) {
@@ -1005,6 +1062,22 @@ function applyZoom() {
 scoreSelect.addEventListener('change', (e) => {
   if (e.target.value) {
     loadScore(e.target.value);
+  }
+});
+
+window.addEventListener('popstate', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramScore = urlParams.get('score');
+  if (paramScore && scoreSelect.options.length > 0) {
+    const cleanParam = paramScore.toLowerCase().replace(/^scores[\\/]/, '');
+    for (let i = 0; i < scoreSelect.options.length; i++) {
+      const opt = scoreSelect.options[i];
+      if (opt.value.toLowerCase().endsWith(cleanParam)) {
+        scoreSelect.value = opt.value;
+        loadScore(opt.value);
+        break;
+      }
+    }
   }
 });
 
