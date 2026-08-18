@@ -109,6 +109,16 @@ describe('Solfège Rhythmic Grammar', () => {
       expect(beatsToLilyPondDuration(1 / 3)).toBe('4*1/3');
       expect(beatsToLilyPondDuration(2 / 3)).toBe('4*2/3');
     });
+
+    it('converts traditional dotted and extended durations when traditional: true', () => {
+      expect(beatsToLilyPondDuration(3.0, true)).toBe('2.');   // Dotted half
+      expect(beatsToLilyPondDuration(1.5, true)).toBe('4.');   // Dotted quarter
+      expect(beatsToLilyPondDuration(0.75, true)).toBe('8.');  // Dotted 8th
+      expect(beatsToLilyPondDuration(2.0, true)).toBe('2');    // Half
+      expect(beatsToLilyPondDuration(4.0, true)).toBe('1');    // Whole
+      expect(beatsToLilyPondDuration(6.0, true)).toBe('1.');   // Dotted whole
+      expect(beatsToLilyPondDuration(8.0, true)).toBe('\\breve'); // Breve
+    });
   });
 
   describe('resolveRhythmTimeline', () => {

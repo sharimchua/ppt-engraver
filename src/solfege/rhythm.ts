@@ -167,11 +167,32 @@ export function expandRhythmEntries(
 
 /**
  * Converts a duration in beats (where 1.0 = quarter note) into a clean LilyPond duration string.
+ * @param durationBeats Duration in beats (1.0 = quarter note)
+ * @param traditional When true, uses standard traditional dotted note tokens (e.g. "2.", "4.", "8.", "1.")
  */
-export function beatsToLilyPondDuration(durationBeats: number): string {
+export function beatsToLilyPondDuration(
+  durationBeats: number,
+  traditional: boolean = false,
+): string {
   // Round to nearest fraction of 48 (subdivision resolution for 16ths and triplets)
   const ticks = Math.round(durationBeats * 48);
   if (ticks <= 0) return '4';
+
+  if (traditional) {
+    // Standard traditional note values and dotted durations
+    if (ticks === 384) return '\\breve'; // 8 beats
+    if (ticks === 288) return '1.';      // 6 beats (dotted whole)
+    if (ticks === 192) return '1';       // 4 beats (whole)
+    if (ticks === 144) return '2.';      // 3 beats (dotted half)
+    if (ticks === 96)  return '2';       // 2 beats (half)
+    if (ticks === 72)  return '4.';      // 1.5 beats (dotted quarter)
+    if (ticks === 48)  return '4';       // 1 beat (quarter)
+    if (ticks === 36)  return '8.';      // 0.75 beats (dotted 8th)
+    if (ticks === 24)  return '8';       // 0.5 beats (8th)
+    if (ticks === 18)  return '16.';     // 0.375 beats (dotted 16th)
+    if (ticks === 12)  return '16';      // 0.25 beats (16th)
+    if (ticks === 6)   return '32';      // 0.125 beats (32nd)
+  }
 
   // Common exact powers of 2
   if (ticks === 192) return '1';       // Whole note (4 beats)

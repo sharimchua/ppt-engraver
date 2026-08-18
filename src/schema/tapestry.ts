@@ -201,6 +201,10 @@ export const EngravingSchema = z.object({
   noteheadOutline: z.boolean().optional(),
   /** Whether to omit stems on noteheads for unmetered notation */
   omitStem: z.boolean().optional(),
+  /** Whether to use traditional note duration formatting (dotted notes, open noteheads for half/whole, visible rests) */
+  traditionalRhythms: z.boolean().optional(),
+  /** Alias for traditionalRhythms */
+  traditionalDurations: z.boolean().optional(),
   /** Clef for the melody staff (e.g. "treble", "treble_8", "bass") */
   melodyClef: z.string().optional(),
   /** Clef for the harmony staff (e.g. "treble", "bass", "bass_8", "bass_15") */
@@ -287,6 +291,8 @@ export const KnotSchema = z.object({
   melodyAugmentationDisplay: MelodyAugmentationDisplayEnum.optional(),
   projection: ProjectionPresetEnum.optional(),
   omitStem: z.boolean().optional(),
+  traditionalRhythms: z.boolean().optional(),
+  traditionalDurations: z.boolean().optional(),
   colorNotes: z.boolean().optional(),
   noteheadOutline: z.boolean().optional(),
   harmonyStaffStyle: z.enum(['standard', 'coil', 'both']).optional(),

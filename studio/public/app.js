@@ -222,6 +222,7 @@ const ENGRAVING_KEYS = [
   { text: 'colorNotes:', displayText: 'colorNotes: true', type: 'prop', desc: 'PPT chromatic notehead colors' },
   { text: 'noteheadOutline:', displayText: 'noteheadOutline: true', type: 'prop', desc: 'Dark outline on noteheads' },
   { text: 'omitStem:', displayText: 'omitStem: true', type: 'prop', desc: 'Hide stems & flags' },
+  { text: 'traditionalRhythms:', displayText: 'traditionalRhythms: true', type: 'prop', desc: 'Dotted notes, open noteheads & rests' },
   { text: 'melodyClef:', displayText: 'melodyClef: ...', type: 'prop', desc: 'Melody staff clef' },
   { text: 'harmonyClef:', displayText: 'harmonyClef: ...', type: 'prop', desc: 'Harmony staff clef' },
   { text: 'harmonyOctave:', displayText: 'harmonyOctave: 0', type: 'prop', desc: 'Harmony octave shift' },
@@ -672,7 +673,7 @@ function getContextSuggestions(cm, cursor) {
     if (/^noteheadStyle$/i.test(propName)) return ENUMS_NOTEHEAD_STYLE;
     if (/^harmonyStaffStyle$/i.test(propName)) return ENUMS_HARMONY_STAFF_STYLE;
     if (/^layout$/i.test(propName)) return [{ text: 'concatenate', displayText: 'concatenate', type: 'enum', desc: 'Sequential concatenation' }];
-    if (/^(colorNotes|omitStem|noteheadOutline|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil)$/i.test(propName)) {
+    if (/^(colorNotes|omitStem|traditionalRhythms|traditionalDurations|noteheadOutline|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil)$/i.test(propName)) {
       return [
         { text: 'true', displayText: 'true', type: 'enum', desc: 'Enable' },
         { text: 'false', displayText: 'false', type: 'enum', desc: 'Disable' },

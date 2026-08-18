@@ -181,6 +181,8 @@ export interface ResolvedKnot {
   harmonyChangesOnly?: boolean;
   /** Whether to omit stems in notation */
   omitStem?: boolean;
+  /** Whether to use traditional note duration formatting (dotted notes, open noteheads for half/whole, visible rests) */
+  traditionalRhythms?: boolean;
 
   /** Whether to colorize melody noteheads according to PPT Solfège palette */
   colorNotes?: boolean;

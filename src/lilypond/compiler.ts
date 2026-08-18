@@ -91,6 +91,10 @@ export interface CompileOptions {
   doPitch?: string;
   /** Whether to omit stems on noteheads */
   omitStem?: boolean;
+  /** Whether to format note durations with traditional dotted values (e.g. 2., 4., 8.), open noteheads for half/whole, and visible rests */
+  traditionalRhythms?: boolean;
+  /** Alias for traditionalRhythms */
+  traditionalDurations?: boolean;
   /** Whether to show harmony chords only when changed and at bar starts, using whole notehead durations (default: true) */
   harmonyChangesOnly?: boolean;
   /** Whether to colorize melody noteheads according to the PPT Solfège palette */
@@ -639,6 +643,50 @@ export function getDefaultHarmonyOctaveShift(clef: string): number {
   return 0;
 }
 
+/**
+ * Computes manual LilyPond beaming brackets ('[' for start beam, ']' for end beam)
+ * for a sequence of onsets within a single voice and coil.
+ *
+ * Beaming groups consecutive non-rest onsets with duration < 1 beat (e.g. 8th notes, 16th notes, triplets)
+ * that fall within the same quarter-note beat window (Math.floor(startBeat)).
+ */
+export function computeOnsetBeaming(onsets: Onset[]): Map<number, "[" | "]"> {
+  const beamMap = new Map<number, "[" | "]">();
+  let currentGroup: number[] = [];
+  let currentBeat = -1;
+
+  for (let i = 0; i < onsets.length; i++) {
+    const o = onsets[i];
+    const durBeats = o.durationBeats ?? 1.0;
+    const startBeat = o.startBeat ?? i;
+    const beatIndex = Math.floor(startBeat + 1e-5);
+    const isBeamable = !o.isRest && durBeats < 1.0 - 1e-5;
+
+    if (isBeamable && beatIndex === currentBeat) {
+      currentGroup.push(i);
+    } else {
+      if (currentGroup.length >= 2) {
+        beamMap.set(currentGroup[0], "[");
+        beamMap.set(currentGroup[currentGroup.length - 1], "]");
+      }
+      if (isBeamable) {
+        currentGroup = [i];
+        currentBeat = beatIndex;
+      } else {
+        currentGroup = [];
+        currentBeat = -1;
+      }
+    }
+  }
+
+  if (currentGroup.length >= 2) {
+    beamMap.set(currentGroup[0], "[");
+    beamMap.set(currentGroup[currentGroup.length - 1], "]");
+  }
+
+  return beamMap;
+}
+
 export function compileToLilyPond(
   onsets: OnsetStream,
   options: CompileOptions = {},
@@ -654,6 +702,8 @@ export function compileToLilyPond(
 
   const noteheadStyle = options.noteheadStyle ?? "default";
   const omitStem = options.omitStem ?? false;
+  const traditionalRhythms =
+    options.traditionalRhythms ?? options.traditionalDurations ?? false;
   const colorNotes = options.colorNotes ?? false;
   const noteheadOutline =
     options.noteheadOutline ?? (colorNotes ? true : false);
@@ -728,7 +778,9 @@ export function compileToLilyPond(
     melodyLines.push("  \\omit Dots");
   }
 
-  melodyLines.push("  \\override NoteHead.duration-log = #2");
+  if (!traditionalRhythms) {
+    melodyLines.push("  \\override NoteHead.duration-log = #2");
+  }
   melodyLines.push("  \\cadenzaOn");
   const isMultiVoice = onsets.some((o) => (o.voiceIndex ?? 1) > 1);
   const voiceIndices = isMultiVoice
@@ -769,12 +821,18 @@ export function compileToLilyPond(
     coilGroups.push(currentGroup);
   }
 
+
+
   const augDisplay = options.melodyAugmentationDisplay ?? "ghosted";
 
-  function formatMelodyNote(onset: Onset): string {
-    const onsetDur = onset.duration ?? dur;
+  function formatMelodyNote(onset: Onset, beamBracket: string = ""): string {
+    const onsetDur =
+      traditionalRhythms && onset.durationBeats !== undefined
+        ? beatsToLilyPondDuration(onset.durationBeats, true)
+        : (onset.duration ?? dur);
     if (onset.isRest) {
-      return `s${onsetDur}`;
+      const restPrefix = traditionalRhythms ? "r" : "s";
+      return `${restPrefix}${onsetDur}`;
     }
 
     const primaryPitch = midiToLilyPondPitch(
@@ -792,7 +850,7 @@ export function compileToLilyPond(
 
     const augNotes = onset.melodyAugmentationNotes;
     if (!augNotes || augNotes.length === 0) {
-      return `${primaryStencil}${primaryColor}${primaryPitch}${onsetDur}`;
+      return `${primaryStencil}${primaryColor}${primaryPitch}${onsetDur}${beamBracket}`;
     }
 
     // Composite chord for melody + inferred companion notes
@@ -837,7 +895,7 @@ export function compileToLilyPond(
       noteTokens.push(`${tweakPrefix}${augPitch}`);
     }
 
-    return `<${noteTokens.join(" ")}>${onsetDur}`;
+    return `<${noteTokens.join(" ")}>${onsetDur}${beamBracket}`;
   }
 
   if (isMultiVoice) {
@@ -864,8 +922,11 @@ export function compileToLilyPond(
         }
         const vOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === vNum);
         if (vOnsets.length > 0) {
-          for (const onset of vOnsets) {
-            const formatted = formatMelodyNote(onset);
+          const beamMap = computeOnsetBeaming(vOnsets);
+          for (let idx = 0; idx < vOnsets.length; idx++) {
+            const onset = vOnsets[idx];
+            const beamBracket = beamMap.get(idx) ?? "";
+            const formatted = formatMelodyNote(onset, beamBracket);
             melodyLines.push(
               `      \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_v${vNum}_${onset.onsetIndex} ${formatted}`,
             );
@@ -887,28 +948,20 @@ export function compileToLilyPond(
     melodyLines.push("  >>");
     melodyLines.push("  \\cadenzaOff");
   } else {
-    let lastMelodyCoilId: string | null = null;
-    let lastMelodyWeaveId: string | null = null;
-
-    for (let i = 0; i < onsets.length; i++) {
-      const onset = onsets[i];
-
-      // Emit coil boundary barline when transitioning between distinct coils or repeating a coil
-      if (
-        i > 0 &&
-        (onset.onsetIndex === 1 ||
-          onset.coilId !== lastMelodyCoilId ||
-          onset.weaveId !== lastMelodyWeaveId)
-      ) {
+    for (let c = 0; c < coilGroups.length; c++) {
+      const group = coilGroups[c];
+      if (c > 0) {
         melodyLines.push('  \\bar "|"');
       }
-      lastMelodyCoilId = onset.coilId;
-      lastMelodyWeaveId = onset.weaveId;
-
-      const formatted = formatMelodyNote(onset);
-      melodyLines.push(
-        `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} ${formatted}`,
-      );
+      const beamMap = computeOnsetBeaming(group.onsets);
+      for (let idx = 0; idx < group.onsets.length; idx++) {
+        const onset = group.onsets[idx];
+        const beamBracket = beamMap.get(idx) ?? "";
+        const formatted = formatMelodyNote(onset, beamBracket);
+        melodyLines.push(
+          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} ${formatted}`,
+        );
+      }
     }
 
     if (onsets.length > 0) {
@@ -1269,7 +1322,9 @@ export function compileToLilyPond(
     harmonyLines.push("  \\omit Dots");
   }
 
-  harmonyLines.push("  \\override NoteHead.duration-log = #2");
+  if (!traditionalRhythms) {
+    harmonyLines.push("  \\override NoteHead.duration-log = #2");
+  }
   harmonyLines.push("  \\cadenzaOn");
 
   if (harmonyChangesOnly) {
@@ -1352,10 +1407,12 @@ export function compileToLilyPond(
       );
       const chordDuration =
         chunk.totalDurationBeats !== undefined
-          ? beatsToLilyPondDuration(chunk.totalDurationBeats)
+          ? beatsToLilyPondDuration(chunk.totalDurationBeats, traditionalRhythms)
           : chunk.spanCount === 4
             ? "1"
-            : `1*${chunk.spanCount}/4`;
+            : traditionalRhythms
+              ? beatsToLilyPondDuration(chunk.spanCount, true)
+              : `1*${chunk.spanCount}/4`;
       harmonyLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmonyStaff_${chunk.onsetIndex} ${chord}${chordDuration}`);
 
       const rootSyllable = parseHarmonyChord(chunk.chordRoot).rootSyllable;
@@ -1366,38 +1423,39 @@ export function compileToLilyPond(
       );
     }
   } else {
-    let lastCoilId: string | null = null;
-    let lastWeaveId: string | null = null;
-
-    for (let i = 0; i < primaryOnsets.length; i++) {
-      const onset = primaryOnsets[i];
-      if (
-        i > 0 &&
-        (onset.onsetIndex === 1 ||
-          onset.coilId !== lastCoilId ||
-          onset.weaveId !== lastWeaveId)
-      ) {
+    for (let c = 0; c < coilGroups.length; c++) {
+      const group = coilGroups[c];
+      if (c > 0) {
         harmonyLines.push('  \\bar "|"');
         chordNamesLines.push('  \\bar "|"');
       }
-      lastCoilId = onset.coilId;
-      lastWeaveId = onset.weaveId;
+      const groupPrimaryOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
+      const beamMap = computeOnsetBeaming(groupPrimaryOnsets);
 
-      const chord = chordMidiToLilyPond(
-        onset.chordMidi,
-        harmShift,
-        accMode,
-        forceAccidentals,
-      );
-      const onsetDur = onset.duration ?? dur;
-      harmonyLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_harmonyStaff_${onset.onsetIndex} ${chord}${onsetDur}`);
+      for (let idx = 0; idx < groupPrimaryOnsets.length; idx++) {
+        const onset = groupPrimaryOnsets[idx];
+        const chord = chordMidiToLilyPond(
+          onset.chordMidi,
+          harmShift,
+          accMode,
+          forceAccidentals,
+        );
+        const onsetDur =
+          traditionalRhythms && onset.durationBeats !== undefined
+            ? beatsToLilyPondDuration(onset.durationBeats, true)
+            : (onset.duration ?? dur);
+        const beamBracket = beamMap.get(idx) ?? "";
+        harmonyLines.push(
+          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_harmonyStaff_${onset.onsetIndex} ${chord}${onsetDur}${beamBracket}`,
+        );
 
-      const rootSyllable = parseHarmonyChord(onset.chordRoot).rootSyllable;
-      const rootColor = SOLFEGE_TO_SCHEME_COLOR[rootSyllable] ?? "colorDo";
-      const colorTweak = colorNotes ? `\\tweak color #${rootColor} ` : "";
-      chordNamesLines.push(
-        `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordName_${onset.onsetIndex} ${colorTweak}${chord}${onsetDur}`,
-      );
+        const rootSyllable = parseHarmonyChord(onset.chordRoot).rootSyllable;
+        const rootColor = SOLFEGE_TO_SCHEME_COLOR[rootSyllable] ?? "colorDo";
+        const colorTweak = colorNotes ? `\\tweak color #${rootColor} ` : "";
+        chordNamesLines.push(
+          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordName_${onset.onsetIndex} ${colorTweak}${chord}${onsetDur}`,
+        );
+      }
     }
   }
 

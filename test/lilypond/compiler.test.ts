@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compileToLilyPond, chordTokenToCoilMarkup, rhythmTokenToCoilMarkup } from '../../src/lilypond/compiler.js';
+import { compileToLilyPond, chordTokenToCoilMarkup, rhythmTokenToCoilMarkup, computeOnsetBeaming } from '../../src/lilypond/compiler.js';
 import type { OnsetStream } from '../../src/schema/onset.js';
 
 describe('compileToLilyPond', () => {
@@ -695,6 +695,135 @@ describe('rhythmTokenToCoilMarkup', () => {
     const markup = rhythmTokenToCoilMarkup('LeFi');
     expect(markup).toContain('make-solfege-glyph');
     expect(markup).toContain('make-solfege-glyph-sub');
+  });
+});
+
+describe('computeOnsetBeaming & LilyPond Beaming', () => {
+  it('beams two eighth notes in the same beat with [ and ]', () => {
+    const onsets: any[] = [
+      { startBeat: 0.0, durationBeats: 0.5, isRest: false },
+      { startBeat: 0.5, durationBeats: 0.5, isRest: false },
+    ];
+    const beamMap = computeOnsetBeaming(onsets);
+    expect(beamMap.get(0)).toBe('[');
+    expect(beamMap.get(1)).toBe(']');
+  });
+
+  it('beams four 16th notes across a single beat with [ on 0 and ] on 3', () => {
+    const onsets: any[] = [
+      { startBeat: 0.0, durationBeats: 0.25, isRest: false },
+      { startBeat: 0.25, durationBeats: 0.25, isRest: false },
+      { startBeat: 0.5, durationBeats: 0.25, isRest: false },
+      { startBeat: 0.75, durationBeats: 0.25, isRest: false },
+    ];
+    const beamMap = computeOnsetBeaming(onsets);
+    expect(beamMap.get(0)).toBe('[');
+    expect(beamMap.get(1)).toBeUndefined();
+    expect(beamMap.get(2)).toBeUndefined();
+    expect(beamMap.get(3)).toBe(']');
+  });
+
+  it('does not beam isolated eighth notes or quarter notes', () => {
+    const onsets: any[] = [
+      { startBeat: 0.0, durationBeats: 0.5, isRest: false },
+      { startBeat: 1.0, durationBeats: 1.0, isRest: false },
+      { startBeat: 2.0, durationBeats: 0.5, isRest: false },
+    ];
+    const beamMap = computeOnsetBeaming(onsets);
+    expect(beamMap.size).toBe(0);
+  });
+
+  it('does not beam through rests', () => {
+    const onsets: any[] = [
+      { startBeat: 0.0, durationBeats: 0.5, isRest: false },
+      { startBeat: 0.5, durationBeats: 0.5, isRest: true },
+    ];
+    const beamMap = computeOnsetBeaming(onsets);
+    expect(beamMap.size).toBe(0);
+  });
+
+  it('emits beam brackets in compiled LilyPond melody for eighth notes', () => {
+    const onsets: any[] = [
+      {
+        tag: 'ppt_song_riff_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'riff',
+        weaveId: 'song',
+        onsetIndex: 1,
+        startBeat: 0.0,
+        durationBeats: 0.5,
+        duration: '8',
+      },
+      {
+        tag: 'ppt_song_riff_2',
+        pitch: 'D4',
+        midiNote: 62,
+        scaleDegree: 'Re',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'riff',
+        weaveId: 'song',
+        onsetIndex: 2,
+        startBeat: 0.5,
+        durationBeats: 0.5,
+        duration: '8',
+      },
+    ];
+    const ly = compileToLilyPond(onsets);
+    expect(ly).toContain("\\tag #'ppt_song_riff_melody_1 c'8[");
+    expect(ly).toContain("\\tag #'ppt_song_riff_melody_2 d'8]");
+  });
+
+  it('supports traditionalRhythms: true (dotted notes, visible rests, open noteheads)', () => {
+    const onsets: any[] = [
+      {
+        tag: 'ppt_song_motif_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'motif',
+        weaveId: 'song',
+        onsetIndex: 1,
+        startBeat: 0.0,
+        durationBeats: 3.0, // 3 beats -> 2. in traditional
+        duration: '4*3',
+      },
+      {
+        tag: 'ppt_song_motif_2',
+        pitch: 'D4',
+        midiNote: 62,
+        scaleDegree: 'Re',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        coilId: 'motif',
+        weaveId: 'song',
+        onsetIndex: 2,
+        startBeat: 3.0,
+        durationBeats: 1.0,
+        isRest: true, // Rest -> r4 in traditional
+        duration: '4',
+      },
+    ];
+
+    const ly = compileToLilyPond(onsets, { traditionalRhythms: true });
+    // Should NOT have duration-log = #2
+    expect(ly).not.toContain('\\override NoteHead.duration-log = #2');
+    // Should emit dotted half note 2.
+    expect(ly).toContain("\\tag #'ppt_song_motif_melody_1 c'2.");
+    // Should emit visible rest r4
+    expect(ly).toContain("\\tag #'ppt_song_motif_melody_2 r4");
+    // Harmony chord spanning 4 beats should be whole note <c' e' g'>1
+    expect(ly).toContain("\\tag #'ppt_song_motif_harmonyStaff_1 <c' e' g'>1");
   });
 });
 

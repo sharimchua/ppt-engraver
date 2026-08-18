@@ -90,6 +90,12 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
   const noteheadStyle = eng.noteheadStyle ?? knotDef.noteheadStyle;
   let harmonyChangesOnly = eng.harmonyChangesOnly ?? knotDef.harmonyChangesOnly;
   const omitStem = eng.omitStem ?? knotDef.omitStem;
+  const traditionalRhythms =
+    eng.traditionalRhythms ??
+    eng.traditionalDurations ??
+    knotDef.traditionalRhythms ??
+    knotDef.traditionalDurations ??
+    false;
   const colorNotes = eng.colorNotes ?? knotDef.colorNotes;
   const noteheadOutline = eng.noteheadOutline ?? knotDef.noteheadOutline;
   const harmonyStaffStyle = eng.harmonyStaffStyle ?? knotDef.harmonyStaffStyle;
@@ -152,6 +158,7 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
       melodyAugmentationDisplay,
       projection,
       omitStem,
+      traditionalRhythms,
       colorNotes,
       noteheadOutline,
       harmonyStaffStyle,
