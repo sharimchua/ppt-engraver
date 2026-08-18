@@ -371,18 +371,76 @@ body.resizing-panels iframe {
 
 /* CodeMirror Inline Token-Aligned Solfège Glyph Strip */
 .cm-token-solfege-strip {
-  height: 24px;
   position: relative;
   overflow: visible;
-  pointer-events: none;
+  pointer-events: auto;
   user-select: none;
-  margin: 2px 0 3px 0;
+  margin: 3px 0 4px 0;
   padding: 0;
   background: #edf2f7;
   border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.15);
+  border-radius: 5px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.15);
   line-height: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.cm-token-solfege-strip-single {
+  height: 25px;
+}
+
+.cm-token-solfege-strip-dual {
+  height: 50px;
+}
+
+.cm-token-solfege-row {
+  position: relative;
+  height: 25px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.cm-token-solfege-row-alt {
+  border-bottom: 1px dashed #cbd5e1;
+  background: rgba(248, 250, 252, 0.95);
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.cm-token-solfege-row-main {
+  background: #edf2f7;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.cm-token-solfege-badge {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 2;
+  text-transform: uppercase;
+}
+
+.cm-token-solfege-badge.alt-badge {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.cm-token-solfege-badge.main-badge {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
 .cm-token-solfege-item {
@@ -402,9 +460,31 @@ body.resizing-panels iframe {
 
 .cm-token-solfege-item.active-token {
   transform: translate(-50%, -50%) scale(1.2);
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(59, 130, 246, 0.25);
   box-shadow: 0 0 0 1.5px var(--primary);
   filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.6));
+  z-index: 3;
+}
+
+/* CodeMirror Paired Music Layer Token Highlight (Rhythm <-> Melody <-> Harmony) */
+.cm-paired-token-highlight {
+  background: rgba(56, 189, 248, 0.26) !important;
+  border-bottom: 2px solid #38bdf8 !important;
+  border-radius: 3px !important;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.45) !important;
+  font-weight: 700 !important;
+  animation: cm-paired-pulse 1.8s infinite alternate ease-in-out;
+}
+
+@keyframes cm-paired-pulse {
+  0% {
+    background: rgba(56, 189, 248, 0.2);
+    box-shadow: 0 0 4px rgba(56, 189, 248, 0.3);
+  }
+  100% {
+    background: rgba(56, 189, 248, 0.36);
+    box-shadow: 0 0 9px rgba(56, 189, 248, 0.65);
+  }
 }
 
 /* Point-and-Click Navigation (Preview -> Editor) */

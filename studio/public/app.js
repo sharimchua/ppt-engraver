@@ -1118,6 +1118,7 @@ function handleSolfegeTranspose(cm, direction) {
   cm.setCursor({ line: cur.line, ch: newCursorCh });
 
   updateInlineSolfegeWidget();
+  updatePairedTokenHighlights(cm);
   updateScoreHighlights(cm);
 }
 
@@ -1184,6 +1185,7 @@ function handleSolfegeNavigation(cm, direction) {
   }
 
   updateInlineSolfegeWidget();
+  updatePairedTokenHighlights(cm);
   updateScoreHighlights(cm);
 }
 
@@ -1397,6 +1399,7 @@ editor.getWrapperElement().addEventListener('mousedown', (e) => {
       }, 1200);
 
       updateInlineSolfegeWidget();
+      updatePairedTokenHighlights(editor);
       updateScoreHighlights(editor);
     }
   }
@@ -1651,6 +1654,343 @@ function clearInlineWidget() {
   }
 }
 
+/**
+ * Extracts individual music layer tokens (words, numbers, Solfège) and their column ranges from a YAML line.
+ */
+function extractTokensFromLine(lineText) {
+  if (!lineText) return [];
+  const colonIdx = lineText.indexOf(':');
+  let content = lineText;
+  let offset = 0;
+  if (colonIdx !== -1) {
+    content = lineText.slice(colonIdx + 1);
+    offset = colonIdx + 1;
+  } else {
+    const bulletMatch = lineText.match(/^\s*-\s+/);
+    if (bulletMatch) {
+      content = lineText.slice(bulletMatch[0].length);
+      offset = bulletMatch[0].length;
+    }
+  }
+
+  const tokenRegex = /([a-zA-Z0-9\^_~#\/\.\+\-]+)/g;
+  const tokens = [];
+  let tm;
+  while ((tm = tokenRegex.exec(content)) !== null) {
+    const raw = tm[1];
+    if (raw === '[' || raw === ']' || raw === ',') continue;
+    tokens.push({
+      word: raw,
+      startCh: offset + tm.index,
+      endCh: offset + tm.index + raw.length
+    });
+  }
+  return tokens;
+}
+
+// Paired Layer Token Highlight State (CodeMirror text markers)
+let pairedTokenMarks = [];
+
+function clearPairedTokenHighlights() {
+  pairedTokenMarks.forEach(mark => mark.clear());
+  pairedTokenMarks = [];
+}
+
+/**
+ * Expands an array of tokens on a layer into an onset array, taking repeat specs (e.g. 2.2, 1.2, 2)
+ * into account to map each onset back to its authored sourceToken.
+ */
+function expandLayerTokensWithOnsets(tokens) {
+  const onsets = [];
+
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i];
+    const raw = tok.word.trim();
+
+    // Check if repeat token (e.g. 2.2, 1.2, 2, 4)
+    const repeatMatch = raw.match(/^(\d+)(?:\.(\d+))?$/);
+    if (repeatMatch && onsets.length > 0) {
+      const repeatCount = parseInt(repeatMatch[1], 10);
+      const windowSize = repeatMatch[2] ? parseInt(repeatMatch[2], 10) : 1;
+      if (repeatCount > 0 && windowSize > 0 && windowSize <= onsets.length) {
+        const windowOnsets = onsets.slice(-windowSize);
+        for (let r = 0; r < repeatCount; r++) {
+          for (let w = 0; w < windowOnsets.length; w++) {
+            onsets.push({
+              onsetIndex: onsets.length,
+              sourceToken: tok,
+              originToken: windowOnsets[w].originToken || windowOnsets[w].sourceToken,
+              isRepeat: true
+            });
+          }
+        }
+        continue;
+      }
+    }
+
+    onsets.push({
+      onsetIndex: onsets.length,
+      sourceToken: tok,
+      originToken: tok,
+      isRepeat: false
+    });
+  }
+
+  return onsets;
+}
+
+/**
+ * Detects the music layer context for a given line, accurately distinguishing structured
+ * harmony sub-blocks (chords vs harmony.rhythm) from coil-level declarations.
+ */
+function getMusicLayerContext(cm, lineNo) {
+  const line = cm.getLine(lineNo) || '';
+  if (!line.trim() || /^\s*#/.test(line)) return null;
+
+  const curIndent = getLineIndent(line);
+
+  // Walk upwards to detect if inside a harmony: dictionary/list block
+  let isUnderHarmony = false;
+  let harmonyHeaderLine = -1;
+  for (let l = lineNo - 1; l >= Math.max(0, lineNo - 30); l--) {
+    const prevL = cm.getLine(l) || '';
+    if (!prevL.trim() || /^\s*#/.test(prevL)) continue;
+    const prevIndent = getLineIndent(prevL);
+    if (/^\s*harmony\s*:/i.test(prevL) && prevIndent < curIndent) {
+      isUnderHarmony = true;
+      harmonyHeaderLine = l;
+      break;
+    }
+    if (prevIndent < curIndent && /^\s*[_a-zA-Z0-9]+\s*:/.test(prevL) && !/^\s*-\s+/.test(prevL)) {
+      break;
+    }
+  }
+
+  if (/^\s*(melody|pitches)\s*:/i.test(line)) {
+    return { layer: 'melody', isStructuredHarmony: false };
+  }
+  if (/^\s*rhythm\s*:/i.test(line)) {
+    if (isUnderHarmony) {
+      return { layer: 'harmonyRhythm', isStructuredHarmony: true, harmonyHeaderLine };
+    }
+    return { layer: 'rhythm', isStructuredHarmony: false };
+  }
+  if (/^\s*chords\s*:/i.test(line) || /^\s*-\s*chords\s*:/i.test(line)) {
+    return { layer: 'harmonyChords', isStructuredHarmony: isUnderHarmony, harmonyHeaderLine };
+  }
+  if (/^\s*harmony\s*:/i.test(line)) {
+    return { layer: 'harmony', isStructuredHarmony: isUnderHarmony };
+  }
+
+  // Bullet items under a layer
+  if (/^\s*-\s+/.test(line)) {
+    for (let l = lineNo - 1; l >= Math.max(0, lineNo - 40); l--) {
+      const prevL = cm.getLine(l) || '';
+      if (!prevL.trim() || /^\s*#/.test(prevL)) continue;
+      const prevIndent = getLineIndent(prevL);
+      if (/^\s*(melody|pitches)\s*:/i.test(prevL)) {
+        return { layer: 'melody', isStructuredHarmony: false };
+      }
+      if (/^\s*rhythm\s*:/i.test(prevL)) {
+        return { layer: isUnderHarmony ? 'harmonyRhythm' : 'rhythm', isStructuredHarmony: isUnderHarmony };
+      }
+      if (/^\s*(harmony|chords)\s*:/i.test(prevL)) {
+        return { layer: 'harmony', isStructuredHarmony: isUnderHarmony };
+      }
+      if (prevIndent < curIndent && /^\s*[a-zA-Z0-9_]+\s*:/.test(prevL) && !/^\s*-\s+/.test(prevL)) {
+        break;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Searches locally in the document around curLineNo for an adjacent structured harmony line (rhythm or chords).
+ */
+function findAdjacentStructuredHarmonyLine(cm, curLineNo, targetKey) {
+  const curLine = cm.getLine(curLineNo) || '';
+  const curIndent = getLineIndent(curLine);
+  const lineCount = cm.lineCount();
+  const searchRegex = targetKey === 'rhythm' 
+    ? /^\s*rhythm\s*:/i 
+    : /^\s*(?:-\s*)?chords\s*:/i;
+
+  // Search downwards first (e.g. from chords: downwards to rhythm:)
+  for (let l = curLineNo + 1; l < Math.min(lineCount, curLineNo + 15); l++) {
+    const lText = cm.getLine(l) || '';
+    if (!lText.trim() || /^\s*#/.test(lText)) continue;
+    const lIndent = getLineIndent(lText);
+    if (lIndent < curIndent && !/^\s*-\s+/.test(lText)) break;
+    if (searchRegex.test(lText)) {
+      return l;
+    }
+  }
+
+  // Search upwards (e.g. from rhythm: upwards to chords:)
+  for (let l = curLineNo - 1; l >= Math.max(0, curLineNo - 15); l--) {
+    const lText = cm.getLine(l) || '';
+    if (!lText.trim() || /^\s*#/.test(lText)) continue;
+    const lIndent = getLineIndent(lText);
+    if (lIndent < curIndent && !/^\s*-\s+/.test(lText)) {
+      if (!/^\s*harmony\s*:/i.test(lText)) break;
+    }
+    if (searchRegex.test(lText)) {
+      return l;
+    }
+  }
+
+  return -1;
+}
+
+/**
+ * Highlights equivalent token indices across paired music layers (rhythm <-> melody <-> harmony)
+ * in the active coil in CodeMirror.
+ */
+function updatePairedTokenHighlights(cm) {
+  if (!cm) return;
+  clearPairedTokenHighlights();
+
+  const cur = cm.getCursor();
+  const currentLine = cm.getLine(cur.line) || '';
+  if (!currentLine.trim() || /^\s*#/.test(currentLine)) return;
+
+  const musicContext = getMusicLayerContext(cm, cur.line);
+  if (!musicContext) return;
+
+  const lineTokens = extractTokensFromLine(currentLine);
+  if (lineTokens.length === 0) return;
+
+  const activeOnsets = expandLayerTokensWithOnsets(lineTokens);
+
+  // Find all onset indices covered by the token under cursor
+  const targetOnsetIndices = [];
+  activeOnsets.forEach(onset => {
+    const srcTok = onset.sourceToken;
+    if (cur.ch >= srcTok.startCh && cur.ch <= srcTok.endCh) {
+      targetOnsetIndices.push(onset.onsetIndex);
+    }
+  });
+
+  if (targetOnsetIndices.length === 0) return;
+
+  // 2. Find enclosing coil
+  const coil = getEnclosingCoilAtPos(cm, cur);
+  if (!coil) return;
+
+  // 3. Find candidate target lines for sister layers
+  const targetLayerLines = [];
+
+  function findMelodyOrRhythmLine(layerKey) {
+    if (coil.fields) {
+      if (layerKey === 'rhythm') {
+        if (coil.fields.rhythm) return coil.fields.rhythm.line;
+      } else if (layerKey === 'melody') {
+        if (coil.fields.melody) return coil.fields.melody.line;
+      }
+    }
+
+    // Check inherited parent coil if on child coil
+    if (layerKey === 'rhythm' && coil.fields && coil.fields.parents) {
+      const parentId = coil.fields.parents.value.replace(/[\[\]"',]/g, '').trim().split(/\s+/)[0];
+      if (parentId) {
+        const totalLines = cm.lineCount();
+        for (let l = 0; l < totalLines; l++) {
+          const lText = cm.getLine(l) || '';
+          if (new RegExp(`^\\s*${parentId}\\s*:`).test(lText) || new RegExp(`^\\s*-\\s*coil\\s*:\\s*${parentId}\\b`).test(lText)) {
+            const parentCoil = getEnclosingCoilAtPos(cm, { line: l, ch: 0 });
+            if (parentCoil && parentCoil.fields && parentCoil.fields.rhythm) {
+              return parentCoil.fields.rhythm.line;
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    // Check child coils inheriting this coil if on a parent coil
+    if (layerKey === 'melody' && (!coil.fields || !coil.fields.melody) && coil.fields && coil.fields.id) {
+      const currentCoilId = coil.fields.id.value;
+      const totalLines = cm.lineCount();
+      for (let l = 0; l < totalLines; l++) {
+        const lText = cm.getLine(l) || '';
+        if (new RegExp(`^\\s*parents\\s*:\\s*${currentCoilId}\\b`).test(lText)) {
+          const childCoil = getEnclosingCoilAtPos(cm, { line: l, ch: 0 });
+          if (childCoil && childCoil.fields && childCoil.fields.melody) {
+            return childCoil.fields.melody.line;
+          }
+        }
+      }
+    }
+
+    return -1;
+  }
+
+  if (musicContext.isStructuredHarmony) {
+    // Structured harmony block: pair chords <-> harmony.rhythm locally
+    if (musicContext.layer === 'harmonyChords') {
+      const adjLine = findAdjacentStructuredHarmonyLine(cm, cur.line, 'rhythm');
+      if (adjLine !== -1) {
+        targetLayerLines.push({ layer: 'harmonyRhythm', lineNo: adjLine });
+      } else if (coil.fields && coil.fields.harmonyRhythm) {
+        targetLayerLines.push({ layer: 'harmonyRhythm', lineNo: coil.fields.harmonyRhythm.line });
+      }
+    } else if (musicContext.layer === 'harmonyRhythm') {
+      const adjLine = findAdjacentStructuredHarmonyLine(cm, cur.line, 'chords');
+      if (adjLine !== -1) {
+        targetLayerLines.push({ layer: 'harmonyChords', lineNo: adjLine });
+      } else if (coil.fields && coil.fields.chords) {
+        targetLayerLines.push({ layer: 'harmonyChords', lineNo: coil.fields.chords.line });
+      }
+    }
+  } else if (musicContext.layer === 'melody') {
+    targetLayerLines.push({ layer: 'rhythm', lineNo: findMelodyOrRhythmLine('rhythm') });
+  } else if (musicContext.layer === 'rhythm') {
+    targetLayerLines.push({ layer: 'melody', lineNo: findMelodyOrRhythmLine('melody') });
+  }
+  // Note: Unstructured harmony arrays (without explicit harmony rhythm) do not assume 1:1 token alignment with melodic rhythm
+
+  targetLayerLines.forEach(({ layer, lineNo }) => {
+    let targetLineNo = lineNo;
+    if (targetLineNo !== -1 && targetLineNo !== cur.line) {
+      let targetLineText = cm.getLine(targetLineNo) || '';
+      let targetTokens = extractTokensFromLine(targetLineText);
+
+      // Handle multiline array header with child bullet items
+      if (targetTokens.length === 0 && /:\s*$/.test(targetLineText)) {
+        const nextLine = cm.getLine(targetLineNo + 1) || '';
+        if (/^\s*-\s+/.test(nextLine)) {
+          targetTokens = extractTokensFromLine(nextLine);
+          targetLineNo = targetLineNo + 1;
+        }
+      }
+
+      const targetOnsets = expandLayerTokensWithOnsets(targetTokens);
+      const markedTokens = new Set();
+
+      targetOnsetIndices.forEach(oIdx => {
+        if (targetOnsets[oIdx]) {
+          const tok = targetOnsets[oIdx].sourceToken;
+          const tokKey = `${tok.startCh}-${tok.endCh}`;
+          if (!markedTokens.has(tokKey)) {
+            markedTokens.add(tokKey);
+            const mark = cm.markText(
+              { line: targetLineNo, ch: tok.startCh },
+              { line: targetLineNo, ch: tok.endCh },
+              {
+                className: 'cm-paired-token-highlight',
+                title: `Paired onset #${oIdx + 1} (${tok.word})`
+              }
+            );
+            pairedTokenMarks.push(mark);
+          }
+        }
+      });
+    }
+  });
+}
+
 function updateInlineSolfegeWidget() {
   if (!enableSolfegeContext) {
     clearInlineWidget();
@@ -1669,6 +2009,21 @@ function updateInlineSolfegeWidget() {
   if (!isMusicLine) {
     clearInlineWidget();
     return;
+  }
+
+  let isMelody = /^\s*(melody|pitches)\s*:/i.test(currentLine);
+  if (!isMelody && /^\s*-\s+/.test(currentLine)) {
+    const curLineIndent = (currentLine.match(/^\s*/) || [''])[0].length;
+    for (let l = cur.line - 1; l >= Math.max(0, cur.line - 40); l--) {
+      const prevL = editor.getLine(l) || '';
+      const prevIndent = (prevL.match(/^\s*/) || [''])[0].length;
+      if (/^\s*(melody|pitches)\s*:/i.test(prevL)) {
+        isMelody = true;
+        break;
+      } else if (/^\s*(rhythm|harmony|chords)\s*:/i.test(prevL) || (prevIndent < curLineIndent && /^\s*[a-zA-Z0-9_]+\s*:/.test(prevL))) {
+        break;
+      }
+    }
   }
 
   const colonIdx = currentLine.indexOf(':');
@@ -1698,37 +2053,153 @@ function updateInlineSolfegeWidget() {
     return;
   }
 
-  // Create lightweight strip container
+  // Create strip container
   const stripNode = document.createElement('div');
-  stripNode.className = 'cm-token-solfege-strip';
 
-  matches.forEach(tok => {
-    // Calculate exact pixel coords from CodeMirror
-    const startCoord = editor.cursorCoords({ line: cur.line, ch: tok.startCh }, 'local');
-    const endCoord = editor.cursorCoords({ line: cur.line, ch: tok.endCh }, 'local');
-    const centerLeft = Math.round((startCoord.left + endCoord.left) / 2);
+  if (isMelody) {
+    stripNode.className = 'cm-token-solfege-strip cm-token-solfege-strip-dual';
 
-    const item = document.createElement('div');
-    item.className = 'cm-token-solfege-item';
-    item.style.left = `${centerLeft}px`;
+    const rawWords = matches.map(tok => tok.word);
+    const firstParsed = parseMelodyToken(rawWords[0]);
+    const isInterval = firstParsed.hasAxis;
 
-    // Highlight active token if cursor is within token boundary
-    if (cur.ch >= tok.startCh && cur.ch <= tok.endCh) {
-      item.classList.add('active-token');
-    }
+    let altWords = [];
+    let altBadgeText = '';
+    let mainBadgeText = '';
 
-    if (tok.parts.length === 1) {
-      item.innerHTML = createSolfegeGlyphSvg(tok.parts[0].baseSyl, tok.parts[0].hasAxis, 18);
+    if (isInterval) {
+      altWords = convertIntervalToAbsoluteMelody(rawWords);
+      altBadgeText = 'ALT: ABS';
+      mainBadgeText = 'INT';
     } else {
-      // Multiple sub-syllables (e.g. FaMe, DoMeTe, DoxDo)
-      item.innerHTML = tok.parts.map((p, idx) => {
-        const size = idx === 0 ? 16 : 11;
-        return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size);
-      }).join('');
+      altWords = convertAbsoluteToIntervalMelody(rawWords);
+      altBadgeText = 'ALT: INT';
+      mainBadgeText = 'ABS';
     }
 
-    stripNode.appendChild(item);
-  });
+    // 1. Upper Row (Alternative representation)
+    const altRow = document.createElement('div');
+    altRow.className = 'cm-token-solfege-row cm-token-solfege-row-alt';
+    altRow.title = `Alternative Melody View (${isInterval ? 'Absolute' : 'Interval'})`;
+
+    const altBadge = document.createElement('span');
+    altBadge.className = 'cm-token-solfege-badge alt-badge';
+    altBadge.textContent = altBadgeText;
+    altRow.appendChild(altBadge);
+
+    matches.forEach((tok, idx) => {
+      const altWord = altWords[idx] || tok.word;
+      const altParts = splitSyllables(altWord);
+
+      const startCoord = editor.cursorCoords({ line: cur.line, ch: tok.startCh }, 'local');
+      const endCoord = editor.cursorCoords({ line: cur.line, ch: tok.endCh }, 'local');
+      const centerLeft = Math.round((startCoord.left + endCoord.left) / 2);
+
+      const altItem = document.createElement('div');
+      altItem.className = 'cm-token-solfege-item';
+      altItem.style.left = `${centerLeft}px`;
+      altItem.title = `Alt (${altBadgeText}): ${altWord}`;
+
+      if (cur.ch >= tok.startCh && cur.ch <= tok.endCh) {
+        altItem.classList.add('active-token');
+      }
+
+      if (altParts.length === 1) {
+        altItem.innerHTML = createSolfegeGlyphSvg(altParts[0].baseSyl, altParts[0].hasAxis, 16);
+      } else if (altParts.length > 1) {
+        altItem.innerHTML = altParts.map((p, pIdx) => {
+          const size = pIdx === 0 ? 14 : 10;
+          return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size);
+        }).join('');
+      } else {
+        altItem.textContent = altWord;
+      }
+
+      altRow.appendChild(altItem);
+    });
+
+    // 2. Lower Row (Written representation)
+    const mainRow = document.createElement('div');
+    mainRow.className = 'cm-token-solfege-row cm-token-solfege-row-main';
+    mainRow.title = `Written Melody View (${isInterval ? 'Interval' : 'Absolute'})`;
+
+    const mainBadge = document.createElement('span');
+    mainBadge.className = 'cm-token-solfege-badge main-badge';
+    mainBadge.textContent = mainBadgeText;
+    mainRow.appendChild(mainBadge);
+
+    matches.forEach(tok => {
+      const startCoord = editor.cursorCoords({ line: cur.line, ch: tok.startCh }, 'local');
+      const endCoord = editor.cursorCoords({ line: cur.line, ch: tok.endCh }, 'local');
+      const centerLeft = Math.round((startCoord.left + endCoord.left) / 2);
+
+      const item = document.createElement('div');
+      item.className = 'cm-token-solfege-item';
+      item.style.left = `${centerLeft}px`;
+      item.title = `Written (${mainBadgeText}): ${tok.word}`;
+
+      if (cur.ch >= tok.startCh && cur.ch <= tok.endCh) {
+        item.classList.add('active-token');
+      }
+
+      if (tok.parts.length === 1) {
+        item.innerHTML = createSolfegeGlyphSvg(tok.parts[0].baseSyl, tok.parts[0].hasAxis, 17);
+      } else {
+        item.innerHTML = tok.parts.map((p, pIdx) => {
+          const size = pIdx === 0 ? 15 : 11;
+          return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size);
+        }).join('');
+      }
+
+      mainRow.appendChild(item);
+    });
+
+    stripNode.appendChild(altRow);
+    stripNode.appendChild(mainRow);
+  } else {
+    // Single row for rhythm, harmony, chords
+    stripNode.className = 'cm-token-solfege-strip cm-token-solfege-strip-single';
+
+    const row = document.createElement('div');
+    row.className = 'cm-token-solfege-row cm-token-solfege-row-main';
+
+    let layerBadgeText = 'NOTE';
+    if (/^\s*rhythm\s*:/i.test(currentLine)) layerBadgeText = 'RHY';
+    else if (/^\s*(harmony|chords)\s*:/i.test(currentLine)) layerBadgeText = 'HARM';
+
+    const badge = document.createElement('span');
+    badge.className = 'cm-token-solfege-badge main-badge';
+    badge.textContent = layerBadgeText;
+    row.appendChild(badge);
+
+    matches.forEach(tok => {
+      const startCoord = editor.cursorCoords({ line: cur.line, ch: tok.startCh }, 'local');
+      const endCoord = editor.cursorCoords({ line: cur.line, ch: tok.endCh }, 'local');
+      const centerLeft = Math.round((startCoord.left + endCoord.left) / 2);
+
+      const item = document.createElement('div');
+      item.className = 'cm-token-solfege-item';
+      item.style.left = `${centerLeft}px`;
+      item.title = tok.word;
+
+      if (cur.ch >= tok.startCh && cur.ch <= tok.endCh) {
+        item.classList.add('active-token');
+      }
+
+      if (tok.parts.length === 1) {
+        item.innerHTML = createSolfegeGlyphSvg(tok.parts[0].baseSyl, tok.parts[0].hasAxis, 18);
+      } else {
+        item.innerHTML = tok.parts.map((p, pIdx) => {
+          const size = pIdx === 0 ? 16 : 11;
+          return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size);
+        }).join('');
+      }
+
+      row.appendChild(item);
+    });
+
+    stripNode.appendChild(row);
+  }
 
   clearInlineWidget();
   currentInlineWidget = editor.addLineWidget(cur.line, stripNode, {
@@ -1744,6 +2215,7 @@ editor.on('change', () => {
   setDirty(true);
   updateDeclaredIdsCache(editor);
   updateInlineSolfegeWidget();
+  updatePairedTokenHighlights(editor);
   updateScoreHighlights(editor);
   clearTimeout(compileDebounceTimer);
   compileDebounceTimer = setTimeout(() => {
@@ -1751,9 +2223,10 @@ editor.on('change', () => {
   }, 500);
 });
 
-// Cursor activity event for real-time line context & score highlighting
+// Cursor activity event for real-time line context, paired layer token sync & score highlighting
 editor.on('cursorActivity', () => {
   updateInlineSolfegeWidget();
+  updatePairedTokenHighlights(editor);
   updateScoreHighlights(editor);
 });
 
@@ -1949,7 +2422,21 @@ async function fetchScores(targetPath = null) {
   }
 }
 
-async function loadScore(filePath) {
+function confirmDiscardUnsavedChanges() {
+  if (!isDirty) return true;
+  return window.confirm('You have unsaved changes in the current tapestry. Are you sure you want to discard them?');
+}
+
+async function loadScore(filePath, force = false) {
+  if (!force && isDirty && currentScoreFile && filePath !== currentScoreFile) {
+    if (!confirmDiscardUnsavedChanges()) {
+      if (scoreSelect && currentScoreFile) {
+        scoreSelect.value = currentScoreFile;
+      }
+      return;
+    }
+  }
+
   try {
     setStatus('loading', 'Loading...');
     const res = await fetch(`/api/score?file=${encodeURIComponent(filePath)}`);
@@ -2261,8 +2748,9 @@ function handlePointAndClick(url) {
     editor.scrollIntoView({ line: targetLine, ch: targetCh }, 150);
     editor.focus();
 
-    // Trigger cursor update so inline preview strip and highlights update immediately
+    // Trigger cursor update so inline preview strip, paired tokens, and highlights update immediately
     updateInlineSolfegeWidget();
+    updatePairedTokenHighlights(editor);
     updateScoreHighlights(editor);
 
     // Flash animation on the target line
@@ -2601,7 +3089,7 @@ function updateScoreHighlights(cm) {
         harmonyOnsetOrder = Array.from(onsetSet).sort((a, b) => a - b);
       }
 
-      // Highlight STRICTLY within the declarative layer for this coil and specific voice
+      // Highlight active layer token (gold primary) and paired layer onsets (blue active) for this coil
       previewElements.forEach(el => {
         const isCoilMatch = (
           el.dataset.coilId === enclosingCoil ||
@@ -3023,6 +3511,14 @@ function applyZoom() {
 }
 
 // --- Event Listeners ---
+window.addEventListener('beforeunload', (e) => {
+  if (isDirty) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+});
+
 scoreSelect.addEventListener('change', (e) => {
   if (e.target.value) {
     loadScore(e.target.value);
@@ -3037,8 +3533,16 @@ window.addEventListener('popstate', () => {
     for (let i = 0; i < scoreSelect.options.length; i++) {
       const opt = scoreSelect.options[i];
       if (opt.value.toLowerCase().endsWith(cleanParam)) {
-        scoreSelect.value = opt.value;
-        loadScore(opt.value);
+        if (opt.value !== currentScoreFile) {
+          if (!confirmDiscardUnsavedChanges()) {
+            if (currentScoreFile) {
+              updateUrlAndStorage(currentScoreFile);
+            }
+            break;
+          }
+          scoreSelect.value = opt.value;
+          loadScore(opt.value, true);
+        }
         break;
       }
     }
@@ -3331,7 +3835,19 @@ function getEnclosingCoilAtPos(cm, pos) {
     const dictMatch = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)(.*)$/);
     if (dictMatch) {
       const key = dictMatch[2];
-      if (!['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem', 'id', 'parent'].includes(key)) {
+      const EXCLUDED_COIL_KEYS = new Set([
+        'tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children',
+        'melody', 'rhythm', 'harmony', 'chords', 'pitches', 'concat',
+        'parents', 'parent', 'show', 'song', 'title', 'composer', 'arranger',
+        'tempo', 'tonic', 'colorNotes', 'omitStem', 'octave', 'meter',
+        'duration', 'harmonyOctave', 'harmonyClef', 'melodyClef',
+        'voice', 'voices', 'harmonyStaffStyle', 'showHarmonyCoil',
+        'showTraditionalHarmony', 'harmonyChangesOnly', 'color',
+        'harmonyVoicing', 'melodyAugmentation', 'melodyAugmentationDisplay',
+        'projection', 'id'
+      ]);
+
+      if (!EXCLUDED_COIL_KEYS.has(key.toLowerCase())) {
         let isUnderCoils = false;
         for (let p = l - 1; p >= 0; p--) {
           const pLine = cm.getLine(p);
@@ -3381,37 +3897,59 @@ function getEnclosingCoilAtPos(cm, pos) {
   }
 
   const fields = {};
+  let inHarmonyBlock = false;
+  let harmonyBlockIndent = 0;
+
   for (let l = startLine; l <= endLine; l++) {
     const line = cm.getLine(l);
+    if (/^\s*#/.test(line) || !line.trim()) continue;
+    const indent = getLineIndent(line);
+
     const idMatch = line.match(/\bid\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
     if (idMatch && !coilId) {
       coilId = idMatch[1];
       fields.id = { line: l, value: coilId, fullText: line };
     }
 
-    const melodyMatch = line.match(/^\s*melody\s*:\s*(.+)$/);
-    if (melodyMatch) {
-      fields.melody = { line: l, value: melodyMatch[1].trim(), fullText: line };
+    if (/^\s*harmony\s*:/i.test(line)) {
+      const val = line.replace(/^\s*harmony\s*:\s*/i, '').trim();
+      fields.harmony = { line: l, value: val, fullText: line };
+      inHarmonyBlock = true;
+      harmonyBlockIndent = indent;
+      continue;
     }
 
-    const rhythmMatch = line.match(/^\s*rhythm\s*:\s*(.+)$/);
-    if (rhythmMatch) {
-      fields.rhythm = { line: l, value: rhythmMatch[1].trim(), fullText: line };
+    if (inHarmonyBlock) {
+      if (indent <= harmonyBlockIndent && /^\s*[_a-zA-Z0-9]+\s*:/i.test(line) && !/^\s*-\s+/.test(line)) {
+        inHarmonyBlock = false;
+      }
     }
 
-    const harmonyMatch = line.match(/^\s*harmony\s*:\s*(.+)$/);
-    if (harmonyMatch) {
-      fields.harmony = { line: l, value: harmonyMatch[1].trim(), fullText: line };
-    }
-
-    const parentsMatch = line.match(/^\s*(?:parents|parent)\s*:\s*(.+)$/);
-    if (parentsMatch) {
-      fields.parents = { line: l, value: parentsMatch[1].trim(), fullText: line };
-    }
-
-    const concatMatch = line.match(/^\s*concat\s*:\s*(.+)$/);
-    if (concatMatch) {
-      fields.concat = { line: l, value: concatMatch[1].trim(), fullText: line };
+    if (inHarmonyBlock) {
+      if (/^\s*chords\s*:/i.test(line) || /^\s*-\s*chords\s*:/i.test(line)) {
+        const val = line.replace(/^\s*(?:-\s*)?chords\s*:\s*/i, '').trim();
+        fields.chords = { line: l, value: val, fullText: line };
+      } else if (/^\s*rhythm\s*:/i.test(line)) {
+        const val = line.replace(/^\s*rhythm\s*:\s*/i, '').trim();
+        fields.harmonyRhythm = { line: l, value: val, fullText: line };
+      }
+    } else {
+      if (/^\s*melody\s*:/i.test(line) || /^\s*pitches\s*:/i.test(line)) {
+        const val = line.replace(/^\s*(?:melody|pitches)\s*:\s*/i, '').trim();
+        fields.melody = { line: l, value: val, fullText: line };
+      } else if (/^\s*rhythm\s*:/i.test(line)) {
+        const val = line.replace(/^\s*rhythm\s*:\s*/i, '').trim();
+        fields.rhythm = { line: l, value: val, fullText: line };
+      } else if (/^\s*chords\s*:/i.test(line)) {
+        const val = line.replace(/^\s*chords\s*:\s*/i, '').trim();
+        fields.chords = { line: l, value: val, fullText: line };
+      } else if (/^\s*(?:parents|parent)\s*:/i.test(line)) {
+        const val = line.replace(/^\s*(?:parents|parent)\s*:\s*/i, '').trim();
+        fields.parents = { line: l, value: val, fullText: line };
+      } else if (/^\s*concat\s*:/i.test(line)) {
+        const val = line.replace(/^\s*concat\s*:\s*/i, '').trim();
+        fields.concat = { line: l, value: val, fullText: line };
+      }
     }
   }
 
@@ -3458,6 +3996,7 @@ function triggerGoToDefinition(cm) {
         cm.removeLineClass(def.line, 'background', 'cm-point-click-flash');
       }, 1200);
       updateInlineSolfegeWidget();
+      updatePairedTokenHighlights(cm);
       updateScoreHighlights(cm);
     }
   }
@@ -4233,6 +4772,7 @@ function refactorConvertMelody(cm, targetMode = 'auto') {
   cm.replaceRange(newLineText, { line: targetLineNo, ch: 0 }, { line: targetLineNo, ch: cm.getLine(targetLineNo).length });
 
   updateInlineSolfegeWidget();
+  updatePairedTokenHighlights(cm);
   updateScoreHighlights(cm);
   triggerCompile();
   setStatus('ready', `Converted melody to ${convertedTo}`);
@@ -4241,6 +4781,8 @@ function refactorConvertMelody(cm, targetMode = 'auto') {
 // --- Tapestry Project Management Operations ---
 
 async function createTapestry() {
+  if (!confirmDiscardUnsavedChanges()) return;
+
   const result = await showRefactorDialog({
     title: 'Create New Tapestry',
     desc: 'Create a new PPT score with geometric Solfège noteheads and starter motif structure:',

@@ -34,6 +34,9 @@ The `studio/public/` directory contains the client-side single-page application 
   - Automatically scaffolds clean starter YAML score with PPT noteheads, compiles, and loads it into the editor.
 - **Save Tapestry (`Ctrl+S` / `Cmd+S` / `💾 Save Tapestry` Button)**:
   - Persists the active tapestry to the `scores/` directory and updates the UI status badge and URL history.
+- **Unsaved Changes Protection (`confirmDiscardUnsavedChanges`)**:
+  - Automatically guards against accidental loss of unsaved tapestry modifications when switching scores via dropdown, tapestry palette (`Ctrl+O`), `+ New Tapestry` (`Ctrl+N`), browser back/forward navigation (`popstate`), and page reload/close (`beforeunload`).
+  - Reverts dropdown selector and URL navigation if the user cancels the confirmation dialog.
 - **Delete Tapestry (Command Palette `Delete Current Tapestry...`)**:
   - Prompts for confirmation and permanently removes the score YAML file and all associated compiled artifacts (`.notation.ly`, `.pdf`, `.ppt-map.json`, `.svg`) via `POST /api/delete`.
 
@@ -59,19 +62,28 @@ The `studio/public/` directory contains the client-side single-page application 
 - **Rich Context Autocomplete (`Ctrl+Space`)**:
   - Custom hint renderer displaying category badges: `[SNIP]` (Cyan), `[COIL]` (Green), `[WEAVE]` (Purple), `[NOTE]` (Solfège Pill with PPT color swatch), `[ENUM]` (Amber), `[PROP]` (Slate).
   - **Precision Scope & Property Enums**: Accurately scopes suggestions based on YAML block hierarchy and active property (`harmonyVoicing:`, `melodyAugmentation:`, `melodyAugmentationDisplay:`, `projection:`, `melodyClef:`, `harmonyClef:`, `noteheadStyle:`, `show:`, inside brackets `[...]`, or inside `engraving:`, `coils:`, `weaves:`, `children:`).
-  - **Progressive Narrowing & Delimiter-Aware Replacement**: Narrowing suggestions as the user types partial tokens, cleanly replacing the partial prefix upon selection, and auto-formatting spaces after property colons without corrupting YAML syntax.
 - **Dynamic YAML Snippets Library (`snippets/*.yaml`)**:
   - Automatically loads and watches modular snippet files from `snippets/*.yaml` via `/api/snippets`.
   - Seamlessly injected into CodeMirror contextual autocomplete (`Ctrl+Space`) and registered into the Command Palette (`Ctrl+Shift+P`) dynamically.
   - Adding or modifying snippet files in `snippets/` takes effect immediately on reload without code modifications.
 - **Searchable Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P` / `F1` / `⌨ Commands` button)**:
-  - Filterable command list with instant fuzzy search across all project operations, refactorings, score metadata, dynamically registered snippets, folding, navigation, and compilation tools with full keyboard navigation (`↑`/`↓`### 5. Lightweight Text-Aligned Solfège Preview Strip
+  - Filterable command list with instant fuzzy search across all project operations, refactorings, score metadata, dynamically registered snippets, folding, navigation, and compilation tools with full keyboard navigation (`↑`/`↓`/`Enter`/`Esc`).
+
+### 5. Lightweight Text-Aligned Solfège Preview Strip & Paired Layer Highlighting
 - **Line Widget (`.cm-token-solfege-strip`)**:
   - Active on `melody:`, `harmony:`, `rhythm:`, `chords:`, `pitches:` lines, and nested polyphonic voice arrays (`- [...]`, `- pitches:`).
-  - Floats directly above the line being edited.
+  - Floats directly above the line being edited with pixel-accurate token alignment.
+  - **Dual Melody Representation Row**: For `melody` lines, displays two vertically stacked rows:
+    - **Upper Row (Alternative View, `.cm-token-solfege-row-alt`)**: Displays the alternative representation (computed **Absolute** degrees when defined in **Interval** mode with axis anchor `x`, or computed **Interval** steps when defined in **Absolute** mode) with an `ALT: ABS` / `ALT: INT` badge.
+    - **Lower Row (Written View, `.cm-token-solfege-row-main`)**: Displays the written tokens as authored in YAML with a `WRITTEN: INT` / `WRITTEN: ABS` badge.
+    - **Single Row**: Displays a single contextual preview row for `rhythm` (`RHY`), `harmony` (`HARM`), and `chords`.
   - Dynamically calculates pixel `left` coordinates to center vector SVG Solfège glyphs directly over each token.
-  - Light high-contrast background (`#edf2f7`) ensuring readability.
-  - Axis diacritics dynamically stroke-colored to match the syllable's color.
+  - Active token highlighted in both rows in sync with cursor position.
+- **Paired Music Layer Token Highlighting (`.cm-paired-token-highlight`)**:
+  - **Melodic Pairing (`melody` $\leftrightarrow$ `rhythm`)**: Highlights 1-to-1 onset equivalents between melody and melodic rhythm (including across parent/child `parents:` references).
+  - **Structured Harmony Pairing (`chords` $\leftrightarrow$ `harmony.rhythm`)**: Scopes structured harmony blocks (`harmony:\n chords: [...]\n rhythm: [...]`), directly pairing `chords` against their own `harmony.rhythm` via local block scanning (`findAdjacentStructuredHarmonyLine`).
+  - **Unstructured Harmony Handling**: Simple harmony arrays without explicit rhythm declarations (e.g. `harmony: [Fa, Do, So^, Do]`) do not force an erroneous 1-to-1 token alignment with melodic rhythm onsets.
+  - **Onset-Aware Repeat Expansion**: Accurately maps lookback repeat tokens (`X.Y`, `X` e.g. `2.2`, `1.2`) to their expanded onset ranges so cursor positions before and after repeats map seamlessly across layers.
 
 ### 6. Bidirectional Navigation & Real-Time Score Highlighting
 - **PDF Mode (`renderPdfPages`) & SVG Mode**:
@@ -81,13 +93,13 @@ The `studio/public/` directory contains the client-side single-page application 
 - **Line-to-Score Real-Time Highlighting (Editor $\to$ Preview, 1-to-Many)**:
   - Scoped strictly to declarative music lines (`melody:`, `harmony:`, `rhythm:`, `chords:`, `pitches:`), polyphonic voice bullet items, and compositional/structural lines (`coil:`, `weave:`, `concat:`, `parents:`, `children:`, structure definition headers).
   - When focused on a specific melody voice line (e.g. voice 2 in a polyphonic melody array), only noteheads in that specific voice receive highlights (`dataset.voiceIndex === targetVoiceIndex`), ignoring other parallel melody voices and other layers.
-  - When focused on a specific token on that line, only matching onsets in that layer receive `.score-highlight-primary` (gold halo), while the rest of that layer/voice receives `.score-highlight-active` (blue halo).
+  - When focused on a specific token on that line, the matching onset in that layer receives `.score-highlight-primary` (gold halo), while the remaining noteheads in that layer/voice receive `.score-highlight-active` (blue halo).
   - On non-declarative lines (metadata, titles, tempos, settings, comments), preview highlighting is automatically deactivated.
 - **Navigation Handler (`handlePointAndClick`, Preview $\to$ Editor)**:
   - Traces concatenated sub-coils (e.g. `full_verse` $\to$ `_verse2`) and inherited parents (e.g. `intro4` $\to$ `intro_turnaround`) to their origin coil.
   - For polyphonic melody lines, navigates directly to the specific voice array line (e.g. the 2nd bullet item in `melody:`) and column for that note.
   - For structured harmony blocks, navigates directly to `chords:` or the relevant harmony entry.
-  - Moves cursor (`editor.setCursor`), scrolls into view (`editor.scrollIntoView`), and triggers a blue pulse highlight (`.cm-point-click-flash`).-point-click-flash`).
+  - Moves cursor (`editor.setCursor`), scrolls into view (`editor.scrollIntoView`), and triggers a blue pulse highlight (`.cm-point-click-flash`).
 
 ### 6. Interactive UX & Viewport Controls
 - **Draggable Split-Pane**: Resize editor and preview with min-width constraints (320px).
