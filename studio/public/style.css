@@ -322,120 +322,32 @@ body.resizing-panels iframe {
 .cm-ppt-le, .cm-ppt-la, .cm-ppt-li { color: #c084fc !important; font-weight: 600; }
 .cm-ppt-te, .cm-ppt-ti { color: #f472b6 !important; font-weight: 600; }
 
-/* CodeMirror Inline Melody Coil Preview Widget */
-.cm-inline-solfege-widget {
-  background: #1e222b;
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  border-left: 3px solid var(--primary);
-  border-radius: 6px;
-  padding: 6px 10px;
-  margin: 4px 12px 6px 4px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-  font-family: var(--font-mono);
-  font-size: 11px;
+/* CodeMirror Inline Token-Aligned Solfège Glyph Strip */
+.cm-token-solfege-strip {
+  height: 22px;
+  position: relative;
+  overflow: visible;
+  pointer-events: none;
   user-select: none;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
 }
 
-.cm-inline-solfege-widget .widget-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.cm-inline-solfege-widget .widget-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--primary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.cm-inline-solfege-widget .widget-coil-badge {
-  background: var(--bg-surface);
-  color: var(--text-dim);
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
-}
-
-.cm-inline-solfege-widget .widget-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-  gap: 8px;
-}
-
-.cm-inline-solfege-widget .widget-row:last-child {
-  margin-bottom: 0;
-}
-
-.cm-inline-solfege-widget .widget-row-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-dim);
-  width: 105px;
-  flex-shrink: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.cm-inline-solfege-widget .widget-cells {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  align-items: center;
-}
-
-.cm-inline-solfege-widget .widget-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  padding: 2px 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.cm-inline-solfege-widget .widget-cell.active-token {
-  background: rgba(59, 130, 246, 0.22);
-  border-color: var(--primary);
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.45);
-}
-
-.cm-inline-solfege-widget .glyph-wrapper {
+.cm-token-solfege-item {
+  position: absolute;
+  top: 0;
   height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  transition: transform 0.1s ease;
 }
 
-.cm-inline-solfege-widget .cell-sub {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-top: 1px;
-}
-
-.cm-inline-solfege-widget .widget-cell.active-token .cell-sub {
-  color: #ffffff;
-}
-
-.cm-inline-solfege-widget .rest-cell {
-  color: var(--text-dim);
-  font-size: 11px;
-  font-weight: 700;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.cm-token-solfege-item.active-token {
+  transform: scale(1.25);
+  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.8)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
 }
 
 /* Error Banner */

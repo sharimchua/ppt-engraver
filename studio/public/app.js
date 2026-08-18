@@ -224,6 +224,12 @@ CodeMirror.registerHelper('hint', 'yaml', (cm) => {
 });
 
 // --- Solfège SVG Glyph Definitions (PPT Geometric Rotations & Palettes) ---
+const SVG_PATH_BASE = 'M 0.262 0.806 L 0.389 0.674 L 0.559 0.498 L 0.750 0.302 L 0.848 0.000 L 0.750 -0.302 L 0.714 -0.412 L 0.686 -0.498 L 0.405 -0.702 L 0.262 -0.806 L 0.000 -0.848 L -0.262 -0.806 L -0.405 -0.702 L -0.686 -0.498 L -0.714 -0.412 L -0.750 -0.302 L -0.848 0.000 L -0.750 0.302 L -0.559 0.498 L -0.389 0.674 L -0.262 0.806 L -0.250 0.432 L -0.330 0.381 L -0.407 0.292 L -0.440 0.254 L -0.473 0.216 L -0.483 0.142 L -0.504 0.000 L -0.483 -0.142 L -0.445 -0.226 L -0.393 -0.340 L -0.330 -0.381 L -0.250 -0.432 L -0.209 -0.458 L -0.147 -0.498 L 0.000 -0.504 L 0.147 -0.498 L 0.209 -0.458 L 0.250 -0.432 L 0.330 -0.381 L 0.393 -0.340 L 0.445 -0.226 L 0.483 -0.142 L 0.504 0.000 L 0.483 0.142 L 0.473 0.216 L 0.440 0.254 L 0.407 0.292 L 0.330 0.381 L 0.250 0.432 Z';
+
+const SVG_PATH_SHARP = 'M 0.00 1.00 L 0.00 0.807 L 0.001 0.806 L 0.262 0.806 L 0.389 0.674 L 0.447 0.615 L 0.462 0.599 L 0.559 0.498 L 0.288 0.498 L 0.148 0.740 L 0.110 0.806 L 0.000 0.806 L 0.000 0.520 L 0.072 0.499 L 0.146 0.499 L 0.147 0.498 L 0.073 0.498 L 0.209 0.458 L 0.250 0.432 L 0.330 0.381 L 0.407 0.292 L 0.424 0.272 L 0.440 0.254 L 0.473 0.216 L 0.480 0.165 L 0.483 0.142 L 0.504 0.000 L 0.514 -0.074 L 0.483 -0.142 L 0.445 -0.226 L 0.434 -0.250 L 0.424 -0.272 L 0.393 -0.340 L 0.371 -0.354 L 0.330 -0.381 L 0.250 -0.432 L 0.209 -0.458 L 0.147 -0.498 L 0.146 -0.499 L -0.146 -0.499 L -0.147 -0.498 L -0.209 -0.458 L -0.250 -0.432 L -0.330 -0.381 L -0.371 -0.354 L -0.393 -0.340 L -0.424 -0.272 L -0.434 -0.250 L -0.445 -0.226 L -0.483 -0.142 L -0.514 -0.074 L -0.504 0.000 L -0.483 0.142 L -0.480 0.165 L -0.473 0.216 L -0.440 0.254 L -0.424 0.272 L -0.407 0.292 L -0.330 0.381 L -0.250 0.432 L -0.257 0.444 L -0.288 0.498 L -0.560 0.498 L -0.668 0.386 L -0.697 0.356 L -0.750 0.302 L -0.848 0.000 L -0.750 -0.302 L -0.714 -0.412 L -0.686 -0.498 L -0.405 -0.702 L -0.262 -0.806 L 0.262 -0.806 L 0.110 -0.806 L 0.262 -0.806 L 0.405 -0.702 L 0.686 -0.498 L 0.714 -0.412 L 0.750 -0.302 L 0.848 0.000 L 0.750 0.302 L 0.811 0.408 L 0.863 0.498 L 0.866 0.500 L 0.707 0.707 L 0.500 0.866 L 0.259 0.966 L 0.000 1.000 Z';
+
+const SVG_PATH_FLAT = 'M 0.00 1.00 L -0.259 0.966 L -0.500 0.866 L -0.707 0.707 L -0.866 0.500 L -0.863 0.498 L -0.811 0.408 L -0.750 0.302 L -0.848 0.000 L -0.750 -0.302 L -0.714 -0.412 L -0.686 -0.498 L -0.405 -0.702 L -0.262 -0.806 L 0.262 -0.806 L 0.110 -0.806 L 0.262 -0.806 L 0.405 -0.702 L 0.686 -0.498 L 0.714 -0.412 L 0.750 -0.302 L 0.848 0.000 L 0.750 0.302 L 0.697 0.356 L 0.668 0.386 L 0.559 0.498 L 0.288 0.498 L 0.257 0.444 L 0.250 0.432 L 0.330 0.381 L 0.407 0.292 L 0.424 0.272 L 0.440 0.254 L 0.473 0.216 L 0.480 0.165 L 0.483 0.142 L 0.504 0.000 L 0.514 -0.074 L 0.483 -0.142 L 0.445 -0.226 L 0.434 -0.250 L 0.424 -0.272 L 0.393 -0.340 L 0.371 -0.354 L 0.330 -0.381 L 0.250 -0.432 L 0.209 -0.458 L 0.147 -0.498 L 0.146 -0.499 L -0.146 -0.499 L -0.147 -0.498 L -0.209 -0.458 L -0.250 -0.432 L -0.330 -0.381 L -0.371 -0.354 L -0.393 -0.340 L -0.424 -0.272 L -0.434 -0.250 L -0.445 -0.226 L -0.483 -0.142 L -0.514 -0.074 L -0.504 0.000 L -0.483 0.142 L -0.480 0.165 L -0.473 0.216 L -0.440 0.254 L -0.424 0.272 L -0.407 0.292 L -0.330 0.381 L -0.250 0.432 L -0.073 0.498 L -0.147 0.498 L -0.146 0.499 L -0.072 0.499 L 0.000 0.520 L 0.000 0.806 L -0.110 0.806 L -0.148 0.740 L -0.288 0.498 L -0.560 0.498 L -0.463 0.599 L -0.447 0.615 L -0.389 0.675 L -0.262 0.806 L -0.001 0.806 L 0.000 0.807 L 0.000 1.000 Z';
+
 const SOLFEGE_GLYPH_SPECS = {
   Do: { glyphType: 'base', rotation: 0, colorHex: '#E13610' },
   Ra: { glyphType: 'sharp', rotation: 0, colorHex: '#F98016' },
@@ -244,88 +250,30 @@ const SOLFEGE_GLYPH_SPECS = {
   Ti: { glyphType: 'flat', rotation: 0, colorHex: '#F158A4' },
 };
 
-const SYLLABLE_SEMITONES = {
-  do: 0, ra: 1, di: 1, re: 2, me: 3, ri: 3, mi: 4, fa: 5, fi: 6, se: 6, so: 7, si: 7, le: 8, la: 9, li: 9, te: 10, ti: 11
-};
-
-const NEAREST_ADDRESS = [0, 1, 2, 3, 4, 5, 6, -5, -4, -3, -2, -1];
-const INTERVAL_MAP = {
-  0: 'Do',
-  1: 'Ra',
-  2: 'Re',
-  3: 'Me',
-  4: 'Mi',
-  5: 'Fa',
-  6: 'Fi',
-  [-1]: 'Ti',
-  [-2]: 'Te',
-  [-3]: 'La',
-  [-4]: 'Le',
-  [-5]: 'So',
-};
-
-function semitoneIntervalToSolfege(semitones) {
-  if (INTERVAL_MAP[semitones] !== undefined) {
-    return INTERVAL_MAP[semitones];
-  }
-  const mod = ((semitones % 12) + 12) % 12;
-  const nearest = NEAREST_ADDRESS[mod];
-  const oct = Math.round((semitones - nearest) / 12);
-  const baseSyllable = INTERVAL_MAP[nearest] || 'Do';
-  if (oct > 0) return baseSyllable + '^'.repeat(oct);
-  if (oct < 0) return baseSyllable + '_'.repeat(-oct);
-  return baseSyllable;
-}
-
-function createSolfegeGlyphSvg(syllable, hasAxis = false, size = 20) {
-  const cleanSyl = syllable.replace(/[\^_0-9\.]/g, '');
+function createSolfegeGlyphSvg(syllable, hasAxis = false, size = 18) {
+  const cleanSyl = syllable.replace(/[\^_0-9\.xX]/g, '');
   const spec = SOLFEGE_GLYPH_SPECS[cleanSyl] || SOLFEGE_GLYPH_SPECS['Do'];
 
   const color = spec ? spec.colorHex : '#E13610';
   const rot = spec ? spec.rotation : 0;
   const glyphType = spec ? spec.glyphType : 'base';
 
-  let pathD = '';
-  if (glyphType === 'base') {
-    pathD = 'M 0,-8 L 6.5,-1.5 L 4.5,7 L -4.5,7 L -6.5,-1.5 Z';
-  } else if (glyphType === 'sharp') {
-    pathD = 'M 0,-8.5 L 7.5,6 L -7.5,6 Z';
-  } else {
-    pathD = 'M 0,-8 C 5,-8 7,-2 7,3.5 L -7,3.5 C -7,-2 -5,-8 0,-8 Z';
-  }
+  let pathD = SVG_PATH_BASE;
+  if (glyphType === 'sharp') pathD = SVG_PATH_SHARP;
+  else if (glyphType === 'flat') pathD = SVG_PATH_FLAT;
 
   const axisSvg = hasAxis
-    ? `<line x1="-10" y1="0" x2="10" y2="0" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`
+    ? `<line x1="-1.05" y1="0" x2="1.05" y2="0" stroke="#ffffff" stroke-width="0.16" stroke-linecap="round" />`
     : '';
 
   return `
-    <svg viewBox="-12 -12 24 24" width="${size}" height="${size}" style="display:block; overflow:visible;">
-      <g transform="rotate(${rot})">
-        <path d="${pathD}" fill="${color}" stroke="#1e2127" stroke-width="1.8" stroke-linejoin="round" />
+    <svg viewBox="-1.2 -1.2 2.4 2.4" width="${size}" height="${size}" style="display:block; overflow:visible;">
+      <g transform="scale(1, -1) rotate(${rot})">
+        <path d="${pathD}" fill="${color}" stroke="#000000" stroke-width="0.08" stroke-linejoin="round" />
         ${axisSvg}
       </g>
     </svg>
   `;
-}
-
-function parseMelodyToken(tokStr) {
-  const s = tokStr.trim();
-  if (!s || s.toLowerCase() === 'dox') {
-    return { isRest: true, raw: s, syllable: 'Dox', octStr: '', semitones: 0, totalMidi: 60 };
-  }
-  const match = s.match(/^([A-Za-z]+)([\^_]*)/);
-  if (!match) return { isRest: true, raw: s, syllable: 'Dox', octStr: '', semitones: 0, totalMidi: 60 };
-
-  const syl = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
-  const octStr = match[2] || '';
-  const octUp = (octStr.match(/\^/g) || []).length;
-  const octDown = (octStr.match(/_/g) || []).length;
-  const octShift = octUp - octDown;
-
-  const baseSemi = SYLLABLE_SEMITONES[syl.toLowerCase()] ?? 0;
-  const totalMidi = 60 + baseSemi + octShift * 12;
-
-  return { isRest: false, raw: s, syllable: syl, octStr, semitones: baseSemi, totalMidi };
 }
 
 // Inline Line Widget State
@@ -349,179 +297,55 @@ function updateInlineSolfegeWidget() {
   const cur = editor.getCursor();
   const currentLine = editor.getLine(cur.line) || '';
 
-  // Check if current line contains a melody array
-  if (!/melody\s*:\s*\[/.test(currentLine)) {
+  // Extract all Solfège tokens on this line (with their character start & end positions)
+  const tokenRegex = /\b(Do[xX]?|Ra[xX]?|Di[xX]?|Re[xX]?|Me[xX]?|Ri[xX]?|Mi[xX]?|Fa[xX]?|Fi[xX]?|Se[xX]?|So[xX]?|Le[xX]?|Si[xX]?|La[xX]?|Te[xX]?|Li[xX]?|Ti[xX]?)([\^_]*)\b/gi;
+  const matches = [];
+  let m;
+  while ((m = tokenRegex.exec(currentLine)) !== null) {
+    matches.push({
+      full: m[0],
+      syllable: m[1].charAt(0).toUpperCase() + m[1].slice(1),
+      octStr: m[2] || '',
+      startCh: m.index,
+      endCh: m.index + m[0].length,
+      hasAxis: /[xX]/.test(m[1])
+    });
+  }
+
+  if (matches.length === 0) {
     clearInlineWidget();
     return;
   }
 
-  const arrayMatch = currentLine.match(/melody\s*:\s*\[(.*?)\]/);
-  if (!arrayMatch) {
-    clearInlineWidget();
-    return;
-  }
+  // Create lightweight strip container
+  const stripNode = document.createElement('div');
+  stripNode.className = 'cm-token-solfege-strip';
 
-  const rawTokens = arrayMatch[1].split(',').map(s => s.trim()).filter(Boolean);
-  if (rawTokens.length === 0) {
-    clearInlineWidget();
-    return;
-  }
+  matches.forEach(tok => {
+    // Calculate exact pixel coords from CodeMirror
+    const startCoord = editor.cursorCoords({ line: cur.line, ch: tok.startCh }, 'local');
+    const endCoord = editor.cursorCoords({ line: cur.line, ch: tok.endCh }, 'local');
+    const centerLeft = Math.round((startCoord.left + endCoord.left) / 2 - 9); // center 18px glyph over text
 
-  // Detect active coil ID
-  let coilId = 'Coil';
-  for (let l = cur.line; l >= 0; l--) {
-    const lineText = editor.getLine(l);
-    const m = lineText.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
-    if (m && !['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem'].includes(m[1])) {
-      coilId = m[1];
-      break;
+    const item = document.createElement('div');
+    item.className = 'cm-token-solfege-item';
+    item.style.left = `${centerLeft}px`;
+
+    // Highlight active token if cursor is within token boundary
+    if (cur.ch >= tok.startCh && cur.ch <= tok.endCh) {
+      item.classList.add('active-token');
     }
-  }
 
-  // Find token index under cursor
-  let activeTokenIndex = -1;
-  const arrayStartCh = currentLine.indexOf('[');
-  let searchPos = arrayStartCh + 1;
-  for (let i = 0; i < rawTokens.length; i++) {
-    const tokStr = rawTokens[i];
-    const tokIdx = currentLine.indexOf(tokStr, searchPos);
-    if (tokIdx !== -1) {
-      const tokEnd = tokIdx + tokStr.length;
-      if (cur.ch >= tokIdx && cur.ch <= tokEnd) {
-        activeTokenIndex = i;
-        break;
-      }
-      searchPos = tokEnd;
-    }
-  }
-
-  // Compute Melody Absolute and Melody Interval token sequences
-  const parsedItems = rawTokens.map(parseMelodyToken);
-  const intervalTokens = [];
-  const absoluteTokens = [];
-
-  let firstNonRestFound = false;
-  let prevMidi = 60;
-
-  for (let i = 0; i < parsedItems.length; i++) {
-    const item = parsedItems[i];
-    if (item.isRest) {
-      intervalTokens.push({ isRest: true, label: 'Dox' });
-      absoluteTokens.push({ isRest: true, label: 'Dox' });
-    } else {
-      // 1. Melody Absolute: absolute scale degree
-      absoluteTokens.push({
-        isRest: false,
-        syllable: item.syllable,
-        octStr: item.octStr,
-        label: item.syllable + item.octStr,
-      });
-
-      // 2. Melody Interval
-      if (!firstNonRestFound) {
-        firstNonRestFound = true;
-        prevMidi = item.totalMidi;
-        intervalTokens.push({
-          isRest: false,
-          syllable: item.syllable,
-          octStr: item.octStr,
-          hasAxis: true,
-          label: `${item.syllable}${item.octStr}x`,
-        });
-      } else {
-        const diff = item.totalMidi - prevMidi;
-        prevMidi = item.totalMidi;
-        const intSyl = semitoneIntervalToSolfege(diff);
-        const intClean = intSyl.replace(/[\^_]/g, '');
-        intervalTokens.push({
-          isRest: false,
-          syllable: intClean,
-          octStr: intSyl.slice(intClean.length),
-          hasAxis: false,
-          label: intSyl,
-        });
-      }
-    }
-  }
-
-  // Construct Widget DOM
-  const widgetNode = document.createElement('div');
-  widgetNode.className = 'cm-inline-solfege-widget';
-
-  const header = document.createElement('div');
-  header.className = 'widget-header';
-  header.innerHTML = `
-    <span class="widget-title">🎼 Melody Coil Preview: <code>${coilId}</code></span>
-    <span class="widget-coil-badge">Line ${cur.line + 1}</span>
-  `;
-  widgetNode.appendChild(header);
-
-  const rowsContainer = document.createElement('div');
-  rowsContainer.className = 'widget-rows-container';
-
-  // Row 1: Melody Interval
-  const rowInterval = document.createElement('div');
-  rowInterval.className = 'widget-row';
-  const lblInt = document.createElement('span');
-  lblInt.className = 'widget-row-label';
-  lblInt.textContent = 'Melody Interval:';
-  rowInterval.appendChild(lblInt);
-
-  const cellsInt = document.createElement('div');
-  cellsInt.className = 'widget-cells';
-  intervalTokens.forEach((tok, idx) => {
-    const cell = document.createElement('div');
-    cell.className = `widget-cell ${idx === activeTokenIndex ? 'active-token' : ''}`;
-    if (tok.isRest) {
-      cell.innerHTML = `
-        <div class="glyph-wrapper rest-cell">𝄽</div>
-        <span class="cell-sub">Dox</span>
-      `;
-    } else {
-      cell.innerHTML = `
-        <div class="glyph-wrapper">${createSolfegeGlyphSvg(tok.syllable, tok.hasAxis, 20)}</div>
-        <span class="cell-sub">${tok.label}</span>
-      `;
-    }
-    cellsInt.appendChild(cell);
+    item.innerHTML = createSolfegeGlyphSvg(tok.syllable, tok.hasAxis, 18);
+    stripNode.appendChild(item);
   });
-  rowInterval.appendChild(cellsInt);
-  rowsContainer.appendChild(rowInterval);
 
-  // Row 2: Melody Absolute
-  const rowAbsolute = document.createElement('div');
-  rowAbsolute.className = 'widget-row';
-  const lblAbs = document.createElement('span');
-  lblAbs.className = 'widget-row-label';
-  lblAbs.textContent = 'Melody Absolute:';
-  rowAbsolute.appendChild(lblAbs);
-
-  const cellsAbs = document.createElement('div');
-  cellsAbs.className = 'widget-cells';
-  absoluteTokens.forEach((tok, idx) => {
-    const cell = document.createElement('div');
-    cell.className = `widget-cell ${idx === activeTokenIndex ? 'active-token' : ''}`;
-    if (tok.isRest) {
-      cell.innerHTML = `
-        <div class="glyph-wrapper rest-cell">𝄽</div>
-        <span class="cell-sub">Dox</span>
-      `;
-    } else {
-      cell.innerHTML = `
-        <div class="glyph-wrapper">${createSolfegeGlyphSvg(tok.syllable, false, 20)}</div>
-        <span class="cell-sub">${tok.label}</span>
-      `;
-    }
-    cellsAbs.appendChild(cell);
-  });
-  rowAbsolute.appendChild(cellsAbs);
-  rowsContainer.appendChild(rowAbsolute);
-
-  widgetNode.appendChild(rowsContainer);
-
-  // Clear previous and add above current line
   clearInlineWidget();
-  currentInlineWidget = editor.addLineWidget(cur.line, widgetNode, { above: true, coverGutter: false, noHScroll: true });
+  currentInlineWidget = editor.addLineWidget(cur.line, stripNode, {
+    above: true,
+    coverGutter: false,
+    noHScroll: false
+  });
   currentInlineWidgetLine = cur.line;
 }
 
