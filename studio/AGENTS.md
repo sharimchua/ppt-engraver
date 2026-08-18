@@ -16,6 +16,7 @@ The `studio/` directory houses the interactive web development environment for P
 | `/api/score` | `GET` | `?file=...` | `{ name, content }` | Reads score YAML text |
 | `/api/save` | `POST` | `{ file, content }` | `{ success, file }` | Saves YAML score file |
 | `/api/delete` | `POST` | `{ file }` | `{ success, file }` | Deletes YAML score file and associated export artifacts |
+| `/api/snippets` | `GET` | - | `{ snippets: [{ id, label, displayText, desc, category, icon, context, snippet, file }] }` | Reads and parses all snippet templates in `snippets/` |
 | `/api/compile` | `POST` | `{ yaml, format }` | `{ success, format, pdfBase64, svg, lilypondSource, onsets, sidecarMap, metrics }` | Compiles YAML with LilyPond and returns PDF/SVG |
 | `/api/export-pdf` | `POST` | `{ yaml, file }` | `{ success, pdfFile }` | Exports standalone PDF to `scores/` |
 

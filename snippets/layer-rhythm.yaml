@@ -1,0 +1,10 @@
+id: snip-layer-rhythm
+label: Add Rhythm Layer
+displayText: "rhythm: [ ... ]"
+desc: PPT duration token array
+category: Snippets
+icon: 🥁
+context:
+  - coil-body
+snippet: |
+  rhythm: [Do, Fi, Do, Fi]

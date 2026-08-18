@@ -1,0 +1,10 @@
+id: snip-child-ref-coil
+label: Add Child Coil Reference
+displayText: Add Child Coil Reference (- coil: ...)
+desc: Reference to declared coil
+category: Snippets
+icon: 🎵
+context:
+  - children
+snippet: |
+  - coil: 

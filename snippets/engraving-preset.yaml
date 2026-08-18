@@ -1,0 +1,20 @@
+id: snip-engraving-preset
+label: Standard PPT Engraving Preset
+displayText: Standard PPT Engraving Preset
+desc: High-contrast Solfège noteheads & coils
+category: Snippets
+icon: ⚙️
+context:
+  - engraving
+snippet: |
+  noteheadStyle: ppt
+  colorNotes: true
+  omitStem: true
+  harmonyClef: treble_8
+  show:
+    - melody
+    - harmony
+    - melodyCoilInterval
+    - rhythmCoil
+    - rhythmGrid
+    - chordNames

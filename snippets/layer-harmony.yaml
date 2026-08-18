@@ -1,0 +1,10 @@
+id: snip-layer-harmony
+label: Add Harmony Layer
+displayText: "harmony: [ ... ]"
+desc: PPT chord / dyad array
+category: Snippets
+icon: 🎹
+context:
+  - coil-body
+snippet: |
+  harmony: [DoMe]

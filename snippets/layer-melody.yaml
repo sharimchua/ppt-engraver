@@ -1,0 +1,10 @@
+id: snip-layer-melody
+label: Add Melody Layer
+displayText: "melody: [ ... ]"
+desc: Solfège pitch degree array
+category: Snippets
+icon: 🎼
+context:
+  - coil-body
+snippet: |
+  melody: [Dox, Do, Me, So]

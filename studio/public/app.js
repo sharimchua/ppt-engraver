@@ -146,13 +146,15 @@ const TOP_LEVEL_KEYS = [
 ];
 
 // --- Contextual YAML Snippets Library ---
-const SNIPPET_TEMPLATES = [
+const DEFAULT_SNIPPET_TEMPLATES = [
   {
     id: 'snip-tapestry-full',
     label: 'New Tapestry Score Scaffold',
     displayText: 'New Tapestry Score (Full)',
     type: 'snip',
     desc: 'Complete score template',
+    category: 'Snippets',
+    icon: '📄',
     context: ['root', 'top'],
     snippet: `tapestry:
   knot:
@@ -189,6 +191,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'Tapestry & Knot Header',
     type: 'snip',
     desc: 'Score metadata header',
+    category: 'Snippets',
+    icon: '🏷️',
     context: ['root', 'top'],
     snippet: `tapestry:
   knot:
@@ -207,6 +211,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'New Weave (with Coils & Children)',
     type: 'snip',
     desc: 'Weave with local coil dictionary',
+    category: 'Snippets',
+    icon: '🧶',
     context: ['weaves', 'weave-body'],
     snippet: `section:
   coils:
@@ -225,6 +231,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'New Weave (Children only)',
     type: 'snip',
     desc: 'Weave container for child coils',
+    category: 'Snippets',
+    icon: '🧶',
     context: ['weaves', 'weave-body'],
     snippet: `section:
   children:
@@ -237,6 +245,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'Add Inline Coil',
     type: 'snip',
     desc: '3-layer inline child coil',
+    category: 'Snippets',
+    icon: '🎵',
     context: ['children'],
     snippet: `- coil:
     id: motif
@@ -250,6 +260,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'Add Inline Child Coil with Parent',
     type: 'snip',
     desc: 'Inherits layers from parent coil',
+    category: 'Snippets',
+    icon: '🔗',
     context: ['children'],
     snippet: `- coil:
     id: motif_var
@@ -262,6 +274,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'Add Child Coil Reference (- coil: ...)',
     type: 'snip',
     desc: 'Reference to declared coil',
+    category: 'Snippets',
+    icon: '🎵',
     context: ['children'],
     snippet: `- coil: `
   },
@@ -271,6 +285,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'Add Child Weave Reference (- weave: ...)',
     type: 'snip',
     desc: 'Reference to child weave',
+    category: 'Snippets',
+    icon: '🧶',
     context: ['children'],
     snippet: `- weave: `
   },
@@ -280,6 +296,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'New Coil Definition',
     type: 'snip',
     desc: 'Full 3-layer coil entry',
+    category: 'Snippets',
+    icon: '🎵',
     context: ['coils', 'coil-body'],
     snippet: `new_coil:
   melody: [Dox, Do, Me, So, Me, Do]
@@ -292,6 +310,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'New Coil with Parent',
     type: 'snip',
     desc: 'Coil inheriting from parent',
+    category: 'Snippets',
+    icon: '🔗',
     context: ['coils', 'coil-body'],
     snippet: `new_coil_var:
   parents: base_coil
@@ -303,6 +323,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'New Concat Coil Block',
     type: 'snip',
     desc: 'Concatenates multiple sub-coils',
+    category: 'Snippets',
+    icon: '🔗',
     context: ['coils', 'coil-body'],
     snippet: `full_section:
   concat:
@@ -315,6 +337,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'melody: [ ... ]',
     type: 'snip',
     desc: 'Solfège pitch degree array',
+    category: 'Snippets',
+    icon: '🎼',
     context: ['coil-body'],
     snippet: `melody: [Dox, Do, Me, So]`
   },
@@ -324,6 +348,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'rhythm: [ ... ]',
     type: 'snip',
     desc: 'PPT duration token array',
+    category: 'Snippets',
+    icon: '🥁',
     context: ['coil-body'],
     snippet: `rhythm: [Do, Fi, Do, Fi]`
   },
@@ -333,6 +359,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'harmony: [ ... ]',
     type: 'snip',
     desc: 'PPT chord / dyad array',
+    category: 'Snippets',
+    icon: '🎹',
     context: ['coil-body'],
     snippet: `harmony: [DoMe]`
   },
@@ -342,6 +370,8 @@ const SNIPPET_TEMPLATES = [
     displayText: 'Standard PPT Engraving Preset',
     type: 'snip',
     desc: 'High-contrast Solfège noteheads & coils',
+    category: 'Snippets',
+    icon: '⚙️',
     context: ['engraving'],
     snippet: `noteheadStyle: ppt
 colorNotes: true
@@ -356,6 +386,24 @@ show:
   - chordNames`
   }
 ];
+
+let SNIPPET_TEMPLATES = [...DEFAULT_SNIPPET_TEMPLATES];
+
+async function fetchSnippets() {
+  try {
+    const res = await fetch('/api/snippets');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.snippets && Array.isArray(data.snippets) && data.snippets.length > 0) {
+      SNIPPET_TEMPLATES = data.snippets.map(s => ({
+        ...s,
+        type: 'snip'
+      }));
+    }
+  } catch (err) {
+    console.error('Failed to load snippets from API:', err);
+  }
+}
 
 function indentSnippet(snippetText, baseIndent) {
   const lines = snippetText.split('\n');
@@ -1064,6 +1112,8 @@ const editor = CodeMirror(editorContainer, {
     'Cmd-Alt-W': (cm) => extractWeave(cm),
     'Ctrl-Alt-I': (cm) => inlineParentCoil(cm),
     'Cmd-Alt-I': (cm) => inlineParentCoil(cm),
+    'Ctrl-Alt-A': (cm) => refactorConvertMelody(cm, 'auto'),
+    'Cmd-Alt-A': (cm) => refactorConvertMelody(cm, 'auto'),
     'Ctrl-Space': 'autocomplete',
     'Ctrl-/': 'toggleComment',
     'Cmd-/': 'toggleComment',
@@ -3564,6 +3614,214 @@ async function renameSymbol(cm) {
   triggerCompile();
 }
 
+// --- Melody Interval <-> Absolute Conversion Refactoring ---
+
+/**
+ * PPT 12-chromatic Solfège base octave [-5, +6] centered on Do (0).
+ * Lower bound: So (-5), Upper bound: Fi (+6).
+ */
+const BASE_OCTAVE_SYLLABLES = {
+  '-5': 'So',
+  '-4': 'Le',
+  '-3': 'La',
+  '-2': 'Te',
+  '-1': 'Ti',
+  '0': 'Do',
+  '1': 'Ra',
+  '2': 'Re',
+  '3': 'Me',
+  '4': 'Mi',
+  '5': 'Fa',
+  '6': 'Fi'
+};
+
+const SYLLABLE_TO_SEMITONE = {
+  'do': 0, 'ra': 1, 'di': 1, 're': 2, 'me': 3, 'ri': 3,
+  'mi': 4, 'fa': 5, 'se': 5, 'fi': 6,
+  'so': -5, 'si': -5, 'le': -4, 'la': -3, 'li': -3, 'te': -2, 'ti': -1
+};
+
+function parseMelodyToken(token) {
+  const clean = token.trim().replace(/^['"]|['"]$/g, '');
+  if (!clean || clean === 'R' || clean === '~') {
+    return { isRest: true, raw: clean };
+  }
+
+  if (/^\d+$/.test(clean)) {
+    return { isRepeat: true, count: parseInt(clean, 10), raw: clean };
+  }
+
+  const m = clean.match(/^([a-zA-Z]+?)(x)?([\^_]*)(x)?$/);
+  if (!m) {
+    return { isUnknown: true, raw: clean };
+  }
+
+  let syllable = m[1];
+  let hasAxis = Boolean(m[2] || m[4]);
+  if (syllable.length > 2 && syllable.toLowerCase().endsWith('x') && !m[2] && !m[4]) {
+    syllable = syllable.slice(0, -1);
+    hasAxis = true;
+  }
+
+  const octStr = m[3] || '';
+  let octShift = 0;
+  for (const ch of octStr) {
+    if (ch === '^') octShift++;
+    else if (ch === '_') octShift--;
+  }
+
+  const lowerSyllable = syllable.toLowerCase();
+  const baseSemitone = SYLLABLE_TO_SEMITONE[lowerSyllable] ?? 0;
+
+  return {
+    syllable,
+    lowerSyllable,
+    hasAxis,
+    octShift,
+    baseSemitone,
+    raw: clean
+  };
+}
+
+/**
+ * Converts a signed semitone offset from Do into a canonical PPT Solfège token.
+ * Base octave runs from So (-5) to Fi (+6).
+ */
+function semitonesToSolfege(semitones) {
+  const base = ((semitones + 5) % 12 + 12) % 12 - 5;
+  const oct = Math.round((semitones - base) / 12);
+  const baseName = BASE_OCTAVE_SYLLABLES[base] || 'Do';
+
+  if (oct > 0) {
+    return baseName + '^'.repeat(oct);
+  } else if (oct < 0) {
+    return baseName + '_'.repeat(-oct);
+  }
+  return baseName;
+}
+
+function convertIntervalToAbsoluteMelody(tokenList) {
+  if (!tokenList || tokenList.length === 0) return tokenList;
+
+  const result = [];
+  let currentOffset = 0;
+  let hasAnchor = false;
+
+  for (let i = 0; i < tokenList.length; i++) {
+    const rawTok = tokenList[i].trim();
+    if (!rawTok) continue;
+
+    const parsed = parseMelodyToken(rawTok);
+    if (parsed.isRest || parsed.isRepeat || parsed.isUnknown) {
+      result.push(rawTok);
+      continue;
+    }
+
+    if (!hasAnchor) {
+      currentOffset = parsed.baseSemitone + (parsed.octShift * 12);
+      result.push(semitonesToSolfege(currentOffset));
+      hasAnchor = true;
+    } else {
+      const interval = parsed.baseSemitone + (parsed.octShift * 12);
+      currentOffset += interval;
+      result.push(semitonesToSolfege(currentOffset));
+    }
+  }
+
+  return result;
+}
+
+function convertAbsoluteToIntervalMelody(tokenList) {
+  if (!tokenList || tokenList.length === 0) return tokenList;
+
+  const result = [];
+  let prevOffset = null;
+
+  for (let i = 0; i < tokenList.length; i++) {
+    const rawTok = tokenList[i].trim();
+    if (!rawTok) continue;
+
+    const parsed = parseMelodyToken(rawTok);
+    if (parsed.isRest || parsed.isRepeat || parsed.isUnknown) {
+      result.push(rawTok);
+      continue;
+    }
+
+    const currentOffset = parsed.baseSemitone + (parsed.octShift * 12);
+
+    if (prevOffset === null) {
+      const absName = semitonesToSolfege(currentOffset);
+      const withAxis = absName.replace(/^([a-zA-Z]+)([\^_]*)$/, '$1x$2');
+      result.push(withAxis);
+      prevOffset = currentOffset;
+    } else {
+      const diff = currentOffset - prevOffset;
+      const intervalTok = semitonesToSolfege(diff);
+      result.push(intervalTok);
+      prevOffset = currentOffset;
+    }
+  }
+
+  return result;
+}
+
+function refactorConvertMelody(cm, targetMode = 'auto') {
+  const cur = cm.getCursor();
+  const curLineNo = cur.line;
+  const curLineText = cm.getLine(curLineNo) || '';
+
+  let targetLineNo = -1;
+  let melodyArrayMatch = curLineText.match(/^(\s*melody\s*:\s*\[)(.*)(\])(\s*)$/);
+
+  if (melodyArrayMatch) {
+    targetLineNo = curLineNo;
+  } else {
+    const coil = getEnclosingCoilAtPos(cm, cur);
+    if (coil && coil.fields && coil.fields.melody) {
+      targetLineNo = coil.fields.melody.line;
+      const targetText = cm.getLine(targetLineNo) || '';
+      melodyArrayMatch = targetText.match(/^(\s*melody\s*:\s*\[)(.*)(\])(\s*)$/);
+    }
+  }
+
+  if (targetLineNo === -1 || !melodyArrayMatch) {
+    alert('Please place your cursor on a melody line or within a coil with a melody array.');
+    return;
+  }
+
+  const prefix = melodyArrayMatch[1];
+  const innerTokensText = melodyArrayMatch[2];
+  const suffix = melodyArrayMatch[3] + melodyArrayMatch[4];
+
+  const rawTokens = innerTokensText.split(',').map(s => s.trim()).filter(Boolean);
+  if (rawTokens.length === 0) {
+    alert('Melody array is empty.');
+    return;
+  }
+
+  const firstParsed = parseMelodyToken(rawTokens[0]);
+  const isCurrentlyInterval = firstParsed.hasAxis;
+
+  let newTokens = [];
+  let convertedTo = '';
+
+  if (targetMode === 'absolute' || (targetMode === 'auto' && isCurrentlyInterval)) {
+    newTokens = convertIntervalToAbsoluteMelody(rawTokens);
+    convertedTo = 'Absolute';
+  } else {
+    newTokens = convertAbsoluteToIntervalMelody(rawTokens);
+    convertedTo = 'Interval';
+  }
+
+  const newLineText = `${prefix}${newTokens.join(', ')}${suffix}`;
+  cm.replaceRange(newLineText, { line: targetLineNo, ch: 0 }, { line: targetLineNo, ch: cm.getLine(targetLineNo).length });
+
+  updateInlineSolfegeWidget();
+  updateScoreHighlights(cm);
+  triggerCompile();
+  setStatus('ready', `Converted melody to ${convertedTo}`);
+}
+
 // --- Tapestry Project Management Operations ---
 
 async function createTapestry() {
@@ -3677,7 +3935,7 @@ async function deleteTapestry() {
 }
 
 // --- Command Palette Engine ---
-const COMMANDS_LIST = [
+const BASE_COMMANDS_LIST = [
   {
     id: 'project-open-tapestry',
     title: 'Open Tapestry...',
@@ -3750,39 +4008,19 @@ const COMMANDS_LIST = [
     action: (cm) => renameSymbol(cm)
   },
   {
-    id: 'snip-full-score',
-    title: 'Insert Snippet: New Tapestry Score',
-    category: 'Snippets',
-    icon: '📄',
-    action: (cm) => insertSnippetById(cm, 'snip-tapestry-full')
+    id: 'refactor-melody-interval-to-absolute',
+    title: 'Convert Melody: Interval to Absolute',
+    category: 'Refactor',
+    icon: '🎯',
+    shortcut: 'Ctrl+Alt+A',
+    action: (cm) => refactorConvertMelody(cm, 'absolute')
   },
   {
-    id: 'snip-new-weave',
-    title: 'Insert Snippet: New Weave with Coils & Children',
-    category: 'Snippets',
-    icon: '🧶',
-    action: (cm) => insertSnippetById(cm, 'snip-weave-with-coils')
-  },
-  {
-    id: 'snip-new-coil',
-    title: 'Insert Snippet: New Coil Definition',
-    category: 'Snippets',
-    icon: '🎵',
-    action: (cm) => insertSnippetById(cm, 'snip-coil-full')
-  },
-  {
-    id: 'snip-new-concat',
-    title: 'Insert Snippet: Concat Coil Block',
-    category: 'Snippets',
-    icon: '🔗',
-    action: (cm) => insertSnippetById(cm, 'snip-coil-concat')
-  },
-  {
-    id: 'snip-engraving-preset',
-    title: 'Insert Snippet: Standard PPT Engraving Preset',
-    category: 'Snippets',
-    icon: '⚙️',
-    action: (cm) => insertSnippetById(cm, 'snip-engraving-preset')
+    id: 'refactor-melody-absolute-to-interval',
+    title: 'Convert Melody: Absolute to Interval',
+    category: 'Refactor',
+    icon: '🔄',
+    action: (cm) => refactorConvertMelody(cm, 'interval')
   },
   {
     id: 'nav-transpose-up',
@@ -3862,6 +4100,18 @@ const COMMANDS_LIST = [
     action: () => exportStandalonePdf()
   }
 ];
+
+function getAllCommandsList() {
+  const dynamicSnippetCommands = (SNIPPET_TEMPLATES || []).map(s => ({
+    id: `snip-cmd-${s.id}`,
+    title: `Insert Snippet: ${s.label || s.displayText}`,
+    category: s.category || 'Snippets',
+    icon: s.icon || '📄',
+    action: (cm) => insertSnippetById(cm, s.id)
+  }));
+
+  return [...BASE_COMMANDS_LIST, ...dynamicSnippetCommands];
+}
 
 const commandPaletteModal = document.getElementById('command-palette-modal');
 const paletteSearchInput = document.getElementById('palette-search');
@@ -3943,7 +4193,8 @@ function filterPaletteList(query) {
       };
     });
   } else {
-    const cmdMatches = COMMANDS_LIST.filter(cmd => {
+    const allCommands = getAllCommandsList();
+    const cmdMatches = allCommands.filter(cmd => {
       if (!q) return true;
       return cmd.title.toLowerCase().includes(q) || cmd.category.toLowerCase().includes(q) || (cmd.shortcut && cmd.shortcut.toLowerCase().includes(q));
     });
@@ -4167,3 +4418,4 @@ window.addEventListener('keyup', (e) => {
 
 // Initialize on Load
 fetchScores();
+fetchSnippets();

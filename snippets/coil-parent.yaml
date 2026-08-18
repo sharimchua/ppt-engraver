@@ -1,0 +1,13 @@
+id: snip-coil-parent
+label: New Coil with Parent
+displayText: New Coil with Parent
+desc: Coil inheriting from parent
+category: Snippets
+icon: 🔗
+context:
+  - coils
+  - coil-body
+snippet: |
+  new_coil_var:
+    parents: base_coil
+    melody: [Dox, Re, Fa, La]

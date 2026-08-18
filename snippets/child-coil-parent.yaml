@@ -1,0 +1,13 @@
+id: snip-child-coil-parent
+label: Add Inline Child Coil with Parent
+displayText: Add Inline Child Coil with Parent
+desc: Inherits layers from parent coil
+category: Snippets
+icon: 🔗
+context:
+  - children
+snippet: |
+  - coil:
+      id: motif_var
+      parents: motif
+      melody: [Dox, Re, Fa, La]

@@ -1,0 +1,20 @@
+id: snip-weave-with-coils
+label: New Weave (with Coils & Children)
+displayText: New Weave (with Coils & Children)
+desc: Weave with local coil dictionary
+category: Snippets
+icon: 🧶
+context:
+  - weaves
+  - weave-body
+snippet: |
+  section:
+    coils:
+      _base_harm:
+        harmony: [DoMe]
+      _part1:
+        parents: _base_harm
+        melody: [Dox, Do, Me, La]
+        rhythm: [Do, Fi, Do, Fi]
+    children:
+      - coil: _part1

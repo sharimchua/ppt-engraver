@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { load as loadYaml } from 'js-yaml';
 import { compileYamlString } from '../src/compiler/compile.js';
 
 const execFileAsync = promisify(execFile);
@@ -23,11 +24,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = resolve(__filename, '..');
 const ROOT_DIR = resolve(__dirname, '..');
 const SCORES_DIR = resolve(ROOT_DIR, 'scores');
+const SNIPPETS_DIR = resolve(ROOT_DIR, 'snippets');
 const PUBLIC_DIR = resolve(__dirname, 'public');
 
-// Ensure scores directory exists
+// Ensure scores and snippets directories exist
 if (!existsSync(SCORES_DIR)) {
   mkdirSync(SCORES_DIR, { recursive: true });
+}
+if (!existsSync(SNIPPETS_DIR)) {
+  mkdirSync(SNIPPETS_DIR, { recursive: true });
 }
 
 // Configurable LilyPond binary path
@@ -332,6 +337,37 @@ const server = createServer(async (req, res) => {
           }
         }
         return sendJson(res, { success: true, file: `${baseName}.ppt.yaml` });
+      }
+
+      // GET /api/snippets
+      if (pathname === '/api/snippets' && req.method === 'GET') {
+        if (!existsSync(SNIPPETS_DIR)) {
+          return sendJson(res, { snippets: [] });
+        }
+        const files = readdirSync(SNIPPETS_DIR).filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
+        const snippets: any[] = [];
+        for (const f of files) {
+          try {
+            const content = readFileSync(join(SNIPPETS_DIR, f), 'utf-8');
+            const parsed = loadYaml(content) as any;
+            if (parsed && parsed.snippet) {
+              snippets.push({
+                id: parsed.id || f.replace(/\.ya?ml$/, ''),
+                label: parsed.label || parsed.displayText || f,
+                displayText: parsed.displayText || parsed.label || f,
+                desc: parsed.desc || '',
+                category: parsed.category || 'Snippets',
+                icon: parsed.icon || '📄',
+                context: Array.isArray(parsed.context) ? parsed.context : ['root'],
+                snippet: parsed.snippet,
+                file: f,
+              });
+            }
+          } catch (err) {
+            console.error(`Failed to parse snippet ${f}:`, err);
+          }
+        }
+        return sendJson(res, { snippets });
       }
 
       // GET /api/config

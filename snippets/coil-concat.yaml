@@ -1,0 +1,14 @@
+id: snip-coil-concat
+label: New Concat Coil Block
+displayText: New Concat Coil Block
+desc: Concatenates multiple sub-coils
+category: Snippets
+icon: 🔗
+context:
+  - coils
+  - coil-body
+snippet: |
+  full_section:
+    concat:
+      - part1
+      - part2

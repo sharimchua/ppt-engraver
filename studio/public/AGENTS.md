@@ -49,17 +49,24 @@ The `studio/public/` directory contains the client-side single-page application 
   - Extracts selected child lines into a new named weave definition under `weaves:` and replaces the selection with `- weave: <newWeaveId>`.
 - **Rename Symbol / ID Globally (`F2`)**:
   - Scans definition and all references across `parents:`, `concat:`, `- coil:`, `- weave:` throughout the YAML document with symbol boundary precision.
+- **Convert Melody: Interval $\leftrightarrow$ Absolute (`Ctrl+Alt+A` / `Cmd+Alt+A`)**:
+  - Detects enclosing coil or active `melody: [...]` line and converts seamlessly between:
+    - **Interval Mode** (anchor notehead with axis `x` + relative signed interval degree steps `Do`, `Re`, `Ti`, `Me`, etc.)
+    - **Absolute Mode** (absolute chromatic scale degrees relative to tonic `Do`).
+  - Available via `Ctrl+Alt+A`, Command Palette `Convert Melody: Interval to Absolute`, and `Convert Melody: Absolute to Interval`.
 
 ### 4. Contextual Autocomplete, Snippets & Command Palette
 - **Rich Context Autocomplete (`Ctrl+Space`)**:
   - Custom hint renderer displaying category badges: `[SNIP]` (Cyan), `[COIL]` (Green), `[WEAVE]` (Purple), `[NOTE]` (Solfège Pill with PPT color swatch), `[ENUM]` (Amber), `[PROP]` (Slate).
   - Contextual completion for root/top-level, weaves, coils, children lists, layers (`melody:`, `rhythm:`, `harmony:`), and engraving options.
-- **Contextual YAML Snippets Library**:
-  - Auto-indented templates for Full Tapestry Score, Weave with Coils & Children, 3-Layer Coil Definitions, Concat Coil Blocks, and Standard PPT Engraving Presets.
+- **Dynamic YAML Snippets Library (`snippets/*.yaml`)**:
+  - Automatically loads and watches modular snippet files from `snippets/*.yaml` via `/api/snippets`.
+  - Seamlessly injected into CodeMirror contextual autocomplete (`Ctrl+Space`) and registered into the Command Palette (`Ctrl+Shift+P`) dynamically.
+  - Adding or modifying snippet files in `snippets/` takes effect immediately on reload without code modifications.
 - **Searchable Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P` / `F1` / `⌨ Commands` button)**:
-  - Filterable command list with instant fuzzy search across all project operations, refactorings, score metadata, snippets, folding, navigation, and compilation tools with full keyboard navigation (`↑`/`↓`/`Enter`/`Esc`).
+  - Filterable command list with instant fuzzy search across all project operations, refactorings, score metadata, dynamically registered snippets, folding, navigation, and compilation tools with full keyboard navigation (`↑`/`↓`/`Enter`/`Esc`).
 
-### 4. Lightweight Text-Aligned Solfège Preview Strip
+### 5. Lightweight Text-Aligned Solfège Preview Strip
 - **Line Widget (`.cm-token-solfege-strip`)**:
   - Active strictly on `melody:`, `harmony:`, and `rhythm:` lines.
   - Floats directly above the line being edited.

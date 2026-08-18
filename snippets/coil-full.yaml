@@ -1,0 +1,14 @@
+id: snip-coil-full
+label: New Coil Definition
+displayText: New Coil Definition
+desc: Full 3-layer coil entry
+category: Snippets
+icon: 🎵
+context:
+  - coils
+  - coil-body
+snippet: |
+  new_coil:
+    melody: [Dox, Do, Me, So, Me, Do]
+    rhythm: [Do, Fi, Do, Fi, Do, 2]
+    harmony: [DoMe]

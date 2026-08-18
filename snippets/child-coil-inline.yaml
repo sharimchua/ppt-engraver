@@ -1,0 +1,14 @@
+id: snip-child-coil-inline
+label: Add Inline Coil (Melody + Rhythm + Harmony)
+displayText: Add Inline Coil
+desc: 3-layer inline child coil
+category: Snippets
+icon: 🎵
+context:
+  - children
+snippet: |
+  - coil:
+      id: motif
+      melody: [Dox, Do, Me, So]
+      rhythm: [Do, Fi, Do, Fi]
+      harmony: [DoMe]

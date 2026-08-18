@@ -1,0 +1,14 @@
+id: snip-weave-simple
+label: New Weave (Children only)
+displayText: New Weave (Children only)
+desc: Weave container for child coils
+category: Snippets
+icon: 🧶
+context:
+  - weaves
+  - weave-body
+snippet: |
+  section:
+    children:
+      - coil: verse
+      - coil: chorus

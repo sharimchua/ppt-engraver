@@ -1,0 +1,20 @@
+id: snip-knot-header
+label: Tapestry & Knot Header
+displayText: Tapestry & Knot Header
+desc: Score metadata header
+category: Snippets
+icon: 🏷️
+context:
+  - root
+  - top
+snippet: |
+  tapestry:
+    knot:
+      tonic: "C4"
+      weave: song
+      engraving:
+        title: "Score Title"
+        composer: "Composer"
+        noteheadStyle: ppt
+        colorNotes: true
+        omitStem: true

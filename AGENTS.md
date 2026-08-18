@@ -67,6 +67,7 @@ The repository consists of:
 | `studio/` | [studio/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/studio/AGENTS.md) | PPT Studio backend server, LilyPond runner, PDF/SVG compile APIs |
 | `studio/public/` | [studio/public/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/studio/public/AGENTS.md) | Studio web client, CodeMirror editor, Point-and-Click PDF.js navigation, loupe |
 | `scores/` | [scores/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/scores/AGENTS.md) | PPT score YAML definitions and test fixtures |
+| `snippets/` | [snippets/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/snippets/AGENTS.md) | Modular YAML snippet templates for Studio autocomplete and Command Palette |
 | `test/` | [test/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/test/AGENTS.md) | Vitest test suite and verification criteria |
 
 ---

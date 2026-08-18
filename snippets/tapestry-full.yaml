@@ -1,0 +1,38 @@
+id: snip-tapestry-full
+label: New Tapestry Score Scaffold
+displayText: New Tapestry Score (Full)
+desc: Complete score template
+category: Snippets
+icon: 📄
+context:
+  - root
+  - top
+snippet: |
+  tapestry:
+    knot:
+      tonic: "C4"
+      weave: song
+      engraving:
+        title: "New PPT Score"
+        composer: "Composer"
+        colorNotes: true
+        omitStem: true
+        noteheadStyle: ppt
+        show:
+          - melody
+          - harmony
+          - melodyCoilInterval
+          - rhythmCoil
+          - rhythmGrid
+          - chordNames
+
+    weaves:
+      song:
+        children:
+          - coil: verse
+
+    coils:
+      verse:
+        melody: [Dox, Do, Me, So, Me, Do]
+        rhythm: [Do, Fi, Do, Fi, Do, 2]
+        harmony: [DoMe]
