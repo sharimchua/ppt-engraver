@@ -187,9 +187,10 @@ melody: [Dox, Me, Re, La, Te, Re, Te]
 # Re  -> Moves by major 2nd (+2) from previous note
 ```
 
-### Octave Modifiers & Multi-Token Syntax
-- **`^` / `^^`**: Shift pitch up by 1 or 2 octaves (`"Do^"`, `"Sox^"`).
-- **`_` / `__`**: Shift pitch down by 1 or 2 octaves (`"So_"`, `"Me__"`).
+### Octave Modifiers & Directional Prefix Triangles
+- **`^` / `^^`**: Shift pitch up by 1 or 2 octaves (`"Do^"`, `"Sox^"`, `"Do^^"`). Renders a directional triangle pointing UP (`▲`) prefixed to the left of the syllable glyph in the syllable's color, aligned at the top-left and growing downwards toward the centre for multi-octave leaps.
+- **`_` / `__`**: Shift pitch down by 1 or 2 octaves (`"So_"`, `"Me__"`). Renders a directional triangle pointing DOWN (`▼`) prefixed to the left of the syllable glyph in the syllable's color, aligned at the bottom-left and growing upwards toward the centre for multi-octave leaps.
+- **Centroid Stability**: The syllable's $(0, 0)$ horizontal centroid and metric grid alignment are strictly preserved.
 - **Inline Spacing**: Tokens can be written space-separated in a single string (e.g. `melody: ["Do Mi", "So Do^"]`).
 
 ### Melody Repetitions & Lookback Notation

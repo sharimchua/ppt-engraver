@@ -87,6 +87,7 @@ The `studio/public/` directory contains the client-side single-page application 
     - **Upper Row (Alternative View, `.cm-token-solfege-row-alt`)**: Displays the alternative representation (computed **Absolute** degrees when defined in **Interval** mode with axis anchor `x`, or computed **Interval** steps when defined in **Absolute** mode) with an `ALT: ABS` / `ALT: INT` badge.
     - **Lower Row (Written View, `.cm-token-solfege-row-main`)**: Displays the written tokens as authored in YAML with a `WRITTEN: INT` / `WRITTEN: ABS` badge.
     - **Single Row**: Displays a single contextual preview row for `rhythm` (`RHY`), `harmony` (`HARM`), and `chords`.
+  - **Octave Displacement Prefix Triangles**: Renders directional vector triangles (pointing UP `▲` for `^` / $+1$, $+2$, and pointing DOWN `▼` for `_` / $-1$, $-2$) prefixed to the left of the syllable glyph in the syllable's color, vertically stacked for multi-octave leaps without offsetting the syllable centroid.
   - Dynamically calculates pixel `left` coordinates to center vector SVG Solfège glyphs directly over each token.
   - Active token highlighted in both rows in sync with cursor position.
 - **Paired Music Layer Token Highlighting (`.cm-paired-token-highlight`)**:

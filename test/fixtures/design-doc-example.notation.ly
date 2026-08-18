@@ -286,8 +286,21 @@
      lineto 0.000 1.000
      closepath))
 
-#(define (make-solfege-glyph base-path rot-deg fill-col has-axis?)
-   (let* ((raw-stencil (make-path-stencil base-path 0.0 0.9 0.9 #t))
+#(define pptPathTriangleUp
+   '(moveto -0.22 -0.25
+     lineto 0.22 -0.25
+     lineto 0.00 0.25
+     closepath))
+
+#(define pptPathTriangleDown
+   '(moveto -0.22 0.25
+     lineto 0.22 0.25
+     lineto 0.00 -0.25
+     closepath))
+
+#(define (make-solfege-glyph base-path rot-deg fill-col has-axis? . rest)
+   (let* ((oct-shift (if (null? rest) 0 (car rest)))
+          (raw-stencil (make-path-stencil base-path 0.0 0.9 0.9 #t))
           (rotated-stencil (if (= rot-deg 0)
                                raw-stencil
                                (ly:stencil-rotate raw-stencil rot-deg 0 0)))
@@ -310,11 +323,45 @@
                       (ly:stencil-translate black-stencil (cons (- d) d))
                       (ly:stencil-translate black-stencil (cons d (- d)))
                       colored))
-          (centered (ly:stencil-aligned-to (ly:stencil-aligned-to outlined X CENTER) Y CENTER)))
-     (ly:stencil-translate centered (cons 0.65 0))))
+          (main-centered (ly:stencil-aligned-to (ly:stencil-aligned-to outlined X CENTER) Y CENTER))
+          (abs-oct (abs oct-shift))
+          (oct-stencil
+            (if (= oct-shift 0)
+                empty-stencil
+                (let* ((tri-path (if (> oct-shift 0) pptPathTriangleUp pptPathTriangleDown))
+                       (tri-scale (if (> abs-oct 1) 0.65 0.75))
+                       (tri-raw (make-path-stencil tri-path 0.0 tri-scale tri-scale #t))
+                       (tri-col (if fill-col (stencil-with-color tri-raw fill-col) tri-raw))
+                       (tri-black (stencil-with-color tri-raw black))
+                       (td 0.06)
+                       (tri-out (ly:stencil-add
+                                  (ly:stencil-translate tri-black (cons (- td) 0))
+                                  (ly:stencil-translate tri-black (cons td 0))
+                                  (ly:stencil-translate tri-black (cons 0 (- td)))
+                                  (ly:stencil-translate tri-black (cons 0 td))
+                                  (ly:stencil-translate tri-black (cons (- td) (- td)))
+                                  (ly:stencil-translate tri-black (cons td td))
+                                  (ly:stencil-translate tri-black (cons (- td) td))
+                                  (ly:stencil-translate tri-black (cons td (- td)))
+                                  tri-col))
+                       (tri-center (ly:stencil-aligned-to (ly:stencil-aligned-to tri-out X CENTER) Y CENTER))
+                       (x-pos -1.15)
+                       (spacing 0.44))
+                  (let loop ((k 0)
+                             (accum empty-stencil))
+                    (if (>= k abs-oct)
+                        accum
+                        (let* ((y-pos (if (> oct-shift 0)
+                                          (- 0.52 (* k spacing))
+                                          (+ -0.52 (* k spacing))))
+                               (placed (ly:stencil-translate tri-center (cons x-pos y-pos))))
+                          (loop (+ k 1) (ly:stencil-add accum placed))))))))
+          (with-octave (ly:stencil-add main-centered oct-stencil)))
+     (ly:stencil-translate with-octave (cons 0.65 0))))
 
-#(define (make-solfege-glyph-sub base-path rot-deg fill-col has-axis?)
-   (ly:stencil-scale (make-solfege-glyph base-path rot-deg fill-col has-axis?) 0.55 0.55))
+#(define (make-solfege-glyph-sub base-path rot-deg fill-col has-axis? . rest)
+   (let ((oct (if (null? rest) 0 (car rest))))
+     (ly:stencil-scale (make-solfege-glyph base-path rot-deg fill-col has-axis? oct) 0.55 0.55)))
 
 #(define (make-solfege-glyph-with-prefix base-path rot-deg fill-col has-axis? dox-count)
    (let* ((main-stencil (make-solfege-glyph base-path rot-deg fill-col has-axis?))

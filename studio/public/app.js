@@ -1686,7 +1686,15 @@ const SOLFEGE_GLYPH_SPECS = {
   Ti: { glyphType: 'flat', rotation: 0, colorHex: '#F158A4' },
 };
 
-function createSolfegeGlyphSvg(syllable, hasAxis = false, size = 18) {
+function createSolfegeGlyphSvg(syllable, hasAxis = false, size = 18, octaveShift = 0) {
+  let octShift = octaveShift;
+  if (octShift === 0 && typeof syllable === 'string') {
+    for (const ch of syllable) {
+      if (ch === '^') octShift++;
+      else if (ch === '_') octShift--;
+    }
+  }
+
   const cleanSyl = syllable.replace(/[\^_0-9\.xX]/g, '');
   const spec = SOLFEGE_GLYPH_SPECS[cleanSyl] || SOLFEGE_GLYPH_SPECS['Do'];
 
@@ -1702,12 +1710,39 @@ function createSolfegeGlyphSvg(syllable, hasAxis = false, size = 18) {
     ? `<line x1="-1.1" y1="0" x2="1.1" y2="0" stroke="${color}" stroke-width="0.22" stroke-linecap="round" />`
     : '';
 
+  let octaveSvg = '';
+  if (octShift !== 0) {
+    const absOct = Math.abs(octShift);
+    const triScale = absOct > 1 ? 0.65 : 0.75;
+    // In SVG standard orientation (y down):
+    // Upward pointing triangle (▲): top vertex (0, -0.25), base vertices (-0.22, 0.25) & (0.22, 0.25)
+    // Downward pointing triangle (▼): bottom vertex (0, 0.25), top base vertices (-0.22, -0.25) & (0.22, -0.25)
+    const isUp = octShift > 0;
+    const triPathD = isUp
+      ? 'M 0 -0.25 L 0.22 0.25 L -0.22 0.25 Z'
+      : 'M 0 0.25 L 0.22 -0.25 L -0.22 -0.25 Z';
+
+    const xPos = -1.15;
+    const spacing = 0.44;
+    const triangles = [];
+    for (let k = 0; k < absOct; k++) {
+      const yPos = isUp ? (-0.52 + (k * spacing)) : (0.52 - (k * spacing));
+      triangles.push(`
+        <g transform="translate(${xPos}, ${yPos}) scale(${triScale})">
+          <path d="${triPathD}" fill="${color}" stroke="#1e2127" stroke-width="0.08" stroke-linejoin="round" />
+        </g>
+      `);
+    }
+    octaveSvg = triangles.join('');
+  }
+
   return `
-    <svg viewBox="-1.25 -1.25 2.5 2.5" width="${size}" height="${size}" style="display:inline-block; vertical-align:middle; overflow:visible;">
+    <svg viewBox="-1.5 -1.25 3.0 2.5" width="${size}" height="${size}" style="display:inline-block; vertical-align:middle; overflow:visible;">
       <g transform="scale(1, -1) rotate(${rot})">
         <path d="${pathD}" fill="${color}" stroke="#1e2127" stroke-width="0.08" stroke-linejoin="round" />
         ${axisSvg}
       </g>
+      ${octaveSvg}
     </svg>
   `;
 }
@@ -1724,11 +1759,18 @@ function splitSyllables(word) {
     const canonical = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
     const hasAxis = /x$/i.test(canonical);
     const baseSyl = canonical.replace(/x$/i, '');
+    const octStr = m[2] || '';
+    let octaveShift = 0;
+    for (const ch of octStr) {
+      if (ch === '^') octaveShift++;
+      else if (ch === '_') octaveShift--;
+    }
     parts.push({
       canonical,
       baseSyl,
       hasAxis,
-      octStr: m[2] || '',
+      octStr,
+      octaveShift,
     });
   }
   return parts;
@@ -2197,11 +2239,11 @@ function updateInlineSolfegeWidget() {
       }
 
       if (altParts.length === 1) {
-        altItem.innerHTML = createSolfegeGlyphSvg(altParts[0].baseSyl, altParts[0].hasAxis, 16);
+        altItem.innerHTML = createSolfegeGlyphSvg(altParts[0].baseSyl, altParts[0].hasAxis, 16, altParts[0].octaveShift);
       } else if (altParts.length > 1) {
         altItem.innerHTML = altParts.map((p, pIdx) => {
           const size = pIdx === 0 ? 14 : 10;
-          return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size);
+          return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size, p.octaveShift);
         }).join('');
       } else {
         altItem.textContent = altWord;
@@ -2235,11 +2277,11 @@ function updateInlineSolfegeWidget() {
       }
 
       if (tok.parts.length === 1) {
-        item.innerHTML = createSolfegeGlyphSvg(tok.parts[0].baseSyl, tok.parts[0].hasAxis, 17);
+        item.innerHTML = createSolfegeGlyphSvg(tok.parts[0].baseSyl, tok.parts[0].hasAxis, 17, tok.parts[0].octaveShift);
       } else {
         item.innerHTML = tok.parts.map((p, pIdx) => {
           const size = pIdx === 0 ? 15 : 11;
-          return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size);
+          return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size, p.octaveShift);
         }).join('');
       }
 
@@ -2279,11 +2321,11 @@ function updateInlineSolfegeWidget() {
       }
 
       if (tok.parts.length === 1) {
-        item.innerHTML = createSolfegeGlyphSvg(tok.parts[0].baseSyl, tok.parts[0].hasAxis, 18);
+        item.innerHTML = createSolfegeGlyphSvg(tok.parts[0].baseSyl, tok.parts[0].hasAxis, 18, tok.parts[0].octaveShift);
       } else {
         item.innerHTML = tok.parts.map((p, pIdx) => {
           const size = pIdx === 0 ? 16 : 11;
-          return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size);
+          return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size, p.octaveShift);
         }).join('');
       }
 

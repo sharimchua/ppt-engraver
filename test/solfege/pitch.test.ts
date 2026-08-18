@@ -409,6 +409,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#E13610',
       colorSchemeVar: 'colorDo',
       hasAxis: false,
+      octaveShift: 0,
     });
 
     expect(getSolfegeGlyphSpec('Me')).toEqual({
@@ -418,6 +419,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#F5D432',
       colorSchemeVar: 'colorMi',
       hasAxis: false,
+      octaveShift: 0,
     });
 
     expect(getSolfegeGlyphSpec('Fi')).toEqual({
@@ -427,6 +429,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#141414',
       colorSchemeVar: 'colorFi',
       hasAxis: false,
+      octaveShift: 0,
     });
 
     expect(getSolfegeGlyphSpec('La')).toEqual({
@@ -436,6 +439,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#5300A4',
       colorSchemeVar: 'colorLa',
       hasAxis: false,
+      octaveShift: 0,
     });
   });
 
@@ -447,6 +451,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#F98016',
       colorSchemeVar: 'colorRe',
       hasAxis: false,
+      octaveShift: 0,
     });
 
     expect(getSolfegeGlyphSpec('Mi')).toEqual({
@@ -456,6 +461,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#F5D432',
       colorSchemeVar: 'colorMi',
       hasAxis: false,
+      octaveShift: 0,
     });
 
     expect(getSolfegeGlyphSpec('So')).toEqual({
@@ -465,6 +471,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#0032A4',
       colorSchemeVar: 'colorSo',
       hasAxis: false,
+      octaveShift: 0,
     });
 
     expect(getSolfegeGlyphSpec('Te')).toEqual({
@@ -474,6 +481,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#F158A4',
       colorSchemeVar: 'colorTi',
       hasAxis: false,
+      octaveShift: 0,
     });
   });
 
@@ -485,6 +493,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#F158A4',
       colorSchemeVar: 'colorTi',
       hasAxis: false,
+      octaveShift: 0,
     });
 
     expect(getSolfegeGlyphSpec('Re')).toEqual({
@@ -494,6 +503,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#F98016',
       colorSchemeVar: 'colorRe',
       hasAxis: false,
+      octaveShift: 0,
     });
 
     expect(getSolfegeGlyphSpec('Fa')).toEqual({
@@ -503,6 +513,7 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#43A440',
       colorSchemeVar: 'colorFa',
       hasAxis: false,
+      octaveShift: 0,
     });
 
     expect(getSolfegeGlyphSpec('Le')).toEqual({
@@ -512,14 +523,38 @@ describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {
       colorHex: '#5300A4',
       colorSchemeVar: 'colorLa',
       hasAxis: false,
+      octaveShift: 0,
     });
   });
 
   it('supports hasAxis flag in glyph spec', () => {
     const spec = getSolfegeGlyphSpec('Do', true);
     expect(spec.hasAxis).toBe(true);
-    expect(spec.glyphType).toBe('base');
-    expect(spec.rotation).toBe(0);
+    expect(spec.octaveShift).toBe(0);
+  });
+
+  it('supports octaveShift parameter and token string parsing in getSolfegeGlyphSpec', () => {
+    const specUp = getSolfegeGlyphSpec('Do^');
+    expect(specUp.canonicalSyllable).toBe('Do');
+    expect(specUp.octaveShift).toBe(1);
+
+    const specDoubleUp = getSolfegeGlyphSpec('So^^');
+    expect(specDoubleUp.canonicalSyllable).toBe('So');
+    expect(specDoubleUp.octaveShift).toBe(2);
+
+    const specDown = getSolfegeGlyphSpec('Fa_');
+    expect(specDown.canonicalSyllable).toBe('Fa');
+    expect(specDown.octaveShift).toBe(-1);
+
+    const specDoubleDown = getSolfegeGlyphSpec('Me__');
+    expect(specDoubleDown.canonicalSyllable).toBe('Me');
+    expect(specDoubleDown.octaveShift).toBe(-2);
+
+    const specExplicit = getSolfegeGlyphSpec('Dox', true, 1);
+    expect(specExplicit.hasAxis).toBe(true);
+    expect(specExplicit.octaveShift).toBe(1);
+    expect(specExplicit.glyphType).toBe('base');
+    expect(specExplicit.rotation).toBe(0);
   });
 });
 

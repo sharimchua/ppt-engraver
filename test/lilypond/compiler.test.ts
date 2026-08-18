@@ -411,6 +411,26 @@ describe('chordTokenToCoilMarkup', () => {
     expect(markup).toContain('\\stencil #(make-solfege-glyph pptPathSharp 180 colorSo #t)');
     expect(markup).toContain('\\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f)');
   });
+
+  it('formats tokens with octave displacement up and down (Do^, So_, Do^^, Me__)', () => {
+    const markupUp = chordTokenToCoilMarkup('Do^');
+    expect(markupUp).toBe('\\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f 1) }');
+
+    const markupDown = chordTokenToCoilMarkup('So_');
+    expect(markupDown).toBe('\\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathSharp 180 colorSo #f -1) }');
+
+    const markupDoubleUp = chordTokenToCoilMarkup('Do^^');
+    expect(markupDoubleUp).toBe('\\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f 2) }');
+
+    const markupDoubleDown = chordTokenToCoilMarkup('Me__');
+    expect(markupDoubleDown).toBe('\\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 270 colorMi #f -2) }');
+  });
+
+  it('formats chord with octave displacement on Axis Bass prefix (So_xDo)', () => {
+    const markup = chordTokenToCoilMarkup('So_xDo');
+    expect(markup).toContain('\\stencil #(make-solfege-glyph pptPathSharp 180 colorSo #t -1)');
+    expect(markup).toContain('\\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f)');
+  });
 });
 
 describe('polyphonic voice compilation', () => {

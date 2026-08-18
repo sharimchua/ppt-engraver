@@ -541,9 +541,10 @@ export interface SolfegeGlyphSpec {
   colorHex: string;
   colorSchemeVar: string;
   hasAxis: boolean;
+  octaveShift: number;
 }
 
-export const SOLFEGE_GLYPH_MAP: Record<string, Omit<SolfegeGlyphSpec, 'hasAxis' | 'canonicalSyllable'>> = {
+export const SOLFEGE_GLYPH_MAP: Record<string, Omit<SolfegeGlyphSpec, 'hasAxis' | 'canonicalSyllable' | 'octaveShift'>> = {
   Do: { glyphType: 'base', rotation: 0, colorHex: '#E13610', colorSchemeVar: 'colorDo' },
   Ra: { glyphType: 'sharp', rotation: 0, colorHex: '#F98016', colorSchemeVar: 'colorRe' },
   Di: { glyphType: 'sharp', rotation: 0, colorHex: '#F98016', colorSchemeVar: 'colorRe' },
@@ -563,18 +564,33 @@ export const SOLFEGE_GLYPH_MAP: Record<string, Omit<SolfegeGlyphSpec, 'hasAxis' 
   Ti: { glyphType: 'flat', rotation: 0, colorHex: '#F158A4', colorSchemeVar: 'colorTi' },
 };
 
-export function getSolfegeGlyphSpec(syllable: string, hasAxis: boolean = false): SolfegeGlyphSpec {
-  const spec = SOLFEGE_GLYPH_MAP[syllable];
+export function getSolfegeGlyphSpec(
+  syllable: string,
+  hasAxis: boolean = false,
+  octaveShift: number = 0,
+): SolfegeGlyphSpec {
+  let cleanSyllable = syllable;
+  let parsedOctave = octaveShift;
+  if (parsedOctave === 0 && (cleanSyllable.includes('^') || cleanSyllable.includes('_'))) {
+    for (const ch of cleanSyllable) {
+      if (ch === '^') parsedOctave++;
+      else if (ch === '_') parsedOctave--;
+    }
+  }
+  cleanSyllable = cleanSyllable.replace(/[\^_xX]/g, '');
+
+  const spec = SOLFEGE_GLYPH_MAP[cleanSyllable];
   if (!spec) {
     throw new Error(`Unknown solfège syllable for glyph spec: "${syllable}"`);
   }
   return {
-    canonicalSyllable: syllable,
+    canonicalSyllable: cleanSyllable,
     glyphType: spec.glyphType,
     rotation: spec.rotation,
     colorHex: spec.colorHex,
     colorSchemeVar: spec.colorSchemeVar,
     hasAxis,
+    octaveShift: parsedOctave,
   };
 }
 

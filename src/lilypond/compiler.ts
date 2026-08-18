@@ -424,8 +424,21 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
      lineto 0.000 1.000
      closepath))
 
-#(define (make-solfege-glyph base-path rot-deg fill-col has-axis?)
-   (let* ((raw-stencil (make-path-stencil base-path 0.0 0.9 0.9 #t))
+#(define pptPathTriangleUp
+   '(moveto -0.22 -0.25
+     lineto 0.22 -0.25
+     lineto 0.00 0.25
+     closepath))
+
+#(define pptPathTriangleDown
+   '(moveto -0.22 0.25
+     lineto 0.22 0.25
+     lineto 0.00 -0.25
+     closepath))
+
+#(define (make-solfege-glyph base-path rot-deg fill-col has-axis? . rest)
+   (let* ((oct-shift (if (null? rest) 0 (car rest)))
+          (raw-stencil (make-path-stencil base-path 0.0 0.9 0.9 #t))
           (rotated-stencil (if (= rot-deg 0)
                                raw-stencil
                                (ly:stencil-rotate raw-stencil rot-deg 0 0)))
@@ -448,11 +461,45 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
                       (ly:stencil-translate black-stencil (cons (- d) d))
                       (ly:stencil-translate black-stencil (cons d (- d)))
                       colored))
-          (centered (ly:stencil-aligned-to (ly:stencil-aligned-to outlined X CENTER) Y CENTER)))
-     (ly:stencil-translate centered (cons 0.65 0))))
+          (main-centered (ly:stencil-aligned-to (ly:stencil-aligned-to outlined X CENTER) Y CENTER))
+          (abs-oct (abs oct-shift))
+          (oct-stencil
+            (if (= oct-shift 0)
+                empty-stencil
+                (let* ((tri-path (if (> oct-shift 0) pptPathTriangleUp pptPathTriangleDown))
+                       (tri-scale (if (> abs-oct 1) 0.65 0.75))
+                       (tri-raw (make-path-stencil tri-path 0.0 tri-scale tri-scale #t))
+                       (tri-col (if fill-col (stencil-with-color tri-raw fill-col) tri-raw))
+                       (tri-black (stencil-with-color tri-raw black))
+                       (td 0.06)
+                       (tri-out (ly:stencil-add
+                                  (ly:stencil-translate tri-black (cons (- td) 0))
+                                  (ly:stencil-translate tri-black (cons td 0))
+                                  (ly:stencil-translate tri-black (cons 0 (- td)))
+                                  (ly:stencil-translate tri-black (cons 0 td))
+                                  (ly:stencil-translate tri-black (cons (- td) (- td)))
+                                  (ly:stencil-translate tri-black (cons td td))
+                                  (ly:stencil-translate tri-black (cons (- td) td))
+                                  (ly:stencil-translate tri-black (cons td (- td)))
+                                  tri-col))
+                       (tri-center (ly:stencil-aligned-to (ly:stencil-aligned-to tri-out X CENTER) Y CENTER))
+                       (x-pos -1.15)
+                       (spacing 0.44))
+                  (let loop ((k 0)
+                             (accum empty-stencil))
+                    (if (>= k abs-oct)
+                        accum
+                        (let* ((y-pos (if (> oct-shift 0)
+                                          (- 0.52 (* k spacing))
+                                          (+ -0.52 (* k spacing))))
+                               (placed (ly:stencil-translate tri-center (cons x-pos y-pos))))
+                          (loop (+ k 1) (ly:stencil-add accum placed))))))))
+          (with-octave (ly:stencil-add main-centered oct-stencil)))
+     (ly:stencil-translate with-octave (cons 0.65 0))))
 
-#(define (make-solfege-glyph-sub base-path rot-deg fill-col has-axis?)
-   (ly:stencil-scale (make-solfege-glyph base-path rot-deg fill-col has-axis?) 0.55 0.55))
+#(define (make-solfege-glyph-sub base-path rot-deg fill-col has-axis? . rest)
+   (let ((oct (if (null? rest) 0 (car rest))))
+     (ly:stencil-scale (make-solfege-glyph base-path rot-deg fill-col has-axis? oct) 0.55 0.55)))
 
 #(define (make-solfege-glyph-with-prefix base-path rot-deg fill-col has-axis? dox-count)
    (let* ((main-stencil (make-solfege-glyph base-path rot-deg fill-col has-axis?))
@@ -544,17 +591,20 @@ export function chordTokenToCoilMarkup(token: string): string {
 
   let bassStencil = "";
   if (parsed.hasAxisBass && parsed.bassSyllable) {
-    const bassSpec = getSolfegeGlyphSpec(parsed.bassSyllable, true);
+    const bassOct = parsed.bassOctaveShift ?? 0;
+    const bassSpec = getSolfegeGlyphSpec(parsed.bassSyllable, true, bassOct);
     const bassPathVar =
       bassSpec.glyphType === "base"
         ? "pptPathBase"
         : bassSpec.glyphType === "sharp"
           ? "pptPathSharp"
           : "pptPathFlat";
-    bassStencil = `\\stencil #(make-solfege-glyph ${bassPathVar} ${bassSpec.rotation} ${bassSpec.colorSchemeVar} #t) `;
+    const bassOctArg = bassOct !== 0 ? ` ${bassOct}` : "";
+    bassStencil = `\\stencil #(make-solfege-glyph ${bassPathVar} ${bassSpec.rotation} ${bassSpec.colorSchemeVar} #t${bassOctArg}) `;
   }
 
-  const rootSpec = getSolfegeGlyphSpec(parsed.rootSyllable, parsed.hasAxis);
+  const rootOct = parsed.octaveShift ?? 0;
+  const rootSpec = getSolfegeGlyphSpec(parsed.rootSyllable, parsed.hasAxis, rootOct);
   const basePathVar =
     rootSpec.glyphType === "base"
       ? "pptPathBase"
@@ -562,7 +612,8 @@ export function chordTokenToCoilMarkup(token: string): string {
         ? "pptPathSharp"
         : "pptPathFlat";
   const rootAxisBool = rootSpec.hasAxis ? "#t" : "#f";
-  const rootStencil = `\\stencil #(make-solfege-glyph ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool})`;
+  const rootOctArg = rootOct !== 0 ? ` ${rootOct}` : "";
+  const rootStencil = `\\stencil #(make-solfege-glyph ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool}${rootOctArg})`;
 
   if (parsed.modifiers.length === 0 && !bassStencil) {
     return `\\markup \\vcenter { ${rootStencil} }`;
@@ -589,7 +640,8 @@ export function chordTokenToCoilMarkup(token: string): string {
  */
 export function rhythmTokenToCoilMarkup(token: string): string {
   const parsed = parseHarmonyChord(token);
-  const rootSpec = getSolfegeGlyphSpec(parsed.rootSyllable, parsed.hasAxis);
+  const rootOct = parsed.octaveShift ?? 0;
+  const rootSpec = getSolfegeGlyphSpec(parsed.rootSyllable, parsed.hasAxis, rootOct);
   const basePathVar =
     rootSpec.glyphType === "base"
       ? "pptPathBase"
@@ -597,8 +649,9 @@ export function rhythmTokenToCoilMarkup(token: string): string {
         ? "pptPathSharp"
         : "pptPathFlat";
   const rootAxisBool = rootSpec.hasAxis ? "#t" : "#f";
+  const rootOctArg = rootOct !== 0 ? ` ${rootOct}` : "";
 
-  const rootStencil = `\\stencil #(make-solfege-glyph ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool})`;
+  const rootStencil = `\\stencil #(make-solfege-glyph ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool}${rootOctArg})`;
 
   if (parsed.modifiers.length === 0) {
     return `\\markup \\vcenter { ${rootStencil} }`;
@@ -998,6 +1051,8 @@ export function compileToLilyPond(
     "  \\cadenzaOn",
   ];
 
+  const doMidi = options.doPitch ? pitchNameToMidi(options.doPitch) : undefined;
+
   if (showMelodyCoilAbsolute) {
     if (isMultiVoice) {
       for (const v of voiceIndices) {
@@ -1017,7 +1072,10 @@ export function compileToLilyPond(
               if (onset.isRest) {
                 vLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_v${v}_${onset.onsetIndex} s${onsetDur}`);
               } else {
-                const markup = chordTokenToCoilMarkup(onset.scaleDegree);
+                const absToken = (doMidi !== undefined && onset.midiNote !== undefined)
+                  ? semitoneIntervalToSolfege(onset.midiNote - doMidi)
+                  : onset.scaleDegree;
+                const markup = chordTokenToCoilMarkup(absToken);
                 vLines.push(
                   `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_v${v}_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
                 );
@@ -1057,7 +1115,10 @@ export function compileToLilyPond(
         if (onset.isRest) {
           melodyCoilAbsoluteLinesSingle.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_${onset.onsetIndex} s${onsetDur}`);
         } else {
-          const markup = chordTokenToCoilMarkup(onset.scaleDegree);
+          const absToken = (doMidi !== undefined && onset.midiNote !== undefined)
+            ? semitoneIntervalToSolfege(onset.midiNote - doMidi)
+            : onset.scaleDegree;
+          const markup = chordTokenToCoilMarkup(absToken);
           melodyCoilAbsoluteLinesSingle.push(
             `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
           );
@@ -1101,7 +1162,15 @@ export function compileToLilyPond(
         let token: string;
         if (i === 0 || isNewCoil) {
           // Anchor note at start of coil: absolute scale degree with axis marker (x)
-          token = `${onset.scaleDegree}x`;
+          const baseAnchor = (doMidi !== undefined && onset.midiNote !== undefined)
+            ? semitoneIntervalToSolfege(onset.midiNote - doMidi)
+            : onset.scaleDegree;
+          if (baseAnchor.includes('^') || baseAnchor.includes('_')) {
+            const octIdx = baseAnchor.search(/[\^_]/);
+            token = `${baseAnchor.slice(0, octIdx)}x${baseAnchor.slice(octIdx)}`;
+          } else {
+            token = `${baseAnchor}x`;
+          }
         } else {
           // Subsequent note: interval from previous non-rest pitch
           let prevMidi = primaryOnsets[i - 1].midiNote;

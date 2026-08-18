@@ -11,7 +11,8 @@ The `src/lilypond/` directory generates valid, beautiful, standalone LilyPond ma
 Generated `.ly` documents contain:
 1. **Scheme Header & Path Definitions**:
    - `pptPathBase`, `pptPathSharp`, `pptPathFlat` defining the vector bezier curves.
-   - `make-solfege-glyph` / `make-path-stencil` computing scale, rotation, color, and optional axis stroke.
+   - `pptPathTriangleUp`, `pptPathTriangleDown` defining directional octave displacement indicators.
+   - `make-solfege-glyph` / `make-path-stencil` computing scale, rotation, color, optional axis stroke, and vertical-stacked directional octave displacement triangles.
 2. **Engraving Visibility Config**:
    - `\layout` and `\paper` blocks configured for Frescobaldi and PPT Studio rendering.
 3. **Voice Lines**:

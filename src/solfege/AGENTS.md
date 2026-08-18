@@ -41,6 +41,10 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
 - **Axis Diacritic (`x`)**:
   - Appears as a horizontal stroke passing directly through the glyph centroid.
   - The stroke color must dynamically match the syllable's assigned color (e.g. Red for `Dox`, Orange for `Rex`, Yellow for `Mex`, Pink for `Tex`).
+- **Octave Displacement Prefix Triangles (`^` / `_`)**:
+  - Prefixed directional triangle (pointing UP `▲` for `^` / octave up, pointing DOWN `▼` for `_` / octave down) drawn in the syllable's own chromatic color.
+  - Positioned to the left of the syllable glyph without shifting the syllable centroid $(0,0)$.
+  - Multi-octave leaps (`^^`, `__`) stack vertically to maintain compact layout.
 
 ---
 

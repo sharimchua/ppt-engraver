@@ -51,9 +51,13 @@ The repository consists of:
   - `Ti` (11 semitones, Flat 0°, Pink `#F158A4`)
 - **Axis Diacritic (`x`)**:
   - Suffix `x` on any syllable (e.g. `Dox`, `Rex`, `Mex`, `Tex`) denotes an axis anchor/root notehead with a horizontal line through the glyph center, drawn in the syllable's own color.
+- **Octave Displacement Prefix Triangles (`^` / `_`)**:
+  - Prefixed directional triangle (pointing UP `▲` for `^` / octave up, pointing DOWN `▼` for `_` / octave down) drawn in the syllable's own chromatic color to the left of the glyph.
+  - **Top/Bottom Aligned Inward Growth**: Upward octave markers align at the top-left and grow downwards toward the centre; downward octave markers align at the bottom-left and grow upwards toward the centre.
+  - Main syllable centroid remains anchored at $(0, 0)$ without horizontal offset.
 - **Dual Melody Coil Representations**:
-  - **Melody Absolute**: Displays absolute scale degrees for each onset.
-  - **Melody Interval**: Anchor note at start with axis (`${scaleDegree}x`), followed by interval tokens computed via `semitoneIntervalToSolfege(diff)`.
+  - **Melody Absolute**: Displays absolute scale degrees with octave displacement triangles for each onset.
+  - **Melody Interval**: Anchor note at start with axis (`${scaleDegree}x`), followed by interval tokens computed via `semitoneIntervalToSolfege(diff)` with directional octave triangles.
 
 ---
 
