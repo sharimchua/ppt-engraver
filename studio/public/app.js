@@ -152,17 +152,20 @@ const SOLFEGE_COLOR_MAP = {
   ti: 'ppt-te'
 };
 
+const SOLFEGE_SYLLABLES_LIST = [
+  'dox', 'rax', 'dix', 'rex', 'mex', 'rix', 'mix', 'fax', 'fix', 'sex', 'sox', 'lex', 'six', 'lax', 'tex', 'lix', 'tix',
+  'do', 'ra', 'di', 're', 'me', 'ri', 'mi', 'fa', 'fi', 'se', 'so', 'le', 'si', 'la', 'te', 'li', 'ti'
+];
+
 const solfegeOverlay = {
   token: function(stream) {
-    if (stream.eatWhile(/[\w\^_\.]/)) {
-      const word = stream.current();
-      const baseSyl = word.replace(/[\^_0-9\.]/g, '').toLowerCase();
-      if (SOLFEGE_COLOR_MAP[baseSyl]) {
-        return SOLFEGE_COLOR_MAP[baseSyl];
+    for (const syl of SOLFEGE_SYLLABLES_LIST) {
+      if (stream.match(new RegExp('^' + syl, 'i'))) {
+        const baseSyl = syl.replace(/x$/i, '').toLowerCase();
+        return SOLFEGE_COLOR_MAP[baseSyl] || 'ppt-do';
       }
-    } else {
-      stream.next();
     }
+    stream.next();
     return null;
   }
 };
@@ -263,17 +266,36 @@ function createSolfegeGlyphSvg(syllable, hasAxis = false, size = 18) {
   else if (glyphType === 'flat') pathD = SVG_PATH_FLAT;
 
   const axisSvg = hasAxis
-    ? `<line x1="-1.05" y1="0" x2="1.05" y2="0" stroke="#ffffff" stroke-width="0.16" stroke-linecap="round" />`
+    ? `<line x1="-1.1" y1="0" x2="1.1" y2="0" stroke="${color}" stroke-width="0.22" stroke-linecap="round" />`
     : '';
 
   return `
-    <svg viewBox="-1.2 -1.2 2.4 2.4" width="${size}" height="${size}" style="display:block; overflow:visible;">
+    <svg viewBox="-1.25 -1.25 2.5 2.5" width="${size}" height="${size}" style="display:inline-block; vertical-align:middle; overflow:visible;">
       <g transform="scale(1, -1) rotate(${rot})">
-        <path d="${pathD}" fill="${color}" stroke="#000000" stroke-width="0.08" stroke-linejoin="round" />
+        <path d="${pathD}" fill="${color}" stroke="#1e2127" stroke-width="0.08" stroke-linejoin="round" />
         ${axisSvg}
       </g>
     </svg>
   `;
+}
+
+function splitSyllables(word) {
+  const SYL_REGEX = /(Dox|Rax|Dix|Rex|Mex|Rix|Mix|Fax|Fix|Sex|Sox|Lex|Six|Lax|Tex|Lix|Tix|Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)([\^_]*)/gi;
+  const parts = [];
+  let m;
+  while ((m = SYL_REGEX.exec(word)) !== null) {
+    const raw = m[1];
+    const canonical = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    const hasAxis = /x$/i.test(canonical);
+    const baseSyl = canonical.replace(/x$/i, '');
+    parts.push({
+      canonical,
+      baseSyl,
+      hasAxis,
+      octStr: m[2] || '',
+    });
+  }
+  return parts;
 }
 
 // Inline Line Widget State
@@ -297,19 +319,21 @@ function updateInlineSolfegeWidget() {
   const cur = editor.getCursor();
   const currentLine = editor.getLine(cur.line) || '';
 
-  // Extract all Solfège tokens on this line (with their character start & end positions)
-  const tokenRegex = /\b(Do[xX]?|Ra[xX]?|Di[xX]?|Re[xX]?|Me[xX]?|Ri[xX]?|Mi[xX]?|Fa[xX]?|Fi[xX]?|Se[xX]?|So[xX]?|Le[xX]?|Si[xX]?|La[xX]?|Te[xX]?|Li[xX]?|Ti[xX]?)([\^_]*)\b/gi;
+  // Extract all words on this line
+  const wordRegex = /\b([A-Za-z0-9\^_]+)\b/g;
   const matches = [];
   let m;
-  while ((m = tokenRegex.exec(currentLine)) !== null) {
-    matches.push({
-      full: m[0],
-      syllable: m[1].charAt(0).toUpperCase() + m[1].slice(1),
-      octStr: m[2] || '',
-      startCh: m.index,
-      endCh: m.index + m[0].length,
-      hasAxis: /[xX]/.test(m[1])
-    });
+  while ((m = wordRegex.exec(currentLine)) !== null) {
+    const rawWord = m[1];
+    const parts = splitSyllables(rawWord);
+    if (parts.length > 0) {
+      matches.push({
+        word: rawWord,
+        parts,
+        startCh: m.index,
+        endCh: m.index + rawWord.length,
+      });
+    }
   }
 
   if (matches.length === 0) {
@@ -325,7 +349,7 @@ function updateInlineSolfegeWidget() {
     // Calculate exact pixel coords from CodeMirror
     const startCoord = editor.cursorCoords({ line: cur.line, ch: tok.startCh }, 'local');
     const endCoord = editor.cursorCoords({ line: cur.line, ch: tok.endCh }, 'local');
-    const centerLeft = Math.round((startCoord.left + endCoord.left) / 2 - 9); // center 18px glyph over text
+    const centerLeft = Math.round((startCoord.left + endCoord.left) / 2);
 
     const item = document.createElement('div');
     item.className = 'cm-token-solfege-item';
@@ -336,7 +360,16 @@ function updateInlineSolfegeWidget() {
       item.classList.add('active-token');
     }
 
-    item.innerHTML = createSolfegeGlyphSvg(tok.syllable, tok.hasAxis, 18);
+    if (tok.parts.length === 1) {
+      item.innerHTML = createSolfegeGlyphSvg(tok.parts[0].baseSyl, tok.parts[0].hasAxis, 18);
+    } else {
+      // Multiple sub-syllables (e.g. FaMe, DoMeTe, DoxDo)
+      item.innerHTML = tok.parts.map((p, idx) => {
+        const size = idx === 0 ? 16 : 11;
+        return createSolfegeGlyphSvg(p.baseSyl, p.hasAxis, size);
+      }).join('');
+    }
+
     stripNode.appendChild(item);
   });
 
