@@ -550,8 +550,10 @@ if (splitGutter && editorPanel && mainContainer) {
   });
 }
 
+let isInitialScoreLoadDone = false;
+
 // --- API Helpers ---
-async function fetchScores() {
+async function fetchScores(targetPath = null) {
   try {
     const res = await fetch('/api/scores');
     const data = await res.json();
@@ -564,8 +566,16 @@ async function fetchScores() {
         opt.textContent = s.name;
         scoreSelect.appendChild(opt);
       });
-      // Load first score by default
-      loadScore(data.scores[0].path);
+
+      const selected = targetPath || currentScoreFile || data.scores[0].path;
+      currentScoreFile = selected;
+      scoreSelect.value = selected;
+
+      // Only load and compile on the very first initial page load
+      if (!isInitialScoreLoadDone) {
+        isInitialScoreLoadDone = true;
+        loadScore(selected);
+      }
     } else {
       scoreSelect.innerHTML = '<option value="">No scores found</option>';
     }
@@ -607,7 +617,7 @@ async function saveScore() {
       currentScoreFile = data.file;
       setDirty(false);
       setStatus('ready', 'Saved');
-      fetchScores();
+      await fetchScores(data.file); // Refresh list without reloading or recompiling editor!
     }
   } catch (err) {
     console.error('Failed to save score:', err);
@@ -840,7 +850,8 @@ async function renderPdfPages() {
         annotLayer.className = 'pdf-annotation-layer';
 
         annotations.forEach(annot => {
-          if (annot.url && annot.url.startsWith('textedit://')) {
+          const rawUrl = annot.unsafeUrl || annot.url || '';
+          if (rawUrl && (rawUrl.startsWith('textedit:') || rawUrl.includes('textedit'))) {
             const rect = displayViewport.convertToViewportRectangle(annot.rect);
             const minX = Math.min(rect[0], rect[2]);
             const minY = Math.min(rect[1], rect[3]);
@@ -860,7 +871,7 @@ async function renderPdfPages() {
 
             linkEl.addEventListener('click', (e) => {
               e.stopPropagation();
-              handlePointAndClick(annot.url);
+              handlePointAndClick(rawUrl);
             });
 
             annotLayer.appendChild(linkEl);
