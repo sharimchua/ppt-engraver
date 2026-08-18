@@ -60,7 +60,7 @@ The `studio/public/` directory contains the client-side single-page application 
 - **Group Selection into Weave (`Ctrl+Alt+W` / `Cmd+Alt+W`)**:
   - Extracts selected child lines into a new named weave definition under `weaves:` and replaces the selection with `- weave: <newWeaveId>`.
 - **Rename Symbol / ID Globally (`F2`)**:
-  - Scans definition and all references across `parents:`, `concat:`, `- coil:`, `- weave:` throughout the YAML document with symbol boundary precision.
+  - Scans definition and all references across `parents:`, `parent:`, `concat:`, `harmony:`, `chords:`, `rhythm:`, `melody:`, `pitches:`, `from:`, `use:`, `- coil:`, `- weave:`, and dot-path references (e.g. `changes.harmony`) throughout the YAML document with symbol boundary precision.
 - **Convert Melody: Interval $\leftrightarrow$ Absolute (`Ctrl+Alt+A` / `Cmd+Alt+A`)**:
   - Detects enclosing coil or active `melody: [...]` line and converts seamlessly between:
     - **Interval Mode** (anchor notehead with axis `x` + relative signed interval degree steps `Do`, `Re`, `Ti`, `Me`, etc.)

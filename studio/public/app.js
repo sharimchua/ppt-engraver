@@ -568,7 +568,7 @@ function scanDeclaredCoilsAndWeaves(cm) {
     const dictKeyMatch = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)/);
     if (dictKeyMatch) {
       const key = dictKeyMatch[2];
-      if (!['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem', 'id'].includes(key)) {
+      if (!['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'chords', 'pitches', 'from', 'use', 'meter', 'clef', 'concat', 'parents', 'parent', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem', 'id'].includes(key)) {
         if (currentSection === 'weaves') weaveIds.add(key);
         else coilIds.add(key);
       }
@@ -1328,32 +1328,45 @@ function getTargetIdAtPos(cm, pos) {
     return { id: word, range: wordRange };
   }
 
-  // 2. If hovering over "parents", "coil", "weave", or "concat" keyword, find referenced target on this line
-  if (word === 'parents' || /^\s*parents\s*:/.test(lineText.slice(0, pos.ch + 1))) {
-    const singleMatch = lineText.match(/parents\s*:\s*["']?([_a-zA-Z0-9]+)["']?/i);
-    if (singleMatch && declaredIds.includes(singleMatch[1])) {
-      const startCh = lineText.indexOf(singleMatch[1]);
-      return {
-        id: singleMatch[1],
-        range: {
-          anchor: { line: pos.line, ch: startCh },
-          head: { line: pos.line, ch: startCh + singleMatch[1].length }
-        }
-      };
+  // 1b. Check if word is part of a dotted reference e.g. "changes.harmony"
+  const dotMatch = word.match(/^([_a-zA-Z0-9]+)\.(?:harmony|melody|rhythm)$/);
+  if (dotMatch && declaredIds.includes(dotMatch[1])) {
+    return { id: dotMatch[1], range: wordRange };
+  }
+
+  // 1c. Check if cursor position falls within any declared ID in the lineText
+  for (const id of declaredIds) {
+    const idRegex = new RegExp(`\\b${id}\\b`, 'g');
+    let m;
+    while ((m = idRegex.exec(lineText)) !== null) {
+      if (pos.ch >= m.index && pos.ch <= m.index + id.length) {
+        return {
+          id: id,
+          range: {
+            anchor: { line: pos.line, ch: m.index },
+            head: { line: pos.line, ch: m.index + id.length }
+          }
+        };
+      }
     }
   }
 
-  if (word === 'coil' || word === 'weave' || word === 'concat') {
-    const singleMatch = lineText.match(/(?:coil|weave|concat)\s*:\s*["']?([_a-zA-Z0-9]+)["']?/i);
-    if (singleMatch && declaredIds.includes(singleMatch[1])) {
-      const startCh = lineText.indexOf(singleMatch[1]);
-      return {
-        id: singleMatch[1],
-        range: {
-          anchor: { line: pos.line, ch: startCh },
-          head: { line: pos.line, ch: startCh + singleMatch[1].length }
+  // 2. If hovering over a reference keyword on this line, find referenced target on this line
+  const refKeywords = ['parents', 'parent', 'concat', 'coil', 'weave', 'harmony', 'chords', 'rhythm', 'melody', 'pitches', 'from', 'use'];
+  for (const kw of refKeywords) {
+    if (word === kw || new RegExp(`^\\s*${kw}\\s*:`, 'i').test(lineText.slice(0, pos.ch + 1))) {
+      for (const decId of declaredIds) {
+        if (new RegExp(`\\b${kw}\\s*:[^\n]*\\b${decId}\\b`, 'i').test(lineText)) {
+          const startCh = lineText.indexOf(decId);
+          return {
+            id: decId,
+            range: {
+              anchor: { line: pos.line, ch: startCh },
+              head: { line: pos.line, ch: startCh + decId.length }
+            }
+          };
         }
-      };
+      }
     }
   }
 
@@ -4795,7 +4808,7 @@ async function renameSymbol(cm) {
 
   const result = await showRefactorDialog({
     title: `Rename Symbol '${oldId}'`,
-    desc: `Rename '${oldId}' across its definition and all references (parents:, concat:, coil:, weave:) throughout the score:`,
+    desc: `Rename '${oldId}' across its definition and all references (parents:, concat:, coil:, weave:, harmony:, rhythm:, melody:, from:, use:, etc.) throughout the score:`,
     fields: [
       { type: 'text', name: 'newId', label: 'New ID Name:', value: oldId, placeholder: 'e.g. verse_theme' }
     ],
@@ -4809,23 +4822,38 @@ async function renameSymbol(cm) {
 
   const docText = cm.getValue();
   const lines = docText.split('\n');
+  const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const oldIdEsc = escapeRegex(oldId);
+
+  let replacementCount = 0;
 
   for (let l = 0; l < lines.length; l++) {
     let line = lines[l];
     if (/^\s*#/.test(line)) continue;
 
-    line = line.replace(new RegExp(`^(\\s*)${oldId}(\\s*:)`), `$1${newId}$2`);
-    line = line.replace(new RegExp(`(\\bid\\s*:\\s*["']?)${oldId}(["']?)`), `$1${newId}$2`);
-    line = line.replace(new RegExp(`(\\b(?:parents|parent)\\s*:\\s*(?:\\[[^\\]]*\\]|["']?[_a-zA-Z0-9]+["']?))`), (match) => {
-      return match.replace(new RegExp(`\\b${oldId}\\b`, 'g'), newId);
+    const origLine = line;
+
+    // 1. Definition as dictionary key (e.g. "  verse:")
+    line = line.replace(new RegExp(`^(\\s*)${oldIdEsc}(\\s*:)`), `$1${newId}$2`);
+
+    // 2. Definition / reference via id: (e.g. "id: verse")
+    line = line.replace(new RegExp(`(\\bid\\s*:\\s*["']?)${oldIdEsc}(["']?)`, 'g'), `$1${newId}$2`);
+
+    // 3. Properties referencing IDs: parents, parent, concat, harmony, chords, rhythm, melody, pitches, coil, weave, from, use
+    line = line.replace(new RegExp(`(\\b(?:parents|parent|concat|harmony|chords|rhythm|melody|pitches|coil|weave|from|use)\\s*:\\s*)(.+)`, 'i'), (match, prefix, val) => {
+      // Replace standalone word boundaries or dot-separated paths (e.g. "changes.harmony")
+      const replacedVal = val.replace(new RegExp(`\\b${oldIdEsc}\\b`, 'g'), newId);
+      return prefix + replacedVal;
     });
 
-    if (/^\s*-\s*[_a-zA-Z0-9]+/.test(line)) {
-      line = line.replace(new RegExp(`^(\\s*-\\s*)${oldId}\\b`), `$1${newId}`);
+    // 4. List items (e.g. "  - verse_1" or "  - coil: verse_1" or "  - weave: verse_1")
+    if (/^\s*-\s*/.test(line)) {
+      line = line.replace(new RegExp(`^(\\s*-\\s*(?:(?:coil|weave)\\s*:\\s*["']?)?)${oldIdEsc}\\b`, 'g'), `$1${newId}`);
     }
 
-    line = line.replace(new RegExp(`(\\b(?:coil|weave)\\s*:\\s*["']?)${oldId}(["']?)`), `$1${newId}$2`);
-
+    if (line !== origLine) {
+      replacementCount++;
+    }
     lines[l] = line;
   }
 
@@ -4833,6 +4861,10 @@ async function renameSymbol(cm) {
   updateDeclaredIdsCache(cm);
   updateScoreHighlights(cm);
   triggerCompile();
+
+  if (typeof setStatus === 'function') {
+    setStatus('ready', `Renamed '${oldId}' → '${newId}' across ${replacementCount} line(s)`);
+  }
 }
 
 // --- Melody Interval <-> Absolute Conversion Refactoring ---
