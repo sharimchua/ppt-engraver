@@ -8,7 +8,7 @@
  * - Configurable LilyPond executable path via env or API
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlinkSync, renameSync } from 'node:fs';
 import { join, resolve, extname, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
@@ -337,6 +337,61 @@ const server = createServer(async (req, res) => {
           }
         }
         return sendJson(res, { success: true, file: `${baseName}.ppt.yaml` });
+      }
+
+      // POST /api/rename
+      if (pathname === '/api/rename' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.oldFile || !body.newFile) {
+          return sendError(res, 'Missing oldFile or newFile parameter', 400);
+        }
+        const oldBase = basename(body.oldFile).replace(/\.ppt\.yaml$/, '');
+        const newBase = basename(body.newFile).replace(/\.ppt\.yaml$/, '');
+        if (!oldBase || !newBase) {
+          return sendError(res, 'Invalid file name', 400);
+        }
+        const oldYamlPath = join(SCORES_DIR, `${oldBase}.ppt.yaml`);
+        const newYamlPath = join(SCORES_DIR, `${newBase}.ppt.yaml`);
+
+        if (!existsSync(oldYamlPath)) {
+          return sendError(res, `Original score '${oldBase}.ppt.yaml' does not exist`, 404);
+        }
+        if (oldBase !== newBase && existsSync(newYamlPath)) {
+          return sendError(res, `Target score '${newBase}.ppt.yaml' already exists`, 409);
+        }
+
+        // Rename the primary YAML score
+        if (oldBase !== newBase) {
+          renameSync(oldYamlPath, newYamlPath);
+
+          // Rename all known related sidecar and compilation artifacts
+          const extensions = [
+            '.notation.ly',
+            '.pdf',
+            '.ppt-map.json',
+            '.svg',
+            '.cropped.svg',
+            '.mid',
+            '.midi'
+          ];
+          for (const ext of extensions) {
+            const oldArtifact = join(SCORES_DIR, `${oldBase}${ext}`);
+            const newArtifact = join(SCORES_DIR, `${newBase}${ext}`);
+            if (existsSync(oldArtifact)) {
+              try {
+                renameSync(oldArtifact, newArtifact);
+              } catch (e) {
+                console.warn(`Failed to rename artifact ${oldArtifact}:`, e);
+              }
+            }
+          }
+        }
+
+        return sendJson(res, {
+          success: true,
+          oldFile: `${oldBase}.ppt.yaml`,
+          newFile: `${newBase}.ppt.yaml`
+        });
       }
 
       // GET /api/snippets

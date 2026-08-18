@@ -71,6 +71,13 @@ html, body {
   color: var(--text-main);
 }
 
+.logo-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+}
+
 .logo-glyph {
   color: var(--primary);
   font-size: 16px;
@@ -197,6 +204,57 @@ html, body {
 
 .btn-icon:hover {
   background-color: var(--bg-surface-hover);
+}
+
+.btn-danger-hover:hover {
+  background-color: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #fca5a5 !important;
+}
+
+/* Compile Button Group & Auto-Compile Toggle */
+.compile-button-group {
+  display: inline-flex;
+  align-items: stretch;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 28px;
+}
+
+.compile-button-group #btn-compile {
+  border-radius: 0;
+  border: none;
+  height: 100%;
+}
+
+.autocompile-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  border-left: 1px solid var(--border-color);
+  background-color: var(--bg-surface-elevated);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.autocompile-toggle:hover {
+  color: var(--text-main);
+  background-color: var(--bg-surface-hover);
+}
+
+.autocompile-toggle input[type="checkbox"] {
+  accent-color: var(--primary);
+  cursor: pointer;
+  margin: 0;
+  width: 13px;
+  height: 13px;
 }
 
 /* Main Split View */
@@ -713,11 +771,164 @@ body.resizing-panels iframe {
   color: #000000 !important;
 }
 
-.placeholder-message {
-  margin-top: 100px;
-  color: var(--text-dim);
+/* Enhanced Empty Preview Placeholder & Loading Card */
+.placeholder-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+.placeholder-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 32px 36px;
+  max-width: 520px;
+  width: 100%;
   text-align: center;
-  font-size: 14px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  animation: fadeIn 0.25s ease-out;
+}
+
+.placeholder-hero-header {
+  margin-bottom: 22px;
+}
+
+.placeholder-hero-logo {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 4px 12px rgba(225, 54, 16, 0.35));
+}
+
+.placeholder-title {
+  margin: 0 0 6px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.placeholder-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.placeholder-shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.placeholder-shortcuts-grid .shortcut-item {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.placeholder-shortcuts-grid .shortcut-action {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.placeholder-shortcuts-grid .shortcut-keys {
+  display: flex;
+  gap: 3px;
+}
+
+.placeholder-shortcuts-grid kbd {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  background: var(--bg-surface-3);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text-main);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.placeholder-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.placeholder-actions .btn {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+}
+
+/* Compiling / Loading State Card */
+.placeholder-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.placeholder-spinner-wrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-spinner-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--primary);
+  border-right-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.placeholder-spinner-logo {
+  width: 26px;
+  height: 26px;
+  animation: pulseLogo 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseLogo {
+  from { transform: scale(0.9); opacity: 0.8; }
+  to { transform: scale(1.1); opacity: 1; }
+}
+
+.placeholder-loading-title {
+  margin: 0 0 6px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.placeholder-loading-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
 }
 
 /* Frescobaldi-Style Magnifier Lens */

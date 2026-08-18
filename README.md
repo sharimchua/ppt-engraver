@@ -8,7 +8,7 @@ Compiles [Prime Period Theory](https://ppt.midlifemuso.com/) Tapestry source fil
 
 ## Features
 
-- 🎼 **Live Web Studio**: Real-time side-by-side YAML editor with instant vector SVG and high-resolution PDF preview (`npm run studio`), Frescobaldi-style Point-and-Click source navigation, Solfège preview strips, and Command Palette (`Ctrl+K` / `Cmd+K`).
+- 🎼 **Live Web Studio**: Real-time side-by-side YAML editor with instant vector SVG and high-resolution PDF preview (`npm run studio`), Frescobaldi-style Point-and-Click source navigation, Solfège preview strips, scroll depth preservation, Auto-Compile toggle, and Command Palette (`Ctrl+Shift+P` / `F1`).
 - 🎨 **PPT Solfège Geometry & Colors**: Standard 12-chromatic Solfège noteheads, vector SVG glyphs, custom clefs (`H`, `Do`, `Rhythm`), and tailored HSL color palette.
 - 🧬 **Multi-Layer Coils**: Melody, Harmony, Rhythm, and metric block layers with priority-fill inheritance and polyphonic multi-voice support.
 - 🔗 **Coil Concatenation & In-Place Maps**: Compose complex phrases using `concat: [...]` with automatic downbeat rhythm boundary collapsing.

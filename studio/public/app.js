@@ -10,6 +10,7 @@ let currentZoom = 1.0;
 let lastCompiledData = null;
 
 // User Preferences
+let enableAutocompile = localStorage.getItem('ppt_autocompile') !== 'false';
 let enableAutocomplete = localStorage.getItem('ppt_enable_autocomplete') !== 'false';
 let enableSolfegeColors = localStorage.getItem('ppt_enable_solfege_colors') !== 'false';
 let enableCoilSuggestions = localStorage.getItem('ppt_enable_coil_suggestions') !== 'false';
@@ -1004,7 +1005,7 @@ const SOLFEGE_CHROMATIC_DOWN = {
 function getSolfegeTokensOnLine(lineText) {
   if (!lineText) return [];
   const colonIdx = lineText.indexOf(':');
-  const wordRegex = /\b([A-Za-z0-9\^_]+)\b/g;
+  const wordRegex = /([A-Za-z0-9\^_]+)/g;
   const tokens = [];
   let m;
 
@@ -1109,6 +1110,77 @@ function handleSolfegeTranspose(cm, direction) {
   if (!target) return CodeMirror.Pass;
 
   const newText = transposeSubSyllable(target, direction);
+  const from = { line: cur.line, ch: target.startCh };
+  const to = { line: cur.line, ch: target.endCh };
+
+  cm.replaceRange(newText, from, to);
+
+  const newCursorCh = Math.min(cur.ch, target.startCh + newText.length);
+  cm.setCursor({ line: cur.line, ch: newCursorCh });
+
+  updateInlineSolfegeWidget();
+  updatePairedTokenHighlights(cm);
+  updateScoreHighlights(cm);
+}
+
+/**
+ * Shifts a sub-syllable token up or down by 1 octave (+1 / -1 octave) via ^ and _ suffixes.
+ */
+function shiftSubSyllableOctave(subToken, direction) {
+  const { baseSyl, hasAxis, octStr } = subToken;
+
+  let octShift = 0;
+  for (const c of octStr) {
+    if (c === '^') octShift++;
+    else if (c === '_') octShift--;
+  }
+
+  if (direction === 'up') {
+    octShift += 1;
+  } else if (direction === 'down') {
+    octShift -= 1;
+  }
+
+  let result = baseSyl;
+  if (hasAxis) {
+    result += 'x';
+  }
+  if (octShift > 0) {
+    result += '^'.repeat(octShift);
+  } else if (octShift < 0) {
+    result += '_'.repeat(Math.abs(octShift));
+  }
+
+  return result;
+}
+
+/**
+ * Handles Ctrl+Shift+Up / Ctrl+Shift+Down Solfège octave shift at cursor.
+ */
+function handleSolfegeOctaveShift(cm, direction) {
+  const cur = cm.getCursor();
+  const lineText = cm.getLine(cur.line) || '';
+  const tokens = getSolfegeTokensOnLine(lineText);
+
+  if (tokens.length === 0) {
+    return CodeMirror.Pass;
+  }
+
+  let target = tokens.find(t => cur.ch >= t.startCh && cur.ch <= t.endCh);
+  if (!target) {
+    let minDist = Infinity;
+    for (const t of tokens) {
+      const dist = Math.min(Math.abs(cur.ch - t.startCh), Math.abs(cur.ch - t.endCh));
+      if (dist < minDist) {
+        minDist = dist;
+        target = t;
+      }
+    }
+  }
+
+  if (!target) return CodeMirror.Pass;
+
+  const newText = shiftSubSyllableOctave(target, direction);
   const from = { line: cur.line, ch: target.startCh };
   const to = { line: cur.line, ch: target.endCh };
 
@@ -1332,6 +1404,10 @@ const editor = CodeMirror(editorContainer, {
     'Cmd-Up': (cm) => handleSolfegeTranspose(cm, 'up'),
     'Ctrl-Down': (cm) => handleSolfegeTranspose(cm, 'down'),
     'Cmd-Down': (cm) => handleSolfegeTranspose(cm, 'down'),
+    'Ctrl-Alt-Up': (cm) => handleSolfegeOctaveShift(cm, 'up'),
+    'Cmd-Alt-Up': (cm) => handleSolfegeOctaveShift(cm, 'up'),
+    'Ctrl-Alt-Down': (cm) => handleSolfegeOctaveShift(cm, 'down'),
+    'Cmd-Alt-Down': (cm) => handleSolfegeOctaveShift(cm, 'down'),
     'Ctrl-Left': (cm) => handleSolfegeNavigation(cm, 'left'),
     'Cmd-Left': (cm) => handleSolfegeNavigation(cm, 'left'),
     'Ctrl-Right': (cm) => handleSolfegeNavigation(cm, 'right'),
@@ -2217,10 +2293,12 @@ editor.on('change', () => {
   updateInlineSolfegeWidget();
   updatePairedTokenHighlights(editor);
   updateScoreHighlights(editor);
-  clearTimeout(compileDebounceTimer);
-  compileDebounceTimer = setTimeout(() => {
-    triggerCompile();
-  }, 500);
+  if (enableAutocompile) {
+    clearTimeout(compileDebounceTimer);
+    compileDebounceTimer = setTimeout(() => {
+      triggerCompile();
+    }, 500);
+  }
 });
 
 // Cursor activity event for real-time line context, paired layer token sync & score highlighting
@@ -2233,7 +2311,9 @@ editor.on('cursorActivity', () => {
 // DOM Elements
 const scoreSelect = document.getElementById('score-select');
 const btnNewScore = document.getElementById('btn-new-score');
+const btnDeleteScore = document.getElementById('btn-delete-score');
 const btnCompile = document.getElementById('btn-compile');
+const chkAutocompile = document.getElementById('chk-autocompile');
 const btnSave = document.getElementById('btn-save');
 const btnExportPdf = document.getElementById('btn-export-pdf');
 const btnSettings = document.getElementById('btn-settings');
@@ -2268,6 +2348,7 @@ const settingLoupeSize = document.getElementById('setting-loupe-size');
 const labelLoupeSize = document.getElementById('label-loupe-size');
 const settingLoupePower = document.getElementById('setting-loupe-power');
 const labelLoupePower = document.getElementById('label-loupe-power');
+const settingEnableAutocompile = document.getElementById('setting-enable-autocompile');
 const settingEnableAutocomplete = document.getElementById('setting-enable-autocomplete');
 const settingEnableSolfegeColors = document.getElementById('setting-enable-solfege-colors');
 const settingEnableCoilSuggestions = document.getElementById('setting-enable-coil-suggestions');
@@ -2331,6 +2412,99 @@ if (splitGutter && editorPanel && mainContainer) {
 }
 
 let isInitialScoreLoadDone = false;
+let shouldResetPreviewScroll = false;
+
+function getPlaceholderDefaultHtml() {
+  return `
+    <div class="placeholder-card">
+      <div class="placeholder-hero-header">
+        <img src="logo.svg" alt="PPT Logo" class="placeholder-hero-logo" />
+        <h2 class="placeholder-title">Prime Period Theory Studio</h2>
+        <p class="placeholder-subtitle">Live geometric music notation compiler & interactive studio</p>
+      </div>
+      
+      <div class="placeholder-shortcuts-grid">
+        <div class="shortcut-item">
+          <span class="shortcut-action">Compile Score</span>
+          <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-action">Open Tapestry</span>
+          <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>O</kbd></span>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-action">Command Palette</span>
+          <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></span>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-action">Transpose Solfège</span>
+          <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>↑/↓</kbd></span>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-action">Shift Octave</span>
+          <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑/↓</kbd></span>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-action">Autocomplete & Snips</span>
+          <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Space</kbd></span>
+        </div>
+      </div>
+
+      <div class="placeholder-actions">
+        <button type="button" id="btn-placeholder-compile" class="btn btn-primary">
+          <span>▶</span> Compile Tapestry
+        </button>
+        <button type="button" id="btn-placeholder-open" class="btn btn-secondary">
+          <span>📂</span> Open Score...
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function getPlaceholderLoadingHtml(title = 'Compiling Tapestry Score', subtitle = 'Generating LilyPond notation...') {
+  return `
+    <div class="placeholder-card placeholder-loading-card">
+      <div class="placeholder-spinner-wrap">
+        <div class="placeholder-spinner-ring"></div>
+        <img src="logo.svg" alt="PPT Logo" class="placeholder-spinner-logo" />
+      </div>
+      <h3 class="placeholder-loading-title">${title}</h3>
+      <p class="placeholder-loading-sub">${subtitle}</p>
+    </div>
+  `;
+}
+
+function bindPlaceholderButtons() {
+  const btnCompile = document.getElementById('btn-placeholder-compile');
+  const btnOpen = document.getElementById('btn-placeholder-open');
+  if (btnCompile) {
+    btnCompile.addEventListener('click', () => triggerCompile());
+  }
+  if (btnOpen) {
+    btnOpen.addEventListener('click', () => openTapestryPicker());
+  }
+}
+
+function clearPreviewWindow(loadingMessage = null) {
+  currentPdfDoc = null;
+  lastPdfBase64 = null;
+  if (scoreSvgContainer) scoreSvgContainer.innerHTML = '';
+  if (scorePlaceholder) {
+    if (loadingMessage) {
+      scorePlaceholder.innerHTML = getPlaceholderLoadingHtml('Loading Tapestry Score', loadingMessage);
+    } else {
+      scorePlaceholder.innerHTML = getPlaceholderDefaultHtml();
+      bindPlaceholderButtons();
+    }
+    scorePlaceholder.style.display = 'flex';
+  }
+  if (scoreCanvas) {
+    scoreCanvas.scrollTop = 0;
+    scoreCanvas.scrollLeft = 0;
+  }
+  shouldResetPreviewScroll = true;
+}
 
 // --- URL & Deeplinking Helpers ---
 function getScoreFromUrlOrStorage(scoreList) {
@@ -2439,6 +2613,7 @@ async function loadScore(filePath, force = false) {
 
   try {
     setStatus('loading', 'Loading...');
+    clearPreviewWindow('Loading & compiling tapestry sheet music...');
     const res = await fetch(`/api/score?file=${encodeURIComponent(filePath)}`);
     const data = await res.json();
     if (data.content) {
@@ -3269,6 +3444,9 @@ function updateScoreHighlights(cm) {
 async function renderPdfPages() {
   if (!currentPdfDoc || isRenderingPdf) return;
   isRenderingPdf = true;
+  const prevScrollTop = shouldResetPreviewScroll ? 0 : (scoreCanvas ? scoreCanvas.scrollTop : 0);
+  const prevScrollLeft = shouldResetPreviewScroll ? 0 : (scoreCanvas ? scoreCanvas.scrollLeft : 0);
+  shouldResetPreviewScroll = false;
 
   try {
     scorePlaceholder.style.display = 'none';
@@ -3373,6 +3551,18 @@ async function renderPdfPages() {
 
     zoomLevel.textContent = pdfZoomMode === 'FitH' ? 'Fit' : `${Math.round(currentZoom * 100)}%`;
     updateScoreHighlights(editor);
+
+    // Restore scroll depth after rendering
+    if (scoreCanvas) {
+      scoreCanvas.scrollTop = prevScrollTop;
+      scoreCanvas.scrollLeft = prevScrollLeft;
+      requestAnimationFrame(() => {
+        if (scoreCanvas) {
+          scoreCanvas.scrollTop = prevScrollTop;
+          scoreCanvas.scrollLeft = prevScrollLeft;
+        }
+      });
+    }
   } catch (err) {
     console.error('Error rendering PDF pages:', err);
   } finally {
@@ -3381,6 +3571,10 @@ async function renderPdfPages() {
 }
 
 async function renderPreview(data) {
+  const prevScrollTop = shouldResetPreviewScroll ? 0 : (scoreCanvas ? scoreCanvas.scrollTop : 0);
+  const prevScrollLeft = shouldResetPreviewScroll ? 0 : (scoreCanvas ? scoreCanvas.scrollLeft : 0);
+  shouldResetPreviewScroll = false;
+
   if (data.format === 'pdf' && data.pdfBase64) {
     lastPdfBase64 = data.pdfBase64;
     try {
@@ -3432,6 +3626,10 @@ async function renderPreview(data) {
 
     applyZoom();
     updateScoreHighlights(editor);
+    if (scoreCanvas) {
+      scoreCanvas.scrollTop = prevScrollTop;
+      scoreCanvas.scrollLeft = prevScrollLeft;
+    }
     return;
   }
 
@@ -3553,7 +3751,21 @@ btnNewScore.addEventListener('click', () => {
   createTapestry();
 });
 
+if (btnDeleteScore) {
+  btnDeleteScore.addEventListener('click', () => {
+    deleteTapestry();
+  });
+}
+
 btnCompile.addEventListener('click', () => triggerCompile());
+
+if (chkAutocompile) {
+  chkAutocompile.checked = enableAutocompile;
+  chkAutocompile.addEventListener('change', (e) => {
+    setAutocompile(e.target.checked);
+  });
+}
+
 btnSave.addEventListener('click', () => saveScore());
 btnExportPdf.addEventListener('click', () => exportStandalonePdf());
 
@@ -3632,6 +3844,57 @@ btnCopyLy.addEventListener('click', () => {
   setTimeout(() => { btnCopyLy.textContent = 'Copy Code'; }, 1500);
 });
 
+// --- Preference & Setting Helpers ---
+function setAutocompile(enabled) {
+  enableAutocompile = enabled;
+  localStorage.setItem('ppt_autocompile', String(enableAutocompile));
+  if (chkAutocompile) chkAutocompile.checked = enableAutocompile;
+  if (settingEnableAutocompile) settingEnableAutocompile.checked = enableAutocompile;
+  setStatus('ready', `Auto-compile: ${enableAutocompile ? 'ON' : 'OFF'}`);
+}
+
+function toggleAutocompile() {
+  setAutocompile(!enableAutocompile);
+}
+
+function toggleSolfegeColors() {
+  enableSolfegeColors = !enableSolfegeColors;
+  localStorage.setItem('ppt_enable_solfege_colors', String(enableSolfegeColors));
+  if (settingEnableSolfegeColors) settingEnableSolfegeColors.checked = enableSolfegeColors;
+  if (enableSolfegeColors) {
+    editor.addOverlay(solfegeOverlay);
+  } else {
+    editor.removeOverlay(solfegeOverlay);
+  }
+  setStatus('ready', `Solfège Colors: ${enableSolfegeColors ? 'ON' : 'OFF'}`);
+}
+
+function toggleSolfegeContext() {
+  enableSolfegeContext = !enableSolfegeContext;
+  localStorage.setItem('ppt_enable_solfege_context', String(enableSolfegeContext));
+  if (settingEnableSolfegeContext) settingEnableSolfegeContext.checked = enableSolfegeContext;
+  updateInlineSolfegeWidget();
+  setStatus('ready', `Melody Preview: ${enableSolfegeContext ? 'ON' : 'OFF'}`);
+}
+
+function toggleAutocomplete() {
+  enableAutocomplete = !enableAutocomplete;
+  localStorage.setItem('ppt_enable_autocomplete', String(enableAutocomplete));
+  if (settingEnableAutocomplete) settingEnableAutocomplete.checked = enableAutocomplete;
+  setStatus('ready', `Autocompletion: ${enableAutocomplete ? 'ON' : 'OFF'}`);
+}
+
+function toggleCoilSuggestions() {
+  enableCoilSuggestions = !enableCoilSuggestions;
+  localStorage.setItem('ppt_enable_coil_suggestions', String(enableCoilSuggestions));
+  if (settingEnableCoilSuggestions) settingEnableCoilSuggestions.checked = enableCoilSuggestions;
+  setStatus('ready', `Coil Suggestions: ${enableCoilSuggestions ? 'ON' : 'OFF'}`);
+}
+
+function openSettingsModal() {
+  btnSettings.click();
+}
+
 // --- Settings Modal & Preferences ---
 let loupeSize = parseInt(localStorage.getItem('ppt_loupe_size') || '220', 10);
 let loupePower = parseFloat(localStorage.getItem('ppt_loupe_power') || '2.5');
@@ -3665,6 +3928,9 @@ btnSettings.addEventListener('click', async () => {
       labelLoupePower.textContent = `${loupePower}x`;
     }
 
+    if (settingEnableAutocompile) {
+      settingEnableAutocompile.checked = enableAutocompile;
+    }
     if (settingEnableAutocomplete) {
       settingEnableAutocomplete.checked = enableAutocomplete;
     }
@@ -3699,6 +3965,9 @@ btnSaveSettings.addEventListener('click', async () => {
     localStorage.setItem('ppt_loupe_power', String(loupePower));
   }
 
+  if (settingEnableAutocompile) {
+    setAutocompile(settingEnableAutocompile.checked);
+  }
   if (settingEnableAutocomplete) {
     enableAutocomplete = settingEnableAutocomplete.checked;
     localStorage.setItem('ppt_enable_autocomplete', String(enableAutocomplete));
@@ -4845,6 +5114,7 @@ async function createTapestry() {
     const data = await res.json();
     if (data.success) {
       currentScoreFile = data.file;
+      clearPreviewWindow('Creating & compiling tapestry...');
       editor.setValue(starterTemplate);
       setDirty(false);
       setStatus('ready', 'Tapestry Created');
@@ -4883,12 +5153,64 @@ async function deleteTapestry() {
     if (data.success) {
       currentScoreFile = '';
       isInitialScoreLoadDone = false;
+      clearPreviewWindow();
+      editor.setValue('');
+      setDirty(false);
       await fetchScores();
       setStatus('ready', 'Tapestry Deleted');
     }
   } catch (err) {
     console.error('Failed to delete tapestry:', err);
     setStatus('error', 'Delete Failed');
+  }
+}
+
+async function renameTapestryFile() {
+  if (!currentScoreFile) {
+    alert('No tapestry is currently loaded to rename.');
+    return;
+  }
+
+  const currentBase = currentScoreFile.replace(/\.ppt\.yaml$/, '');
+  const result = await showRefactorDialog({
+    title: `Rename Tapestry File`,
+    desc: `Rename '${currentScoreFile}' and its associated compilation artifacts (.notation.ly, .pdf, .ppt-map.json, .svg, etc.):`,
+    fields: [
+      { type: 'text', name: 'newFileName', label: 'New File Name (.ppt.yaml):', value: currentBase, placeholder: 'e.g. moonlight_motif' }
+    ],
+    confirmText: 'Rename File & Artifacts'
+  });
+
+  if (!result.confirmed) return;
+
+  const rawName = (result.values.newFileName || '').trim().replace(/\.ppt\.yaml$/, '');
+  if (!rawName) {
+    alert('File name cannot be empty.');
+    return;
+  }
+  const newFileName = `${rawName}.ppt.yaml`;
+  if (newFileName === currentScoreFile) return;
+
+  try {
+    setStatus('compiling', 'Renaming...');
+    const res = await fetch('/api/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldFile: currentScoreFile, newFile: newFileName })
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentScoreFile = data.newFile;
+      updateUrlAndStorage(data.newFile);
+      await fetchScores(data.newFile);
+      setStatus('ready', `Renamed to ${data.newFile}`);
+    } else {
+      setStatus('error', 'Rename Failed');
+      alert(`Rename failed: ${data.error || 'Unknown error'}`);
+    }
+  } catch (err) {
+    console.error('Failed to rename tapestry file:', err);
+    setStatus('error', 'Rename Failed');
   }
 }
 
@@ -4911,6 +5233,13 @@ const BASE_COMMANDS_LIST = [
     action: () => createTapestry()
   },
   {
+    id: 'project-rename-tapestry-file',
+    title: 'Rename Tapestry File & Artifacts...',
+    category: 'Project',
+    icon: '🏷️',
+    action: () => renameTapestryFile()
+  },
+  {
     id: 'project-save-tapestry',
     title: 'Save Tapestry',
     category: 'Project',
@@ -4924,6 +5253,48 @@ const BASE_COMMANDS_LIST = [
     category: 'Project',
     icon: '🗑️',
     action: () => deleteTapestry()
+  },
+  {
+    id: 'pref-toggle-autocompile',
+    title: 'Toggle Auto-Compile on Change',
+    category: 'Preferences',
+    icon: '⚡',
+    action: () => toggleAutocompile()
+  },
+  {
+    id: 'pref-toggle-solfege-colors',
+    title: 'Toggle Inline Solfège Color Highlighting',
+    category: 'Preferences',
+    icon: '🎨',
+    action: () => toggleSolfegeColors()
+  },
+  {
+    id: 'pref-toggle-solfege-context',
+    title: 'Toggle Inline Melody Coil Preview',
+    category: 'Preferences',
+    icon: '👁️',
+    action: () => toggleSolfegeContext()
+  },
+  {
+    id: 'pref-toggle-autocomplete',
+    title: 'Toggle Context-Aware Autocompletion',
+    category: 'Preferences',
+    icon: '💡',
+    action: () => toggleAutocomplete()
+  },
+  {
+    id: 'pref-toggle-coil-suggestions',
+    title: 'Toggle Dynamic Coil & Weave Suggestions',
+    category: 'Preferences',
+    icon: '🧶',
+    action: () => toggleCoilSuggestions()
+  },
+  {
+    id: 'pref-open-settings',
+    title: 'Open Studio Settings...',
+    category: 'Preferences',
+    icon: '⚙️',
+    action: () => openSettingsModal()
   },
   {
     id: 'refactor-extract-parent',
@@ -4995,6 +5366,22 @@ const BASE_COMMANDS_LIST = [
     icon: '⬇️',
     shortcut: 'Ctrl+Down',
     action: (cm) => handleSolfegeTranspose(cm, 'down')
+  },
+  {
+    id: 'nav-octave-up',
+    title: 'Shift Solfège Note Octave Up (+1 Octave / ^)',
+    category: 'Music',
+    icon: '⏫',
+    shortcut: 'Ctrl+Alt+Up',
+    action: (cm) => handleSolfegeOctaveShift(cm, 'up')
+  },
+  {
+    id: 'nav-octave-down',
+    title: 'Shift Solfège Note Octave Down (-1 Octave / _)',
+    category: 'Music',
+    icon: '⏬',
+    shortcut: 'Ctrl+Alt+Down',
+    action: (cm) => handleSolfegeOctaveShift(cm, 'down')
   },
   {
     id: 'nav-goto-def',
@@ -5375,5 +5762,6 @@ window.addEventListener('keyup', (e) => {
 });
 
 // Initialize on Load
+bindPlaceholderButtons();
 fetchScores();
 fetchSnippets();

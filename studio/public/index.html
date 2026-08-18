@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PPT Engraver Studio</title>
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
   <link rel="stylesheet" href="style.css">
   <!-- CodeMirror for clean, high-performance YAML editing with Solfege autocompletion -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
@@ -31,7 +32,7 @@
     <header class="app-header">
       <div class="header-left">
         <div class="logo">
-          <span class="logo-glyph">◈</span>
+          <img src="logo.svg" alt="PPT Logo" class="logo-img">
           <span class="logo-title">PPT Engraver Studio</span>
         </div>
         <div class="score-picker-wrapper">
@@ -39,6 +40,7 @@
             <option value="" disabled selected>Loading scores...</option>
           </select>
           <button id="btn-new-score" class="btn-icon" title="Create Tapestry (Ctrl+N)">+</button>
+          <button id="btn-delete-score" class="btn-icon btn-danger-hover" title="Delete Current Tapestry">🗑️</button>
         </div>
       </div>
 
@@ -51,9 +53,15 @@
         <button id="btn-command-palette" class="btn btn-secondary" title="Command Palette (Ctrl+Shift+P / F1)">
           <span>⌨</span> Commands
         </button>
-        <button id="btn-compile" class="btn btn-primary" title="Compile (Ctrl+Enter)">
-          <span class="btn-icon-symbol">▶</span> Compile
-        </button>
+        <div class="compile-button-group">
+          <button id="btn-compile" class="btn btn-primary" title="Compile (Ctrl+Enter)">
+            <span class="btn-icon-symbol">▶</span> Compile
+          </button>
+          <label class="autocompile-toggle" title="Automatically recompile sheet music on YAML changes">
+            <input type="checkbox" id="chk-autocompile" checked>
+            <span>Auto</span>
+          </label>
+        </div>
         <button id="btn-save" class="btn btn-secondary" title="Save Tapestry (Ctrl+S)">
           <span>💾</span> Save Tapestry
         </button>
@@ -108,8 +116,50 @@
           <!-- Tab 1: Sheet Music Preview -->
           <div id="score-view" class="tab-content active">
             <div id="score-canvas" class="score-canvas">
-              <div id="score-placeholder" class="placeholder-message">
-                Click <strong>Compile</strong> or edit the score to render sheet music.
+              <div id="score-placeholder" class="placeholder-container">
+                <div class="placeholder-card">
+                  <div class="placeholder-hero-header">
+                    <img src="logo.svg" alt="PPT Logo" class="placeholder-hero-logo" />
+                    <h2 class="placeholder-title">Prime Period Theory Studio</h2>
+                    <p class="placeholder-subtitle">Live geometric music notation compiler & interactive studio</p>
+                  </div>
+                  
+                  <div class="placeholder-shortcuts-grid">
+                    <div class="shortcut-item">
+                      <span class="shortcut-action">Compile Score</span>
+                      <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
+                    </div>
+                    <div class="shortcut-item">
+                      <span class="shortcut-action">Open Tapestry</span>
+                      <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>O</kbd></span>
+                    </div>
+                    <div class="shortcut-item">
+                      <span class="shortcut-action">Command Palette</span>
+                      <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></span>
+                    </div>
+                    <div class="shortcut-item">
+                      <span class="shortcut-action">Transpose Solfège</span>
+                      <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>↑/↓</kbd></span>
+                    </div>
+                    <div class="shortcut-item">
+                      <span class="shortcut-action">Shift Octave</span>
+                      <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑/↓</kbd></span>
+                    </div>
+                    <div class="shortcut-item">
+                      <span class="shortcut-action">Autocomplete & Snips</span>
+                      <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Space</kbd></span>
+                    </div>
+                  </div>
+
+                  <div class="placeholder-actions">
+                    <button type="button" id="btn-placeholder-compile" class="btn btn-primary">
+                      <span>▶</span> Compile Tapestry
+                    </button>
+                    <button type="button" id="btn-placeholder-open" class="btn btn-secondary">
+                      <span>📂</span> Open Score...
+                    </button>
+                  </div>
+                </div>
               </div>
               <div id="score-svg-container" class="svg-container"></div>
               <div id="magnifier-lens" class="magnifier-lens hidden">
@@ -222,6 +272,10 @@
           <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
             <div style="font-weight: 600; font-size: 12px; margin-bottom: 10px; color: var(--text-main);">Editor Features</div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
+                <input type="checkbox" id="setting-enable-autocompile" checked>
+                <span>Auto-Compile on Change</span>
+              </label>
               <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
                 <input type="checkbox" id="setting-enable-autocomplete" checked>
                 <span>Context-Aware Autocompletion</span>

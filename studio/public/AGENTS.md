@@ -15,7 +15,8 @@ The `studio/public/` directory contains the client-side single-page application 
   - Sub-syllables in compound tokens (e.g. `FaMe`, `DoxDo`, `DoMeTe`) are individually highlighted in their respective colors.
   - **Clickable ID References vs Free Text (`cm-ppt-id-reference` / `cm-ppt-id-def`)**: Declared coil and weave IDs referenced in `parents:`, `concat:`, `coil:`, `weave:`, etc. are highlighted in vibrant sky cyan with a subtle dashed underline badge (`cm-ppt-id-reference`), distinguishing them from definitions (`cm-ppt-id-def`) and unresolved/free text strings.
 - **Solfège Navigation & Transposition Shortcuts**:
-  - `Ctrl+Up` / `Ctrl+Down` (`Cmd+Up` / `Cmd+Down`): Transpose active Solfège syllable (or individual sub-syllable in compound tokens like `FaMe`) up/down chromatically centered around `Do` (0) within the base octave from `So` (-5) to `Fi` (+6). Boundary crossings apply octave shifts (`Fi` + up $\to$ `So^`, `So` + down $\to$ `Fi_`), while preserving axis markers (`Dox` $\to$ `Rax`).
+  - `Ctrl+Up` / `Ctrl+Down` (`Cmd+Up` / `Cmd+Down`): Transpose active Solfège syllable (or individual sub-syllable in compound tokens like `FaMe`) up/down chromatically centered around `Do` (0) within the base octave from `So` (-5) to `Fi` (+6). Correctly retains and computes existing octave displacements (`So^` down $\to$ `Fi`, `So_` up $\to$ `Le_`, `Fi` up $\to$ `So^`), and preserves axis markers (`Dox` $\to$ `Rax`).
+  - `Ctrl+Alt+Up` / `Ctrl+Alt+Down` (`Cmd+Alt+Up` / `Cmd+Alt+Down`): Shift active syllable octave up/down (+1 / -1 octave) by appending or stripping `^` / `_` modifiers (e.g. `Do` $\to$ `Do^` $\to$ `Do^^`, `Do` $\to$ `Do_`).
   - `Ctrl+Left` / `Ctrl+Right` (`Cmd+Left` / `Cmd+Right`): Navigate between Solfège tokens in lists/arrays; duplicates active syllable (`[Do, Re] -> [Do, Re, Re]`) when pressing `Ctrl+Right` at list end.
 - **Go-to-Definition (`Ctrl+Click` / `Cmd+Click` / `F12`)**:
   - Hovering over declared or referenced structure IDs (including `parents: intro`, `parents: _verse_harm`, `parents: [a, b]`, `concat:`, `coil:`, `weave:`) with `Ctrl`/`Cmd` held highlights them (`.cm-id-reference-hover`).
@@ -26,18 +27,26 @@ The `studio/public/` directory contains the client-side single-page application 
 - **Standard Shortcuts**: Block comment (`Ctrl+/` / `Cmd+/`), bracket matching, auto-indent.
 
 ### 2. Project Management & Tapestry Operations
+- **Branding & Header Elements**:
+  - Official Prime Period Theory vector logo (`logo.svg`) displayed in app header and configured as SVG favicon.
+- **Auto-Compile Toggle Control**:
+  - Auto-compile checkbox in the main toolbar group (`#chk-autocompile`) and Settings modal allows enabling/disabling automatic debounced recompilation on YAML edits.
+  - Preference persisted in `localStorage` (`ppt_autocompile`) and toggleable via Command Palette.
 - **Open Tapestry (`Ctrl+O` / `Cmd+O` / Command Palette `Open Tapestry...`)**:
   - Interactive palette search filtering across all score files and rich metadata (`title`, `composer`, `arranger`, `tonic`, `tempo`, filename).
   - Shows metadata badges and subtitles for quick library navigation.
 - **Create Tapestry (`Ctrl+N` / `Cmd+N` / `+` Toolbar Button / Command Palette `Create Tapestry...`)**:
   - Prompts for filename, score title, composer, and tonic root pitch.
   - Automatically scaffolds clean starter YAML score with PPT noteheads, compiles, and loads it into the editor.
+- **Rename Tapestry File (Command Palette `Rename Tapestry File & Artifacts...`)**:
+  - Prompts for new filename and renames the primary score YAML file along with all associated compilation artifacts (`.notation.ly`, `.pdf`, `.ppt-map.json`, `.svg`, `.cropped.svg`, `.mid`) via `POST /api/rename`.
+  - Automatically refreshes the tapestry library and updates active URL deeplinks.
 - **Save Tapestry (`Ctrl+S` / `Cmd+S` / `💾 Save Tapestry` Button)**:
   - Persists the active tapestry to the `scores/` directory and updates the UI status badge and URL history.
 - **Unsaved Changes Protection (`confirmDiscardUnsavedChanges`)**:
   - Automatically guards against accidental loss of unsaved tapestry modifications when switching scores via dropdown, tapestry palette (`Ctrl+O`), `+ New Tapestry` (`Ctrl+N`), browser back/forward navigation (`popstate`), and page reload/close (`beforeunload`).
   - Reverts dropdown selector and URL navigation if the user cancels the confirmation dialog.
-- **Delete Tapestry (Command Palette `Delete Current Tapestry...`)**:
+- **Delete Tapestry (`🗑️` Toolbar Button / Command Palette `Delete Current Tapestry...`)**:
   - Prompts for confirmation and permanently removes the score YAML file and all associated compiled artifacts (`.notation.ly`, `.pdf`, `.ppt-map.json`, `.svg`) via `POST /api/delete`.
 
 ### 3. Refactoring Operations & Quick Actions
@@ -68,6 +77,7 @@ The `studio/public/` directory contains the client-side single-page application 
   - Adding or modifying snippet files in `snippets/` takes effect immediately on reload without code modifications.
 - **Searchable Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P` / `F1` / `⌨ Commands` button)**:
   - Filterable command list with instant fuzzy search across all project operations, refactorings, score metadata, dynamically registered snippets, folding, navigation, and compilation tools with full keyboard navigation (`↑`/`↓`/`Enter`/`Esc`).
+  - **Quick Preference Toggles**: Directly toggle Auto-Compile, Solfège Highlighting, Melody Previews, Autocompletion, Coil Suggestions, or open Settings without leaving the keyboard.
 
 ### 5. Lightweight Text-Aligned Solfège Preview Strip & Paired Layer Highlighting
 - **Line Widget (`.cm-token-solfege-strip`)**:
@@ -101,7 +111,13 @@ The `studio/public/` directory contains the client-side single-page application 
   - For structured harmony blocks, navigates directly to `chords:` or the relevant harmony entry.
   - Moves cursor (`editor.setCursor`), scrolls into view (`editor.scrollIntoView`), and triggers a blue pulse highlight (`.cm-point-click-flash`).
 
-### 6. Interactive UX & Viewport Controls
+### 7. Interactive UX & Viewport Controls
+- **Enhanced Empty Preview & Loading Cards**:
+  - Replaces plain placeholder text with a PPT Studio welcome card featuring the official vector logo, product title/subtitle, quick-reference keyboard shortcuts grid (`Ctrl+Enter`, `Ctrl+O`, `Ctrl+Shift+P`, `Ctrl+↑/↓`, `Ctrl+Alt+↑/↓`, `Ctrl+Space`), and direct quick action buttons (`▶ Compile Tapestry`, `📂 Open Score...`).
+  - While compiling/loading scores, displays an animated PPT spinner ring with pulsing vector branding and descriptive compilation progress.
+- **Scroll Depth Preservation & Loading Reset**:
+  - Automatically captures and restores preview window scroll position (`scrollTop` / `scrollLeft`) across PDF and SVG compilations during live editing of the same score.
+  - When loading or switching to a new tapestry (`loadScore`, `createTapestry`), immediately clears the previous score from the preview canvas, resets scroll to top (`0, 0`), and displays the loading status card for responsive feedback.
 - **Draggable Split-Pane**: Resize editor and preview with min-width constraints (320px).
 - **Circular Loupe Magnifier**: Inspect dense score details with customizable lens diameter and magnification level (`Shift` shortcut).
 - **URL Deeplinking & History**:
