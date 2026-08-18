@@ -692,8 +692,8 @@ function getContextSuggestions(cm, cursor) {
         { text: '"Bb4"', displayText: 'Bb4', type: 'enum' },
       ];
     }
-    if (/^(parent|parents)$/i.test(propName)) {
-      return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Parent coil ID' }));
+    if (/^(parent|parents|from|use)$/i.test(propName)) {
+      return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil ID reference' }));
     }
     if (/^concat$/i.test(propName)) {
       return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Sub-coil ID' }));
@@ -716,6 +716,7 @@ function getContextSuggestions(cm, cursor) {
     if (/^rhythm$/i.test(propName)) {
       if (afterColon.includes('[')) return TOKENS_RHYTHM;
       return [
+        ...coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Injected Rhythm Coil' })),
         { text: '[Do, Do, Do, Do]', displayText: '[Do, Do, Do, Do] (4 quarter notes)', type: 'snip' },
         { text: '[DoxDo, Fi, DoxDo, Fi]', displayText: '[DoxDo, Fi, ...] (Eighth notes)', type: 'snip' },
         { text: 'DoLa', displayText: 'DoLa (4-beat Macro Block)', type: 'enum' },
@@ -726,6 +727,7 @@ function getContextSuggestions(cm, cursor) {
     if (/^(melody|pitches)$/i.test(propName)) {
       if (afterColon.includes('[')) return TOKENS_MELODY;
       return [
+        ...coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Injected Melody Coil' })),
         { text: '[Dox, Do, Re, Mi, Fa, So]', displayText: '[Dox, Do, Re, ...] (Scale phrase)', type: 'snip' },
         { text: '[Dox, 1, So, 2]', displayText: '[Dox, 1, So, 2] (Padded phrase)', type: 'snip' },
         ...TOKENS_MELODY,
@@ -734,6 +736,7 @@ function getContextSuggestions(cm, cursor) {
     if (/^(harmony|chords)$/i.test(propName)) {
       if (afterColon.includes('[')) return TOKENS_HARMONY;
       return [
+        ...coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Injected Harmony Coil' })),
         { text: '[Do, Fa, So, Do]', displayText: '[Do, Fa, So, Do] (I-IV-V-I progression)', type: 'snip' },
         { text: '[Do, 2, Fa, 2, So, 2, Do, 2]', displayText: '[Do, 2, Fa, 2, ...] (Held chords)', type: 'snip' },
         ...TOKENS_HARMONY,

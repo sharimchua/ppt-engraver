@@ -351,9 +351,65 @@ Control how the harmony layer realizes chord tokens:
 
 ---
 
-## Coil Composition & Layer Inheritance
+## Coil Composition, Layer Injection & Inheritance
 
-Coils support priority-based layer inheritance:
+Coils support modular composition through **Layer Injection**, **Priority Parent Inheritance**, and **Concat Composition**:
+
+### 1. Explicit Layer Injection (`harmony: changes`, `rhythm: groove_1`, `from: ...`)
+Inject specific layers from named coils directly into another coil, with optional local property overrides:
+
+```yaml
+coils:
+  changes:
+    harmony:
+      chords: [ReMe, SoTe, DoTi, FaTi]
+      rhythm: [Do, 8, Do, Fi]
+
+  groove:
+    rhythm: [Do, Fi, 3.2]
+
+  # Shorthand injection:
+  verse_a:
+    melody: [Lax, Re, Ra, Fa]
+    harmony: changes
+    rhythm: groove
+
+  # Structured injection with local overrides & rhythm pairing:
+  verse_b:
+    melody: [Mix, Me, Re, Do]
+    harmony:
+      chords: changes       # Or from: changes
+      rhythm: [Do, 8, Do, Fi]
+      harmonyOctave: -1
+      harmonyVoicing: shell
+
+  # Melody injection with dedicated rhythm pairing:
+  verse_c:
+    melody:
+      pitches: motif_1      # Or from: motif_1
+      rhythm: [Do, Fi, Do, Fi]
+
+  # Cross-layer extraction:
+  bassline:
+    melody:
+      from: changes.harmony  # Extracts chord roots as melody pitch tokens
+```
+
+### 2. Composite Concat Coils (`concat: [...]`)
+Stitch sub-coils into a single continuous phrase while applying phrase-level harmony changes or parent templates across the entire concatenated onset stream:
+
+```yaml
+coils:
+  verse:
+    harmony: changes
+    concat:
+      - verse_1
+      - verse_2
+      - verse_3
+      - verse_4
+```
+
+### 3. Priority Parent Inheritance (`parents: [...]`)
 1. **Explicit Local Layer**: Defined directly on the coil.
 2. **`parents` Array**: Inherited from named coils in order of priority.
 3. **`defaultCoil`**: Inherited from the enclosing weave scope.
