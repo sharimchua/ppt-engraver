@@ -97,6 +97,51 @@ export interface ParsedPitch {
   hasAxis: boolean;
 }
 
+export interface RepeatSpec {
+  /** How many times to repeat the window */
+  repeatCount: number;
+  /** How many previous items to look back */
+  windowSize: number;
+}
+
+/**
+ * Checks if a value is a repeat token (e.g. 2, "2", 2.3, "2.3")
+ * and parses the repeatCount (X) and lookback windowSize (Y).
+ */
+export function parseRepeatSpec(item: string | number): RepeatSpec | null {
+  if (typeof item === 'number') {
+    if (Number.isInteger(item)) {
+      return item >= 0 ? { repeatCount: item, windowSize: 1 } : null;
+    }
+    const str = String(item);
+    const parts = str.split('.');
+    const repeatCount = parseInt(parts[0], 10);
+    const windowSize = parseInt(parts[1], 10);
+    if (!isNaN(repeatCount) && !isNaN(windowSize) && repeatCount >= 0 && windowSize > 0) {
+      return { repeatCount, windowSize };
+    }
+    return null;
+  }
+
+  if (typeof item === 'string') {
+    const trimmed = item.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const repeatCount = parseInt(trimmed, 10);
+      return repeatCount >= 0 ? { repeatCount, windowSize: 1 } : null;
+    }
+    const match = trimmed.match(/^(\d+)\.(\d+)$/);
+    if (match) {
+      const repeatCount = parseInt(match[1], 10);
+      const windowSize = parseInt(match[2], 10);
+      if (repeatCount >= 0 && windowSize > 0) {
+        return { repeatCount, windowSize };
+      }
+    }
+  }
+
+  return null;
+}
+
 export type NoteheadStyle = 'ppt' | 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default';
 
 

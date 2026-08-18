@@ -11,7 +11,7 @@
  * Prefix 'Dox' skips/delays downbeats (e.g. DoxDo = +1 beat, DoxFi = +1.5 beat).
  * Suffixes recursively subdivide remaining time to the next boundary (e.g. LeFi = 5/6).
  */
-import { SOLFEGE_TO_SEMITONE } from './pitch.js';
+import { SOLFEGE_TO_SEMITONE, parseRepeatSpec } from './pitch.js';
 
 export interface ParsedRhythmToken {
   /** Number of full beat skips from 'Dox' prefixes */
@@ -109,7 +109,7 @@ export function parseRhythmToken(token: string): ParsedRhythmToken {
 }
 
 /**
- * Expands an array of rhythm entries (which may include repeat numbers, e.g. [Do, 3, Fi])
+ * Expands an array of rhythm entries (which may include repeat numbers or lookbacks, e.g. [Do, 3, Fi] or [Do, Fi, 2.2])
  * up to the required count of melody onsets (or beyond if rhythm specifies more onsets).
  */
 export function expandRhythmEntries(
@@ -117,13 +117,22 @@ export function expandRhythmEntries(
   targetCount?: number,
 ): string[] {
   const result: string[] = [];
-  let lastToken = 'Do';
 
   for (const entry of entries) {
-    if (typeof entry === 'number' || /^\d+$/.test(String(entry))) {
-      const repeatCount = typeof entry === 'number' ? entry : parseInt(entry, 10);
+    const repeatSpec = parseRepeatSpec(entry);
+    if (repeatSpec !== null) {
+      const { repeatCount, windowSize } = repeatSpec;
+      if (result.length === 0) {
+        throw new Error(`Rhythm array cannot start with a repeat token: ${entry}`);
+      }
+      if (windowSize > result.length) {
+        throw new Error(
+          `Repeat lookback window (${windowSize}) exceeds available items in rhythm array (${result.length}): ${entry}`
+        );
+      }
+      const window = result.slice(-windowSize);
       for (let r = 0; r < repeatCount; r++) {
-        result.push(lastToken);
+        result.push(...window);
       }
     } else {
       const tokens = String(entry).trim().split(/\s+/).filter(Boolean);
@@ -134,7 +143,6 @@ export function expandRhythmEntries(
           t = t.slice(3);
         }
         result.push(t);
-        lastToken = t;
       }
     }
   }
@@ -142,6 +150,7 @@ export function expandRhythmEntries(
   // Count audible melody-matching rhythm entries (non-Dox tokens)
   const audibleCount = result.filter(t => t !== 'Dox').length;
   if (targetCount !== undefined && audibleCount < targetCount) {
+    const lastToken = result[result.length - 1] ?? 'Do';
     const needed = targetCount - audibleCount;
     for (let i = 0; i < needed; i++) {
       result.push(lastToken === 'Dox' ? 'Do' : lastToken);

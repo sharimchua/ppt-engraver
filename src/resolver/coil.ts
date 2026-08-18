@@ -21,6 +21,7 @@ import {
   parseHarmonyChord,
   midiToPitchName,
   getScaleDegreeFromDo,
+  parseRepeatSpec,
 } from '../solfege/pitch.js';
 import {
   expandRhythmEntries,
@@ -543,34 +544,40 @@ function resolveMelody(melody: string[], knot: ResolvedKnot): MelodyPitch[] {
 
 
 /**
- * Expands a melody array supporting repeat padding numbers and space-separated tokens.
+ * Expands a melody array supporting repeat padding numbers (e.g. 3 or "3"),
+ * repeat lookback windows (e.g. 2.3 or "2.3" to repeat last 3 items 2 times),
+ * and space-separated tokens.
  * E.g. [Do, 3] -> [Do, Do, Do, Do]
  * E.g. [Do, Re, 2, Mi] -> [Do, Re, Re, Re, Mi]
+ * E.g. [Do, Re, Mi, 1.2] -> [Do, Re, Mi, Re, Mi]
+ * E.g. [Do, Re, Mi, Fa, 2.3] -> [Do, Re, Mi, Fa, Re, Mi, Fa, Re, Mi, Fa]
  */
 export function expandMelodyArray(
   melody: (string | number)[],
 ): string[] {
   const expanded: string[] = [];
-  let lastPitch: string | null = null;
 
   for (const item of melody) {
-    const isNum =
-      typeof item === 'number' ||
-      (typeof item === 'string' && /^\d+$/.test(item.trim()));
+    const repeatSpec = parseRepeatSpec(item);
 
-    if (isNum) {
-      const count = typeof item === 'number' ? item : parseInt(item.trim(), 10);
-      if (lastPitch === null) {
+    if (repeatSpec !== null) {
+      const { repeatCount, windowSize } = repeatSpec;
+      if (expanded.length === 0) {
         throw new Error(`Melody array cannot start with a repeat padding number: ${item}`);
       }
-      for (let k = 0; k < count; k++) {
-        expanded.push(lastPitch);
+      if (windowSize > expanded.length) {
+        throw new Error(
+          `Repeat lookback window (${windowSize}) exceeds available items in melody array (${expanded.length}): ${item}`
+        );
+      }
+      const window = expanded.slice(-windowSize);
+      for (let k = 0; k < repeatCount; k++) {
+        expanded.push(...window);
       }
     } else {
       const tokens = String(item).trim().split(/\s+/).filter(Boolean);
       for (const token of tokens) {
         expanded.push(token);
-        lastPitch = token;
       }
     }
   }
@@ -579,35 +586,39 @@ export function expandMelodyArray(
 }
 
 /**
- * Expands a harmony array supporting repeat padding numbers.
+ * Expands a harmony array supporting repeat padding numbers (e.g. 3 or "3")
+ * and repeat lookback windows (e.g. 1.2 or "1.2").
  * E.g. [DoMe, 1, Te, 1, Le, 1, So] -> [DoMe, DoMe, Te, Te, Le, Le, So]
  * E.g. [Do, 3] -> [Do, Do, Do, Do]
+ * E.g. [Do, So, 1.2] -> [Do, So, Do, So]
  */
 export function expandHarmonyArray(
   harmony: (string | number)[],
 ): { expanded: string[]; hasExplicitCounts: boolean } {
   const expanded: string[] = [];
-  let lastChord: string | null = null;
   let hasExplicitCounts = false;
 
   for (const item of harmony) {
-    const isNum =
-      typeof item === 'number' ||
-      (typeof item === 'string' && /^\d+$/.test(item.trim()));
+    const repeatSpec = parseRepeatSpec(item);
 
-    if (isNum) {
+    if (repeatSpec !== null) {
       hasExplicitCounts = true;
-      const count = typeof item === 'number' ? item : parseInt(item.trim(), 10);
-      if (lastChord === null) {
+      const { repeatCount, windowSize } = repeatSpec;
+      if (expanded.length === 0) {
         throw new Error(`Harmony array cannot start with a repeat padding number: ${item}`);
       }
-      for (let k = 0; k < count; k++) {
-        expanded.push(lastChord);
+      if (windowSize > expanded.length) {
+        throw new Error(
+          `Repeat lookback window (${windowSize}) exceeds available items in harmony array (${expanded.length}): ${item}`
+        );
+      }
+      const window = expanded.slice(-windowSize);
+      for (let k = 0; k < repeatCount; k++) {
+        expanded.push(...window);
       }
     } else {
       const chordStr = String(item).trim();
       expanded.push(chordStr);
-      lastChord = chordStr;
     }
   }
 

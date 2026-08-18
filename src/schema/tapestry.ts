@@ -26,12 +26,12 @@ const SolfegePitchToken = z.string().refine(
 
 /**
  * A melody entry: either a solfège pitch token (or space-separated pitch tokens)
- * or a repeat padding count (e.g. 2 or "2") repeating the previous melody pitch.
+ * or a repeat count / lookback window (e.g. 2, "2", 2.3, "2.3").
  */
 export const MelodyEntrySchema = z.union([
   SolfegePitchToken,
-  z.number().int().nonnegative(),
-  z.string().regex(/^\d+$/),
+  z.number().nonnegative(),
+  z.string().regex(/^\d+(?:\.\d+)?$/),
 ]);
 
 export type MelodyEntry = z.infer<typeof MelodyEntrySchema>;
@@ -46,12 +46,12 @@ const SolfegeHarmonyRoot = z.string().regex(
 
 /**
  * A harmony entry: either a solfège harmony token (e.g. "Do", "DoMe")
- * or a repeat padding count (e.g. 2 or "2") repeating the previous harmony.
+ * or a repeat count / lookback window (e.g. 2, "2", 2.3, "2.3").
  */
 export const HarmonyEntrySchema = z.union([
   SolfegeHarmonyRoot,
-  z.number().int().nonnegative(),
-  z.string().regex(/^\d+$/),
+  z.number().nonnegative(),
+  z.string().regex(/^\d+(?:\.\d+)?$/),
 ]);
 
 /**
@@ -70,12 +70,12 @@ export const SolfegeRhythmTokenSchema = z.string().superRefine((val, ctx) => {
 });
 
 /**
- * A rhythm entry: either a solfège rhythm token or a repeat count integer.
+ * A rhythm entry: either a solfège rhythm token or a repeat count / lookback window.
  */
 export const RhythmEntrySchema = z.union([
   SolfegeRhythmTokenSchema,
-  z.number().int().positive(),
-  z.string().regex(/^\d+$/),
+  z.number().positive(),
+  z.string().regex(/^\d+(?:\.\d+)?$/),
 ]);
 
 export type RhythmEntry = z.infer<typeof RhythmEntrySchema>;

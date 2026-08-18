@@ -12,9 +12,9 @@ The `src/resolver/` directory resolves high-level declarative PPT constructs int
    - Master orchestrator resolving knots and recursively descending through weave trees.
 2. **`resolveCoil()`**:
    - Computes musical alignment across:
-     - `melody`: Sequence of Solfège tokens (e.g. `[Do, Re, Mi, Fa, So]`).
-     - `rhythm`: Rhythmic durations and subdivisions.
-     - `harmony`: Chords applied across the coil.
+     - `melody`: Sequence of Solfège tokens (e.g. `[Do, Re, Mi, Fa, So]`), integer repeats (`X`), and lookback repeat windows (`X.Y` repeating the last `Y` items `X` times).
+     - `rhythm`: Rhythmic durations, subdivisions, and `X.Y` lookback repeat tokens.
+     - `harmony`: Chords applied across the coil with optional `X.Y` lookback repetitions.
 3. **`resolveConcat()`**:
    - Combines multiple sub-coils into a single continuous weave structure, ensuring timing offsets and voice alignment remain continuous.
 4. **`resolveInheritance()`**:

@@ -68,6 +68,27 @@ describe('Solfège Rhythmic Grammar', () => {
       expect(expanded).toEqual(['Do', 'Do', 'Do', 'Do', 'Fi']);
     });
 
+    it('expands X.Y lookback window repeats in rhythm array', () => {
+      const expanded = expandRhythmEntries(['Do', 'Fi', 1.2]);
+      expect(expanded).toEqual(['Do', 'Fi', 'Do', 'Fi']);
+
+      const expanded2 = expandRhythmEntries(['Do', 'Fi', 'Me', 2.3]);
+      expect(expanded2).toEqual([
+        'Do', 'Fi', 'Me',
+        'Do', 'Fi', 'Me',
+        'Do', 'Fi', 'Me',
+      ]);
+    });
+
+    it('supports string formatted X.Y lookback repeats in rhythm array', () => {
+      const expanded = expandRhythmEntries(['Do', 'Fi', '1.2']);
+      expect(expanded).toEqual(['Do', 'Fi', 'Do', 'Fi']);
+    });
+
+    it('throws when rhythm lookback window exceeds available items', () => {
+      expect(() => expandRhythmEntries(['Do', 1.2])).toThrow(/Repeat lookback window \(2\) exceeds available items/);
+    });
+
     it('pads with last token when fewer entries than targetCount', () => {
       const expanded = expandRhythmEntries(['Do', 'Fi'], 4);
       expect(expanded).toEqual(['Do', 'Fi', 'Fi', 'Fi']);

@@ -43,6 +43,36 @@ describe('resolveCoil', () => {
       expect(onsets[5].melodyMidi).toBe(64); // Mi
     });
 
+    it('expands X.Y lookback window repeats in melody array', () => {
+      // 1.2 repeats the last 2 items 1 time: [Do, Re] -> [Do, Re, Do, Re]
+      const coil1: Coil = { id: 'test1', melody: ['Do', 'Re', 1.2] };
+      const { onsets: onsets1 } = resolveCoil(coil1, knotC4);
+      expect(onsets1).toHaveLength(4);
+      expect(onsets1.map(o => o.scaleDegree)).toEqual(['Do', 'Re', 'Do', 'Re']);
+
+      // 2.3 repeats the last 3 items 2 times: [Do, Re, Mi, Fa] -> [Do, Re, Mi, Fa, Re, Mi, Fa, Re, Mi, Fa]
+      const coil2: Coil = { id: 'test2', melody: ['Do', 'Re', 'Mi', 'Fa', 2.3] };
+      const { onsets: onsets2 } = resolveCoil(coil2, knotC4);
+      expect(onsets2).toHaveLength(10);
+      expect(onsets2.map(o => o.scaleDegree)).toEqual([
+        'Do', 'Re', 'Mi', 'Fa',
+        'Re', 'Mi', 'Fa',
+        'Re', 'Mi', 'Fa',
+      ]);
+    });
+
+    it('supports string formatted X.Y lookback repeats', () => {
+      const coil: Coil = { id: 'test', melody: ['Do', 'Re', '1.2'] };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(4);
+      expect(onsets.map(o => o.scaleDegree)).toEqual(['Do', 'Re', 'Do', 'Re']);
+    });
+
+    it('throws when melody lookback window exceeds available items', () => {
+      const coil: Coil = { id: 'test', melody: ['Do', 1.2] };
+      expect(() => resolveCoil(coil, knotC4)).toThrow(/Repeat lookback window \(2\) exceeds available items/);
+    });
+
     it('throws when melody array starts with repeat padding number', () => {
       const coil: Coil = { id: 'test', melody: [2, 'Do'] };
       expect(() => resolveCoil(coil, knotC4)).toThrow(/Melody array cannot start with a repeat padding number/);

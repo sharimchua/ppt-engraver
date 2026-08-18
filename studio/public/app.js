@@ -1823,10 +1823,13 @@ function findTokenInArray(lineText, onsetIndex) {
         runningOffset = itemStartCh + trimmed.length;
       }
 
-      const isNum = /^\d+$/.test(trimmed);
+      const isNum = /^\d+(?:\.\d+)?$/.test(trimmed);
       if (isNum) {
-        const repeatCount = parseInt(trimmed, 10);
-        for (let k = 0; k < repeatCount; k++) {
+        const parts = trimmed.split('.');
+        const repeatCount = parseInt(parts[0], 10);
+        const windowSize = parts[1] ? parseInt(parts[1], 10) : 1;
+        const totalItemsAdded = repeatCount * windowSize;
+        for (let k = 0; k < totalItemsAdded; k++) {
           tokenMap.push({ onsetIndex: currentOnset++, startCh: itemStartCh, token: trimmed });
         }
       } else {
@@ -3647,8 +3650,14 @@ function parseMelodyToken(token) {
     return { isRest: true, raw: clean };
   }
 
-  if (/^\d+$/.test(clean)) {
-    return { isRepeat: true, count: parseInt(clean, 10), raw: clean };
+  if (/^\d+(?:\.\d+)?$/.test(clean)) {
+    const parts = clean.split('.');
+    return {
+      isRepeat: true,
+      count: parseInt(parts[0], 10),
+      windowSize: parts[1] ? parseInt(parts[1], 10) : 1,
+      raw: clean
+    };
   }
 
   const m = clean.match(/^([a-zA-Z]+?)(x)?([\^_]*)(x)?$/);
