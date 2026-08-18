@@ -15,6 +15,7 @@ import type { Onset, OnsetStream } from "../schema/onset.js";
 import {
   midiToLilyPondPitch,
   chordMidiToLilyPond,
+  canonicalChordToLilyPond,
   LILYPOND_FLAT_NOTES,
   LILYPOND_SHARP_NOTES,
   SOLFEGE_TO_SCHEME_COLOR,
@@ -27,6 +28,7 @@ import {
   getSolfegeGlyphSpec,
   semitoneIntervalToSolfege,
   SOLFEGE_POSITIONS,
+  SOLFEGE_TO_SEMITONE,
 } from "../solfege/pitch.js";
 import { beatsToLilyPondDuration } from "../solfege/rhythm.js";
 
@@ -1408,8 +1410,21 @@ export function compileToLilyPond(
   }
   harmonyLines.push("  \\cadenzaOn");
 
+  // Determine reference Do MIDI pitch for canonical chord name generation
+  const resolvedDoMidi = (() => {
+    if (doMidi !== undefined) return doMidi;
+    const firstWithPitch = onsets.find(
+      (o) => o.scaleDegree && o.midiNote !== undefined && o.midiNote > 0,
+    );
+    if (firstWithPitch) {
+      const semitone = SOLFEGE_TO_SEMITONE[firstWithPitch.scaleDegree] ?? 0;
+      return firstWithPitch.midiNote - semitone;
+    }
+    return 60;
+  })();
+
   if (harmonyChangesOnly) {
-    // Group consecutive onsets within the same coil that share the same chord
+    // 4a. Traditional Harmony Voice (5-line staff): Group consecutive onsets with same voiced chord
     const harmonyChunks: Array<{
       weaveId: string;
       coilId: string;
@@ -1422,17 +1437,7 @@ export function compileToLilyPond(
       isBarStart: boolean;
     }> = [];
 
-    let currentChunk: {
-      weaveId: string;
-      coilId: string;
-      onsetIndex: number;
-      tag: string;
-      chordMidi: number[];
-      chordRoot: string;
-      spanCount: number;
-      totalDurationBeats?: number;
-      isBarStart: boolean;
-    } | null = null;
+    let currentHarmonyChunk: typeof harmonyChunks[0] | null = null;
 
     for (let i = 0; i < primaryOnsets.length; i++) {
       const onset = primaryOnsets[i];
@@ -1443,22 +1448,22 @@ export function compileToLilyPond(
           onset.weaveId !== primaryOnsets[i - 1].weaveId);
 
       const isSameChord =
-        currentChunk &&
+        currentHarmonyChunk &&
         !isNewCoil &&
-        currentChunk.chordMidi.length === onset.chordMidi.length &&
-        currentChunk.chordMidi.every((m, idx) => m === onset.chordMidi[idx]);
+        currentHarmonyChunk.chordMidi.length === onset.chordMidi.length &&
+        currentHarmonyChunk.chordMidi.every((m, idx) => m === onset.chordMidi[idx]);
 
-      if (isSameChord && currentChunk) {
-        currentChunk.spanCount++;
+      if (isSameChord && currentHarmonyChunk) {
+        currentHarmonyChunk.spanCount++;
         if (onset.durationBeats !== undefined) {
-          currentChunk.totalDurationBeats =
-            (currentChunk.totalDurationBeats ?? 0) + onset.durationBeats;
+          currentHarmonyChunk.totalDurationBeats =
+            (currentHarmonyChunk.totalDurationBeats ?? 0) + onset.durationBeats;
         }
       } else {
-        if (currentChunk) {
-          harmonyChunks.push(currentChunk);
+        if (currentHarmonyChunk) {
+          harmonyChunks.push(currentHarmonyChunk);
         }
-        currentChunk = {
+        currentHarmonyChunk = {
           tag: onset.tag,
           weaveId: onset.weaveId,
           coilId: onset.coilId,
@@ -1471,14 +1476,13 @@ export function compileToLilyPond(
         };
       }
     }
-    if (currentChunk) {
-      harmonyChunks.push(currentChunk);
+    if (currentHarmonyChunk) {
+      harmonyChunks.push(currentHarmonyChunk);
     }
 
     for (const chunk of harmonyChunks) {
       if (chunk.isBarStart) {
         harmonyLines.push('  \\bar "|"');
-        chordNamesLines.push('  \\bar "|"');
       }
       const chordDuration =
         chunk.totalDurationBeats !== undefined
@@ -1491,7 +1495,6 @@ export function compileToLilyPond(
 
       if (chunk.chordMidi.length === 0 || !chunk.chordRoot) {
         harmonyLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmonyStaff_${chunk.onsetIndex} s${chordDuration}`);
-        chordNamesLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} s${chordDuration}`);
       } else {
         const chord = chordMidiToLilyPond(
           chunk.chordMidi,
@@ -1500,12 +1503,89 @@ export function compileToLilyPond(
           forceAccidentals,
         );
         harmonyLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmonyStaff_${chunk.onsetIndex} ${chord}${chordDuration}`);
+      }
+    }
 
+    // 4b. Lead Sheet ChordNames: Group consecutive onsets with same Solfège chordRoot
+    const chordNameChunks: Array<{
+      weaveId: string;
+      coilId: string;
+      onsetIndex: number;
+      tag: string;
+      chordRoot: string;
+      spanCount: number;
+      totalDurationBeats?: number;
+      isBarStart: boolean;
+    }> = [];
+
+    let currentChordNameChunk: typeof chordNameChunks[0] | null = null;
+
+    for (let i = 0; i < primaryOnsets.length; i++) {
+      const onset = primaryOnsets[i];
+      const isNewCoil =
+        i > 0 &&
+        (onset.onsetIndex === 1 ||
+          onset.coilId !== primaryOnsets[i - 1].coilId ||
+          onset.weaveId !== primaryOnsets[i - 1].weaveId);
+
+      const isSameRoot =
+        currentChordNameChunk &&
+        !isNewCoil &&
+        currentChordNameChunk.chordRoot === onset.chordRoot;
+
+      if (isSameRoot && currentChordNameChunk) {
+        currentChordNameChunk.spanCount++;
+        if (onset.durationBeats !== undefined) {
+          currentChordNameChunk.totalDurationBeats =
+            (currentChordNameChunk.totalDurationBeats ?? 0) + onset.durationBeats;
+        }
+      } else {
+        if (currentChordNameChunk) {
+          chordNameChunks.push(currentChordNameChunk);
+        }
+        currentChordNameChunk = {
+          tag: onset.tag,
+          weaveId: onset.weaveId,
+          coilId: onset.coilId,
+          onsetIndex: onset.onsetIndex,
+          chordRoot: onset.chordRoot,
+          spanCount: 1,
+          totalDurationBeats: onset.durationBeats,
+          isBarStart: isNewCoil,
+        };
+      }
+    }
+    if (currentChordNameChunk) {
+      chordNameChunks.push(currentChordNameChunk);
+    }
+
+    for (const chunk of chordNameChunks) {
+      if (chunk.isBarStart) {
+        chordNamesLines.push('  \\bar "|"');
+      }
+      const chordDuration =
+        chunk.totalDurationBeats !== undefined
+          ? beatsToLilyPondDuration(chunk.totalDurationBeats, traditionalRhythms)
+          : chunk.spanCount === 4
+            ? "1"
+            : traditionalRhythms
+              ? beatsToLilyPondDuration(chunk.spanCount, true)
+              : `1*${chunk.spanCount}/4`;
+
+      if (!chunk.chordRoot) {
+        chordNamesLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} s${chordDuration}`);
+      } else {
+        const canonicalChord = canonicalChordToLilyPond(
+          chunk.chordRoot,
+          resolvedDoMidi,
+          accMode,
+          forceAccidentals,
+        );
         const rootSyllable = parseHarmonyChord(chunk.chordRoot).rootSyllable;
         const rootColor = SOLFEGE_TO_SCHEME_COLOR[rootSyllable] ?? "colorDo";
         const colorTweak = colorNotes ? `\\tweak color #${rootColor} ` : "";
         chordNamesLines.push(
-          `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} ${colorTweak}${chord}${chordDuration}`,
+          `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} ${colorTweak}${canonicalChord}${chordDuration}`,
         );
       }
     }
@@ -1536,12 +1616,24 @@ export function compileToLilyPond(
           `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_harmonyStaff_${onset.onsetIndex} ${chord}${onsetDur}${beamBracket}`,
         );
 
-        const rootSyllable = parseHarmonyChord(onset.chordRoot).rootSyllable;
-        const rootColor = SOLFEGE_TO_SCHEME_COLOR[rootSyllable] ?? "colorDo";
-        const colorTweak = colorNotes ? `\\tweak color #${rootColor} ` : "";
-        chordNamesLines.push(
-          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordName_${onset.onsetIndex} ${colorTweak}${chord}${onsetDur}`,
-        );
+        if (!onset.chordRoot) {
+          chordNamesLines.push(
+            `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordName_${onset.onsetIndex} s${onsetDur}`,
+          );
+        } else {
+          const canonicalChord = canonicalChordToLilyPond(
+            onset.chordRoot,
+            resolvedDoMidi,
+            accMode,
+            forceAccidentals,
+          );
+          const rootSyllable = parseHarmonyChord(onset.chordRoot).rootSyllable;
+          const rootColor = SOLFEGE_TO_SCHEME_COLOR[rootSyllable] ?? "colorDo";
+          const colorTweak = colorNotes ? `\\tweak color #${rootColor} ` : "";
+          chordNamesLines.push(
+            `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordName_${onset.onsetIndex} ${colorTweak}${canonicalChord}${onsetDur}`,
+          );
+        }
       }
     }
   }

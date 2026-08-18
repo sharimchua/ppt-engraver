@@ -59,7 +59,20 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
 
 ## Harmonic Grammar & Axis Bass Prefix (`${Bass}x${Root}${Modifiers}`)
 
-- **Standard Chords**: Root syllable + optional modifiers (e.g. `Do` for major triad, `DoMe` for minor, `DoTe` for dominant 7th, `DoFi` for diminished).
+- **Standard Chords**: Root syllable + optional modifiers:
+  - Major Triad: `Do`, `Fa`, `So` ($1-3-5$)
+  - Minor Triad: `DoMe`, `DoRi`, `FaMe` ($1-\flat 3-5$)
+  - Dominant 7th: `DoTe`, `SoTe` ($1-3-5-\flat 7$)
+  - Major 7th: `DoTi`, `FaTi` ($1-3-5-7$)
+  - Minor 7th: `DoMeTe`, `DoRiLi` ($1-\flat 3-5-\flat 7$)
+  - Minor-Major 7th: `DoMeTi` ($1-\flat 3-5-7$)
+  - Diminished Triad: `DoFi`, `DoMeFi`, `TiFi` ($1-\flat 3-\flat 5$)
+  - Fully Diminished 7th: `TiMeFiLa`, `TeMeFiLa`, `DoMeFiLa` ($1-\flat 3-\flat 5-\flat\flat 7$)
+  - Half-Diminished 7th: `DoMeFiTe`, `DoFiTe`, `TiMeFiTe` ($1-\flat 3-\flat 5-\flat 7$)
+  - Augmented Triad: `DoSi`, `DoLe` ($1-3-\sharp 5$)
+  - Sus4 / Sus2: `DoFa` ($1-4-5$), `DoRe` ($1-2-5$)
+  - 7sus4: `DoFaTe` ($1-4-5-\flat 7$)
+  - Major 6th / Minor 6th: `DoLa` ($1-3-5-6$), `DoMeLa` ($1-\flat 3-5-6$)
 - **Axis Bass Prefix**: Prepending an axis-marked Solfège syllable (e.g. `Sox`, `Miex`, `Mex`, `Rex`, `Dox`) defines an explicit bass note (inversion or slash chord):
   - `SoxDo`: C major triad with G in the bass (**C/G**).
   - `MiexDo` / `MixDo`: C major triad with E in the bass (**C/E** / 1st inversion).
@@ -67,7 +80,7 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
   - `RexSo`: G major triad with D in the bass (**G/D**).
   - `DoxDo`: C major triad with C in the bass (**C/C**).
 - **Visual Coil Representation**: In the visual Harmony Coil row, the Axis Bass syllable is rendered with its full geometric glyph and horizontal axis diacritic line preceding the root glyph.
-- **Score Notation & Chord Names**: Emits slash chord notation (`<g c' e' g'>`) and LilyPond chord symbols (`c4/g`).
+- **Score Notation & Canonical Chord Names**: Lead sheet ChordNames are decoupled from harmony staff voicings, emitting canonical block chords with slash bass (e.g. `<c' e' g'>/g` -> `C/G`), while the 5-line staff reflects selected arrangement voicings.
 
 ---
 

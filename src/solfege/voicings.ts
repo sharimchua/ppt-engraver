@@ -6,31 +6,10 @@
  * open, smoothLead, bassOnly, walkingBass, octaves).
  */
 
-import { parseHarmonyChord, solfegeToHarmonyRootOffset } from './pitch.js';
+import { parseHarmonyChord, solfegeToHarmonyRootOffset, getChordIntervals } from './pitch.js';
 import type { HarmonyVoicing } from '../schema/tapestry.js';
 
-/**
- * Builds close tertian chord tones (in semitones relative to root) based on chord quality.
- */
-export function getChordIntervals(quality: string): number[] {
-  switch (quality) {
-    case 'minor':
-      return [0, 3, 7];
-    case 'minor7':
-      return [0, 3, 7, 10];
-    case 'dominant7':
-      return [0, 4, 7, 10];
-    case 'diminished':
-      return [0, 3, 6];
-    case 'augmented':
-      return [0, 4, 8];
-    case 'major7':
-      return [0, 4, 7, 11];
-    case 'major':
-    default:
-      return [0, 4, 7];
-  }
-}
+export { getChordIntervals };
 
 /**
  * Voicing generator options.

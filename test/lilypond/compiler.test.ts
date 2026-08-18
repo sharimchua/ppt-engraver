@@ -845,6 +845,73 @@ describe('computeOnsetBeaming & LilyPond Beaming', () => {
     // Harmony chord spanning 4 beats should be whole note <c' e' g'>1
     expect(ly).toContain("\\tag #'ppt_song_motif_harmonyStaff_1 <c' e' g'>1");
   });
+
+  it('decouples ChordNames from harmonyVoicing so chord symbols remain canonical', () => {
+    // Onsets with harmonyVoicing: 'rootless' (only 3rd and 5th [64, 67] in chordMidi)
+    const onsets: any[] = [
+      {
+        tag: 'ppt_song_motif_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['E4', 'G4'],
+        chordMidi: [64, 67], // Rootless voicing on staff
+        chordRoot: 'Do',      // Canonical C major chord
+        coilId: 'motif',
+        weaveId: 'song',
+        onsetIndex: 1,
+        startBeat: 0.0,
+        durationBeats: 2.0,
+        duration: '2',
+      },
+    ];
+
+    const ly = compileToLilyPond(onsets, { doPitch: 'C4' });
+    // Harmony staff should show the voiced noteheads <e' g'>
+    expect(ly).toContain("\\tag #'ppt_song_motif_harmonyStaff_1 <e' g'>2");
+    // ChordNames should show the canonical full C chord <c' e' g'>
+    expect(ly).toContain("\\tag #'ppt_song_motif_chordName_1 <c' e' g'>2");
+  });
+
+  it('engraves slash chords and inversions in ChordNames with explicit slash bass', () => {
+    const onsets: any[] = [
+      {
+        tag: 'ppt_song_motif_1',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['G3', 'C4', 'E4'],
+        chordMidi: [55, 60, 64],
+        chordRoot: 'SoxDo', // C/G
+        coilId: 'motif',
+        weaveId: 'song',
+        onsetIndex: 1,
+        startBeat: 0.0,
+        durationBeats: 2.0,
+        duration: '2',
+      },
+      {
+        tag: 'ppt_song_motif_2',
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['E4', 'G4', 'C5'],
+        chordMidi: [64, 67, 72],
+        chordRoot: 'MiexDo', // C/E
+        coilId: 'motif',
+        weaveId: 'song',
+        onsetIndex: 2,
+        startBeat: 2.0,
+        durationBeats: 2.0,
+        duration: '2',
+      },
+    ];
+
+    const ly = compileToLilyPond(onsets, { doPitch: 'C4' });
+    // ChordNames should emit <c' e' g'>/g and <c' e' g'>/e
+    expect(ly).toContain("\\tag #'ppt_song_motif_chordName_1 <c' e' g'>/g2");
+    expect(ly).toContain("\\tag #'ppt_song_motif_chordName_2 <c' e' g'>/e2");
+  });
 });
 
 

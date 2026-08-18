@@ -514,6 +514,63 @@ export interface ParsedHarmonyModifier {
   hasAxis: boolean;
 }
 
+export type HarmonyChordQuality =
+  | 'major'
+  | 'minor'
+  | 'dominant7'
+  | 'minor7'
+  | 'major7'
+  | 'minorMajor7'
+  | 'diminished'
+  | 'diminished7'
+  | 'halfDiminished7'
+  | 'augmented'
+  | 'sus4'
+  | 'sus2'
+  | '7sus4'
+  | 'major6'
+  | 'minor6'
+  | 'custom';
+
+/**
+ * Builds close tertian chord tones (in semitones relative to root) based on chord quality.
+ */
+export function getChordIntervals(quality: string): number[] {
+  switch (quality) {
+    case 'minor':
+      return [0, 3, 7];
+    case 'minor7':
+      return [0, 3, 7, 10];
+    case 'dominant7':
+      return [0, 4, 7, 10];
+    case 'major7':
+      return [0, 4, 7, 11];
+    case 'minorMajor7':
+      return [0, 3, 7, 11];
+    case 'diminished':
+      return [0, 3, 6];
+    case 'diminished7':
+      return [0, 3, 6, 9];
+    case 'halfDiminished7':
+      return [0, 3, 6, 10];
+    case 'augmented':
+      return [0, 4, 8];
+    case 'sus4':
+      return [0, 5, 7];
+    case 'sus2':
+      return [0, 2, 7];
+    case '7sus4':
+      return [0, 5, 7, 10];
+    case 'major6':
+      return [0, 4, 7, 9];
+    case 'minor6':
+      return [0, 3, 7, 9];
+    case 'major':
+    default:
+      return [0, 4, 7];
+  }
+}
+
 /**
  * Parsed representation of a harmony chord token.
  * E.g. "Do" (major triad), "DoMe" (minor triad), "SoxDo" (C/G slash chord / inversion), "MiexDo" (C/E), "MexDoMe" (Cm/Eb), "DoTe" (dominant 7th), "Dox", "DoxMe", "So^", "Do_"
@@ -531,7 +588,7 @@ export interface ParsedHarmonyChord {
   hasAxis: boolean;
   modifiers: ParsedHarmonyModifier[];
   octaveShift: number;
-  quality: 'major' | 'minor' | 'dominant7' | 'minor7' | 'diminished' | 'augmented' | 'custom';
+  quality: HarmonyChordQuality;
 }
 
 export interface SolfegeGlyphSpec {
@@ -662,19 +719,45 @@ export function parseHarmonyChord(token: string): ParsedHarmonyChord {
     });
   }
 
-  let quality: ParsedHarmonyChord['quality'] = 'major';
   const hasMe = modifiers.some(m => m.syllable === 'Me' || m.syllable === 'Ri');
   const hasTe = modifiers.some(m => m.syllable === 'Te' || m.syllable === 'Li');
+  const hasTi = modifiers.some(m => m.syllable === 'Ti');
   const hasFi = modifiers.some(m => m.syllable === 'Fi' || m.syllable === 'Se');
+  const hasLa = modifiers.some(m => m.syllable === 'La');
+  const hasLe = modifiers.some(m => m.syllable === 'Le' || m.syllable === 'Si');
+  const hasFa = modifiers.some(m => m.syllable === 'Fa');
+  const hasRe = modifiers.some(m => m.syllable === 'Re');
 
-  if (hasMe && hasTe) {
-    quality = 'minor7';
-  } else if (hasMe) {
-    quality = 'minor';
-  } else if (hasTe) {
-    quality = 'dominant7';
+  let quality: HarmonyChordQuality = 'major';
+
+  if (hasFi && hasLa) {
+    quality = 'diminished7';
+  } else if (hasFi && hasTe) {
+    quality = 'halfDiminished7';
   } else if (hasFi) {
     quality = 'diminished';
+  } else if (hasMe && hasTi) {
+    quality = 'minorMajor7';
+  } else if (hasMe && hasTe) {
+    quality = 'minor7';
+  } else if (hasMe && hasLa) {
+    quality = 'minor6';
+  } else if (hasMe) {
+    quality = 'minor';
+  } else if (hasFa && hasTe) {
+    quality = '7sus4';
+  } else if (hasFa) {
+    quality = 'sus4';
+  } else if (hasRe) {
+    quality = 'sus2';
+  } else if (hasTi) {
+    quality = 'major7';
+  } else if (hasTe) {
+    quality = 'dominant7';
+  } else if (hasLa) {
+    quality = 'major6';
+  } else if (hasLe) {
+    quality = 'augmented';
   }
 
   const result: ParsedHarmonyChord = {
@@ -699,26 +782,15 @@ export function parseHarmonyChord(token: string): ParsedHarmonyChord {
 /**
  * Builds chord tones (MIDI notes) for a harmony token relative to root MIDI.
  * Default is a major triad [root, root+4, root+7].
- * If minor (e.g. "DoMe"), builds [root, root+3, root+7].
+ * Uses getChordIntervals based on parsed chord quality.
  * If an Axis Bass prefix is specified (e.g. "SoxDo"), includes the bass pitch voiced at the bottom.
  * Applies any octave shifts (^ or _) from the token.
  */
 export function buildChordFromToken(rootMidi: number, chordToken: string, knotDoMidi?: number): number[] {
   const parsed = parseHarmonyChord(chordToken);
   const shiftedRoot = rootMidi + (parsed.octaveShift * 12);
-  
-  let upperTones: number[] = [];
-  if (parsed.quality === 'minor') {
-    upperTones = [shiftedRoot, shiftedRoot + 3, shiftedRoot + 7];
-  } else if (parsed.quality === 'minor7') {
-    upperTones = [shiftedRoot, shiftedRoot + 3, shiftedRoot + 7, shiftedRoot + 10];
-  } else if (parsed.quality === 'dominant7') {
-    upperTones = [shiftedRoot, shiftedRoot + 4, shiftedRoot + 7, shiftedRoot + 10];
-  } else if (parsed.quality === 'diminished') {
-    upperTones = [shiftedRoot, shiftedRoot + 3, shiftedRoot + 6];
-  } else {
-    upperTones = [shiftedRoot, shiftedRoot + 4, shiftedRoot + 7];
-  }
+  const intervals = getChordIntervals(parsed.quality);
+  const upperTones = intervals.map(i => shiftedRoot + i);
 
   if (parsed.hasAxisBass && parsed.bassSyllable) {
     const doRef = knotDoMidi !== undefined ? knotDoMidi : (rootMidi - solfegeToHarmonyRootOffset(parsed.rootSyllable));

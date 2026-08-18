@@ -398,6 +398,60 @@ describe('buildChordFromToken & parseHarmonyChord', () => {
     const chordTexDo = buildChordFromToken(60, 'TexDo', 60);
     expect(chordTexDo).toEqual([58, 60, 64, 67]);
   });
+
+  it('correctly parses and builds fully diminished 7th chords (e.g. TeMeFiLa, TiMeFiLa, DoMeFiLa)', () => {
+    // TeMeFiLa (root Te, modifiers Me, Fi, La)
+    const parsedTe = parseHarmonyChord('TeMeFiLa');
+    expect(parsedTe.quality).toBe('diminished7');
+    expect(parsedTe.rootSyllable).toBe('Te');
+
+    // TiMeFiLa (root Ti, modifiers Me, Fi, La)
+    const parsedTi = parseHarmonyChord('TiMeFiLa');
+    expect(parsedTi.quality).toBe('diminished7');
+    expect(parsedTi.rootSyllable).toBe('Ti');
+
+    // When Do is F4 (65): Ti is E4 (76 / 64). E dim7 -> [64, 67, 70, 73] (E-G-Bb-Db)
+    const eDim7 = buildChordFromToken(64, 'TiMeFiLa', 65);
+    expect(eDim7).toEqual([64, 67, 70, 73]);
+
+    // DoMeFiLa (root Do, modifiers Me, Fi, La) -> C dim7: [60, 63, 66, 69] (C-Eb-Gb-A)
+    const cDim7 = buildChordFromToken(60, 'DoMeFiLa', 60);
+    expect(cDim7).toEqual([60, 63, 66, 69]);
+  });
+
+  it('correctly parses and builds half-diminished, sus, 6th, and major 7th chords', () => {
+    // Half-diminished 7th: DoMeFiTe -> [60, 63, 66, 70] (C-Eb-Gb-Bb / Cm7b5)
+    expect(parseHarmonyChord('DoMeFiTe').quality).toBe('halfDiminished7');
+    expect(buildChordFromToken(60, 'DoMeFiTe')).toEqual([60, 63, 66, 70]);
+
+    // Minor-major 7th: DoMeTi -> [60, 63, 67, 71] (C-Eb-G-B / Cm(maj7))
+    expect(parseHarmonyChord('DoMeTi').quality).toBe('minorMajor7');
+    expect(buildChordFromToken(60, 'DoMeTi')).toEqual([60, 63, 67, 71]);
+
+    // Major 7th: DoTi -> [60, 64, 67, 71] (C-E-G-B / Cmaj7)
+    expect(parseHarmonyChord('DoTi').quality).toBe('major7');
+    expect(buildChordFromToken(60, 'DoTi')).toEqual([60, 64, 67, 71]);
+
+    // Sus4: DoFa -> [60, 65, 67] (C-F-G / Csus4)
+    expect(parseHarmonyChord('DoFa').quality).toBe('sus4');
+    expect(buildChordFromToken(60, 'DoFa')).toEqual([60, 65, 67]);
+
+    // Sus2: DoRe -> [60, 62, 67] (C-D-G / Csus2)
+    expect(parseHarmonyChord('DoRe').quality).toBe('sus2');
+    expect(buildChordFromToken(60, 'DoRe')).toEqual([60, 62, 67]);
+
+    // 7sus4: DoFaTe -> [60, 65, 67, 70] (C-F-G-Bb / C7sus4)
+    expect(parseHarmonyChord('DoFaTe').quality).toBe('7sus4');
+    expect(buildChordFromToken(60, 'DoFaTe')).toEqual([60, 65, 67, 70]);
+
+    // Major 6th: DoLa -> [60, 64, 67, 69] (C-E-G-A / C6)
+    expect(parseHarmonyChord('DoLa').quality).toBe('major6');
+    expect(buildChordFromToken(60, 'DoLa')).toEqual([60, 64, 67, 69]);
+
+    // Minor 6th: DoMeLa -> [60, 63, 67, 69] (C-Eb-G-A / Cm6)
+    expect(parseHarmonyChord('DoMeLa').quality).toBe('minor6');
+    expect(buildChordFromToken(60, 'DoMeLa')).toEqual([60, 63, 67, 69]);
+  });
 });
 
 describe('getSolfegeGlyphSpec (12-Tone Geometric Rotations)', () => {

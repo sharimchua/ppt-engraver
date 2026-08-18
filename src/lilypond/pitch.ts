@@ -13,6 +13,9 @@
 import {
   pitchNameToMidi,
   SOLFEGE_POSITIONS,
+  parseHarmonyChord,
+  solfegeToHarmonyRootOffset,
+  getChordIntervals,
 } from '../solfege/pitch.js';
 
 export const SOLFEGE_TO_SCHEME_COLOR: Record<string, string> = {
@@ -374,6 +377,56 @@ export function chordMidiToLilyPond(
 
 
 /**
+ * Converts a Solfège harmony chord token into a canonical block chord LilyPond token `<pitch1 pitch2 ...>` (with optional `/bass`),
+ * completely independent of staff voicing styles.
+ * 
+ * E.g. "Do" (when Do is C) -> "<c' e' g'>"
+ * E.g. "DoMe" (when Do is C) -> "<c' ees' g'>"
+ * E.g. "SoxDo" (when Do is C) -> "<c' e' g'>/g"
+ * E.g. "MiexDo" (when Do is C) -> "<c' e' g'>/e"
+ * E.g. "MexDoMe" (when Do is C, flats) -> "<c' ees' g'>/ees"
+ * E.g. "TiMeFiLa" (when Do is F, flats) -> "<e' g' bes' des''>"
+ * E.g. "DoMeFiTe" (when Do is C, flats) -> "<c' ees' ges' bes'>"
+ */
+export function canonicalChordToLilyPond(
+  chordToken: string,
+  knotDoMidi: number = 60,
+  accidentalMode: 'sharps' | 'flats' = 'sharps',
+  forceAccidentals: boolean = false,
+): string {
+  if (!chordToken) return '<>';
+  const parsed = parseHarmonyChord(chordToken);
+  const rootOffset = solfegeToHarmonyRootOffset(parsed.rootSyllable);
+
+  // Center root around octave 4 (MIDI 60-71, Middle C = c')
+  let rootMidi = knotDoMidi + rootOffset + (parsed.octaveShift * 12);
+  while (rootMidi < 60) rootMidi += 12;
+  while (rootMidi > 71) rootMidi -= 12;
+
+  const rootPc = ((rootMidi % 12) + 12) % 12;
+  const intervals = getChordIntervals(parsed.quality);
+
+  const notes = intervals.map((interval) => {
+    const noteMidi = rootMidi + interval;
+    const spelling = getTertianChordSpelling(rootPc, interval, accidentalMode);
+    return formatChordNote(spelling.baseName, noteMidi, spelling.nominalNoteClass, forceAccidentals);
+  });
+
+  let slashSuffix = '';
+  if (parsed.hasAxisBass && parsed.bassSyllable) {
+    const bassOffset = solfegeToHarmonyRootOffset(parsed.bassSyllable);
+    const bassPc = (((knotDoMidi + bassOffset) % 12) + 12) % 12;
+    if (bassPc !== rootPc) {
+      const names = accidentalMode === 'flats' ? LILYPOND_FLAT_NOTES : LILYPOND_SHARP_NOTES;
+      const bassBaseName = names[bassPc];
+      slashSuffix = `/${bassBaseName}`;
+    }
+  }
+
+  return `<${notes.join(' ')}>${slashSuffix}`;
+}
+
+/**
  * Converts a chord root MIDI note + quality into a LilyPond chordmode token.
  * E.g. (69, 'minor', '4', 'sharps') -> "a4:m"
  * E.g. (63, 'major', '4', 'flats')  -> "ees4"
@@ -400,10 +453,28 @@ export function chordToLilyPondChordMode(
     qualitySuffix = ':m7';
   } else if (quality === 'dominant7') {
     qualitySuffix = ':7';
+  } else if (quality === 'major7') {
+    qualitySuffix = ':maj7';
+  } else if (quality === 'minorMajor7') {
+    qualitySuffix = ':m7+';
   } else if (quality === 'diminished') {
     qualitySuffix = ':dim';
+  } else if (quality === 'diminished7') {
+    qualitySuffix = ':dim7';
+  } else if (quality === 'halfDiminished7') {
+    qualitySuffix = ':m7.5-';
   } else if (quality === 'augmented') {
     qualitySuffix = ':aug';
+  } else if (quality === 'sus4') {
+    qualitySuffix = ':sus4';
+  } else if (quality === 'sus2') {
+    qualitySuffix = ':sus2';
+  } else if (quality === '7sus4') {
+    qualitySuffix = ':7.4';
+  } else if (quality === 'major6') {
+    qualitySuffix = ':6';
+  } else if (quality === 'minor6') {
+    qualitySuffix = ':m6';
   }
 
   let slashBass = '';

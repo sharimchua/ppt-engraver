@@ -270,9 +270,18 @@ Harmony chords are automatically voiced into tertian triads/sevenths and adapted
 | `Do` | Major Triad | $1 - 3 - 5$ | C major (`C - E - G`) |
 | `DoMe` / `DoRi` | Minor Triad | $1 - \flat 3 - 5$ | C minor (`C - Eb - G`) |
 | `DoTe` / `SoTe` | Dominant 7th | $1 - 3 - 5 - \flat 7$ | C7 (`C - E - G - Bb`) / G7 |
+| `DoTi` / `FaTi` | Major 7th | $1 - 3 - 5 - 7$ | Cmaj7 (`C - E - G - B`) |
 | `DoMeTe` / `DoRiLi` | Minor 7th | $1 - \flat 3 - 5 - \flat 7$ | C minor 7th (`C - Eb - G - Bb`) |
-| `DoFi` / `TiFi` | Diminished Triad | $1 - \flat 3 - \flat 5$ | C dim (`C - Eb - Gb`) |
-| `DoMi` / `DoSi` | Augmented Triad | $1 - 3 - \sharp 5$ | C aug (`C - E - G#`) |
+| `DoMeTi` | Minor-Major 7th | $1 - \flat 3 - 5 - 7$ | Cm(maj7) (`C - Eb - G - B`) |
+| `DoFi` / `DoMeFi` | Diminished Triad | $1 - \flat 3 - \flat 5$ | C dim (`C - Eb - Gb`) |
+| `TiMeFiLa` / `DoMeFiLa` | Diminished 7th | $1 - \flat 3 - \flat 5 - \flat\flat 7$ | Edim7 (`E - G - Bb - Db`) / Cdim7 |
+| `DoMeFiTe` / `DoFiTe` | Half-Diminished 7th | $1 - \flat 3 - \flat 5 - \flat 7$ | Cm7b5 (`C - Eb - Gb - Bb`) |
+| `DoSi` / `DoLe` | Augmented Triad | $1 - 3 - \sharp 5$ | C aug (`C - E - G#`) |
+| `DoFa` | Sus4 | $1 - 4 - 5$ | Csus4 (`C - F - G`) |
+| `DoRe` | Sus2 | $1 - 2 - 5$ | Csus2 (`C - D - G`) |
+| `DoFaTe` | 7sus4 | $1 - 4 - 5 - \flat 7$ | C7sus4 (`C - F - G - Bb`) |
+| `DoLa` | Major 6th | $1 - 3 - 5 - 6$ | C6 (`C - E - G - A`) |
+| `DoMeLa` | Minor 6th | $1 - \flat 3 - 5 - 6$ | Cm6 (`C - Eb - G - A`) |
 | `Do^` / `Do_` | Octave Shift | Transposed $\pm 1$ Octave | `Do` shifted up or down |
 
 ---

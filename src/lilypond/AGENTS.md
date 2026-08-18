@@ -48,5 +48,6 @@ Generated `.ly` documents contain:
 - **Zero Missing Glyphs**: Every valid Solfège pitch must map to one of the 3 path stencils with correct rotation and color.
 - **Strict Syntax Safety**: Ensure all scheme expressions (`#(...)`) are properly balanced and escaped.
 - **Preserve Tags**: Never omit `\tag #'ppt_...` on notes or rests, as Point-and-Click navigation relies on them.
+- **Decoupled Canonical ChordNames**: `\new ChordNames` uses canonical block chords (`canonicalChordToLilyPond`) derived directly from Solfège tokens and key context, completely independent of harmony staff voicings (e.g. `rootless`, `shell`, `bassOnly`), preserving clean lead sheet symbols and slash chords (`C/G`, `C/E`, `Cm/Eb`).
 - **Rhythmic Beaming in Cadenza Mode**: Because `\cadenzaOn` suppresses LilyPond's automatic beam engraver, sub-quarter notes (< 1.0 beat) within each integer beat window are beamed deterministically using manual beam brackets (`[` and `]`), respecting voice, rest, and coil barline boundaries.
 - **Traditional Rhythms Mode (`traditionalRhythms: true`)**: Formats periods with standard traditional duration tokens (dotted notes `2.`, `4.`, `8.`, `1.`, half notes `2`, whole notes `1`), visible rests (`r4`, `r2`, `r8`, etc.), and omits `\override NoteHead.duration-log = #2` so half and whole noteheads render as open/hollow noteheads.

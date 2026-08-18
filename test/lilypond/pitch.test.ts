@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { midiToLilyPondPitch, chordMidiToLilyPond, chordToLilyPondChordMode } from '../../src/lilypond/pitch.js';
+import {
+  midiToLilyPondPitch,
+  chordMidiToLilyPond,
+  chordToLilyPondChordMode,
+  canonicalChordToLilyPond,
+} from '../../src/lilypond/pitch.js';
 
 describe('midiToLilyPondPitch', () => {
   it('formats Middle C (C4, MIDI 60) as c\'', () => {
@@ -111,6 +116,50 @@ describe('chordToLilyPondChordMode', () => {
 
     // Root position bass note matches root -> no redundant slash
     expect(chordToLilyPondChordMode(60, 'major', '4', 'sharps', 48)).toBe('c4');
+  });
+});
+
+describe('canonicalChordToLilyPond', () => {
+  it('formats root-position triads and 7ths directly from Solfege tokens', () => {
+    // When Do is C (60)
+    expect(canonicalChordToLilyPond('Do', 60)).toBe("<c' e' g'>");
+    expect(canonicalChordToLilyPond('DoMe', 60, 'flats')).toBe("<c' ees' g'>");
+    expect(canonicalChordToLilyPond('So', 60)).toBe("<g' b' d''>");
+    expect(canonicalChordToLilyPond('SoTe', 60)).toBe("<g' b' d'' f''>");
+    expect(canonicalChordToLilyPond('DoTi', 60)).toBe("<c' e' g' b'>");
+  });
+
+  it('formats diminished 7th chords correctly (e.g. TiMeFiLa when Do is F4)', () => {
+    // When Do is F4 (65): Ti is E4. E dim7 -> <e' g' bes' des''>
+    expect(canonicalChordToLilyPond('TiMeFiLa', 65, 'flats')).toBe("<e' g' bes' des''>");
+
+    // DoMeFiLa when Do is C4 -> <c' ees' ges' a'>
+    expect(canonicalChordToLilyPond('DoMeFiLa', 60, 'flats')).toBe("<c' ees' ges' a'>");
+  });
+
+  it('formats half-diminished, sus, and 6th chords', () => {
+    // Half-diminished: DoMeFiTe -> <c' ees' ges' bes'>
+    expect(canonicalChordToLilyPond('DoMeFiTe', 60, 'flats')).toBe("<c' ees' ges' bes'>");
+
+    // Sus4: DoFa -> <c' f' g'>
+    expect(canonicalChordToLilyPond('DoFa', 60)).toBe("<c' f' g'>");
+
+    // Sus2: DoRe -> <c' d' g'>
+    expect(canonicalChordToLilyPond('DoRe', 60)).toBe("<c' d' g'>");
+
+    // Major 6th: DoLa -> <c' e' g' a'>
+    expect(canonicalChordToLilyPond('DoLa', 60)).toBe("<c' e' g' a'>");
+  });
+
+  it('formats slash chords and inversions with explicit slash bass', () => {
+    // SoxDo (C/G) -> <c' e' g'>/g
+    expect(canonicalChordToLilyPond('SoxDo', 60)).toBe("<c' e' g'>/g");
+
+    // MiexDo (C/E) -> <c' e' g'>/e
+    expect(canonicalChordToLilyPond('MiexDo', 60)).toBe("<c' e' g'>/e");
+
+    // MexDoMe (Cm/Eb) -> <c' ees' g'>/ees
+    expect(canonicalChordToLilyPond('MexDoMe', 60, 'flats')).toBe("<c' ees' g'>/ees");
   });
 });
 
