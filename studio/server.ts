@@ -123,7 +123,7 @@ async function compileScore(yamlContent: string, format = 'pdf') {
     if (format === 'svg') {
       await execFileAsync(lilypondPath, [
         '-dbackend=svg',
-        '-dno-point-and-click',
+        '-dpoint-and-click',
         '-o',
         tempOutPrefix,
         tempLyPath,
@@ -146,6 +146,7 @@ async function compileScore(yamlContent: string, format = 'pdf') {
         svg: svgContent,
         lilypondSource: result.lilypondSource,
         onsets: result.onsets,
+        sidecarMap: result.sidecarMap,
         warnings: result.warnings,
         metrics: {
           compileTimeMs,
@@ -156,6 +157,7 @@ async function compileScore(yamlContent: string, format = 'pdf') {
     } else {
       // Default: Native PDF output (1.7s fast Cairo/PostScript engine, exact Frescobaldi match)
       await execFileAsync(lilypondPath, [
+        '-dpoint-and-click',
         '-o',
         tempOutPrefix,
         tempLyPath,
@@ -176,6 +178,7 @@ async function compileScore(yamlContent: string, format = 'pdf') {
         pdfBase64,
         lilypondSource: result.lilypondSource,
         onsets: result.onsets,
+        sidecarMap: result.sidecarMap,
         warnings: result.warnings,
         metrics: {
           compileTimeMs,

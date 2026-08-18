@@ -360,6 +360,38 @@ body.resizing-panels iframe {
   filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.6));
 }
 
+/* Point-and-Click Navigation (Preview -> Editor) */
+.pdf-page-wrapper {
+  position: relative;
+  display: inline-block;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  margin-bottom: 24px;
+}
+
+.pdf-annotation-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pdf-point-click-link {
+  border-radius: 4px;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.pdf-point-click-link:hover {
+  background-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.7);
+}
+
+.cm-point-click-flash {
+  background-color: rgba(59, 130, 246, 0.38) !important;
+  transition: background-color 1.2s ease-out;
+}
+
 /* Error Banner */
 .error-banner {
   background-color: rgba(239, 68, 68, 0.1);

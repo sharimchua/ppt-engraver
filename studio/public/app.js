@@ -630,6 +630,9 @@ async function triggerCompile() {
     });
     const data = await res.json();
     lastCompiledData = data;
+    latestSidecarMap = data.sidecarMap || null;
+    latestLilypondSource = data.lilypondSource || '';
+    latestOnsets = data.onsets || [];
 
     if (data.success) {
       setStatus('ready', `⚡ ${data.metrics?.totalTimeMs || 0}ms`);
@@ -679,6 +682,114 @@ if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
+// Point-and-Click State & Navigation (Preview -> Code Editor)
+let latestSidecarMap = null;
+let latestLilypondSource = '';
+let latestOnsets = [];
+
+function handlePointAndClick(url) {
+  if (!url || !url.startsWith('textedit://')) return;
+
+  // Format: textedit:///path/to/score.ly:line:col:endCol or textedit:///...:line:col
+  const match = url.match(/:(\d+)(?::(\d+))?(?::(\d+))?$/);
+  if (!match) return;
+
+  const lyLineNum = parseInt(match[1], 10);
+  if (!latestLilypondSource) return;
+
+  const lyLines = latestLilypondSource.split('\n');
+
+  // Search around lyLineNum for \tag #'ppt_...
+  let tag = null;
+  const startL = Math.max(0, lyLineNum - 4);
+  const endL = Math.min(lyLines.length - 1, lyLineNum + 3);
+
+  for (let l = Math.min(lyLines.length - 1, lyLineNum - 1); l >= startL; l--) {
+    const tm = lyLines[l].match(/\\tag\s*#'(ppt_[a-zA-Z0-9_]+)/);
+    if (tm) {
+      tag = tm[1];
+      break;
+    }
+  }
+  if (!tag) {
+    for (let l = lyLineNum; l <= endL; l++) {
+      const tm = lyLines[l].match(/\\tag\s*#'(ppt_[a-zA-Z0-9_]+)/);
+      if (tm) {
+        tag = tm[1];
+        break;
+      }
+    }
+  }
+
+  let coilId = null;
+  let onsetIndex = 1;
+
+  if (tag && latestSidecarMap && latestSidecarMap[tag]) {
+    coilId = latestSidecarMap[tag].coilId;
+    onsetIndex = latestSidecarMap[tag].onsetIndex;
+  } else if (tag) {
+    const parts = tag.replace(/^ppt_/, '').split('_');
+    onsetIndex = parseInt(parts[parts.length - 1], 10) || 1;
+    coilId = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+  }
+
+  if (!coilId) return;
+
+  // Locate the coil and onset token in the YAML document
+  const doc = editor.getDoc();
+  const lineCount = doc.lineCount();
+
+  let targetLine = -1;
+  let targetCh = 0;
+  let inTargetCoil = false;
+
+  for (let l = 0; l < lineCount; l++) {
+    const lineText = doc.getLine(l);
+
+    // Check if entering target coil block (e.g. "introMotif:", "_verse1:")
+    const coilHeaderMatch = lineText.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
+    if (coilHeaderMatch) {
+      if (coilHeaderMatch[1] === coilId) {
+        inTargetCoil = true;
+        targetLine = l;
+      } else if (inTargetCoil && !/^\s*-\s*/.test(lineText)) {
+        // Exited target coil
+        break;
+      }
+    }
+
+    if (inTargetCoil && /^\s*(melody|harmony|rhythm)\s*:\s*\[/.test(lineText)) {
+      targetLine = l;
+      const arrayMatch = lineText.match(/\[(.*?)\]/);
+      if (arrayMatch) {
+        const rawTokens = arrayMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+        const tokIdx = Math.max(0, Math.min(onsetIndex - 1, rawTokens.length - 1));
+        const targetTokenStr = rawTokens[tokIdx];
+        if (targetTokenStr) {
+          const chStart = lineText.indexOf(targetTokenStr, lineText.indexOf('['));
+          if (chStart !== -1) {
+            targetCh = chStart;
+            break;
+          }
+        }
+      }
+      break;
+    }
+  }
+
+  if (targetLine !== -1) {
+    editor.setCursor({ line: targetLine, ch: targetCh });
+    editor.scrollIntoView({ line: targetLine, ch: targetCh }, 150);
+    editor.focus();
+
+    // Flash animation on the target line
+    editor.addLineClass(targetLine, 'background', 'cm-point-click-flash');
+    setTimeout(() => {
+      editor.removeLineClass(targetLine, 'background', 'cm-point-click-flash');
+    }, 1200);
+  }
+}
+
 let currentPdfDoc = null;
 let lastPdfBase64 = null;
 let pdfZoomMode = 'FitH'; // 'FitH' | 'percent'
@@ -707,13 +818,57 @@ async function renderPdfPages() {
 
       const dpr = window.devicePixelRatio || 1;
       const viewport = page.getViewport({ scale: scale * dpr });
+      const displayViewport = page.getViewport({ scale: scale });
+
+      const pageWrapper = document.createElement('div');
+      pageWrapper.className = 'pdf-page-wrapper';
+      pageWrapper.style.width = `${viewport.width / dpr}px`;
+      pageWrapper.style.height = `${viewport.height / dpr}px`;
 
       const canvas = document.createElement('canvas');
       canvas.className = 'pdf-page-canvas';
       canvas.width = viewport.width;
       canvas.height = viewport.height;
-      canvas.style.width = `${viewport.width / dpr}px`;
-      canvas.style.height = `${viewport.height / dpr}px`;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      pageWrapper.appendChild(canvas);
+
+      // Fetch annotations from page (LilyPond Point & Click)
+      const annotations = await page.getAnnotations();
+      if (annotations && annotations.length > 0) {
+        const annotLayer = document.createElement('div');
+        annotLayer.className = 'pdf-annotation-layer';
+
+        annotations.forEach(annot => {
+          if (annot.url && annot.url.startsWith('textedit://')) {
+            const rect = displayViewport.convertToViewportRectangle(annot.rect);
+            const minX = Math.min(rect[0], rect[2]);
+            const minY = Math.min(rect[1], rect[3]);
+            const width = Math.abs(rect[2] - rect[0]);
+            const height = Math.abs(rect[3] - rect[1]);
+
+            const linkEl = document.createElement('div');
+            linkEl.className = 'pdf-point-click-link';
+            linkEl.style.position = 'absolute';
+            linkEl.style.left = `${minX - 2}px`;
+            linkEl.style.top = `${minY - 2}px`;
+            linkEl.style.width = `${Math.max(width + 4, 16)}px`;
+            linkEl.style.height = `${Math.max(height + 4, 16)}px`;
+            linkEl.style.cursor = 'pointer';
+            linkEl.style.pointerEvents = 'auto';
+            linkEl.title = `Point & Click: Jump to source in YAML`;
+
+            linkEl.addEventListener('click', (e) => {
+              e.stopPropagation();
+              handlePointAndClick(annot.url);
+            });
+
+            annotLayer.appendChild(linkEl);
+          }
+        });
+
+        pageWrapper.appendChild(annotLayer);
+      }
 
       const ctx = canvas.getContext('2d');
       const renderContext = {
@@ -721,7 +876,7 @@ async function renderPdfPages() {
         viewport: viewport,
       };
 
-      scoreSvgContainer.appendChild(canvas);
+      scoreSvgContainer.appendChild(pageWrapper);
       await page.render(renderContext).promise;
     }
 
@@ -763,6 +918,18 @@ async function renderPreview(data) {
   scorePlaceholder.style.display = 'block';
   scoreSvgContainer.innerHTML = '';
 }
+
+// SVG Click listener for Point & Click
+scoreSvgContainer.addEventListener('click', (e) => {
+  const link = e.target.closest('a');
+  if (link) {
+    const href = link.getAttribute('xlink:href') || link.getAttribute('href');
+    if (href && href.startsWith('textedit://')) {
+      e.preventDefault();
+      handlePointAndClick(href);
+    }
+  }
+});
 
 function renderSvg(svgString) {
   renderPreview({ svg: svgString });
