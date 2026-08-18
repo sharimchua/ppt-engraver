@@ -754,10 +754,80 @@ let latestSidecarMap = null;
 let latestLilypondSource = '';
 let latestOnsets = [];
 
-function handlePointAndClick(url) {
-  if (!url || !url.startsWith('textedit://')) return;
+function findYamlTarget(yamlText, coilId, onsetIndex) {
+  if (!yamlText || !coilId) return { targetLine: -1, targetCh: 0 };
+  const lines = yamlText.split('\n');
 
-  // Format: textedit:///path/to/score.ly:line:col:endCol or textedit:///...:line:col
+  let coilStartLine = -1;
+
+  for (let l = 0; l < lines.length; l++) {
+    const line = lines[l];
+    // Match "id: <coilId>"
+    if (new RegExp(`^\\s*id\\s*:\\s*["']?${coilId}["']?\\s*$`).test(line)) {
+      coilStartLine = l;
+      break;
+    }
+    // Match "<coilId>:"
+    if (new RegExp(`^\\s*${coilId}\\s*:`).test(line)) {
+      coilStartLine = l;
+      break;
+    }
+    // Match "- coil: <coilId>"
+    if (new RegExp(`^\\s*-\\s*coil\\s*:\\s*["']?${coilId}["']?\\s*$`).test(line)) {
+      coilStartLine = l;
+      break;
+    }
+  }
+
+  // Substring fallback
+  if (coilStartLine === -1) {
+    for (let l = 0; l < lines.length; l++) {
+      if (lines[l].includes(coilId)) {
+        coilStartLine = l;
+        break;
+      }
+    }
+  }
+
+  if (coilStartLine === -1) {
+    return { targetLine: -1, targetCh: 0 };
+  }
+
+  let targetLine = coilStartLine;
+  let targetCh = 0;
+  const maxLookahead = Math.min(lines.length, coilStartLine + 35);
+
+  for (let l = coilStartLine; l < maxLookahead; l++) {
+    const line = lines[l];
+    if (l > coilStartLine && (/^\s*-\s*coil\s*:/.test(line) || /^\s*[_a-zA-Z0-9]+\s*:\s*$/.test(line))) {
+      break;
+    }
+
+    if (/^\s*(melody|harmony|rhythm)\s*:\s*\[/.test(line)) {
+      targetLine = l;
+      const arrayMatch = line.match(/\[(.*?)\]/);
+      if (arrayMatch) {
+        const rawTokens = arrayMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+        const tokIdx = Math.max(0, Math.min(onsetIndex - 1, rawTokens.length - 1));
+        const targetTokenStr = rawTokens[tokIdx];
+        if (targetTokenStr) {
+          const chStart = line.indexOf(targetTokenStr, line.indexOf('['));
+          if (chStart !== -1) {
+            targetCh = chStart;
+          }
+        }
+      }
+      break;
+    }
+  }
+
+  return { targetLine, targetCh };
+}
+
+function handlePointAndClick(url) {
+  if (!url || !url.includes('textedit:')) return;
+
+  // Format: textedit:...:line:col:endCol or textedit:...:line:col
   const match = url.match(/:(\d+)(?::(\d+))?(?::(\d+))?$/);
   if (!match) return;
 
@@ -768,8 +838,8 @@ function handlePointAndClick(url) {
 
   // Search around lyLineNum for \tag #'ppt_...
   let tag = null;
-  const startL = Math.max(0, lyLineNum - 4);
-  const endL = Math.min(lyLines.length - 1, lyLineNum + 3);
+  const startL = Math.max(0, lyLineNum - 6);
+  const endL = Math.min(lyLines.length - 1, lyLineNum + 5);
 
   for (let l = Math.min(lyLines.length - 1, lyLineNum - 1); l >= startL; l--) {
     const tm = lyLines[l].match(/\\tag\s*#'(ppt_[a-zA-Z0-9_]+)/);
@@ -802,52 +872,17 @@ function handlePointAndClick(url) {
 
   if (!coilId) return;
 
-  // Locate the coil and onset token in the YAML document
   const doc = editor.getDoc();
-  const lineCount = doc.lineCount();
-
-  let targetLine = -1;
-  let targetCh = 0;
-  let inTargetCoil = false;
-
-  for (let l = 0; l < lineCount; l++) {
-    const lineText = doc.getLine(l);
-
-    // Check if entering target coil block (e.g. "introMotif:", "_verse1:")
-    const coilHeaderMatch = lineText.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
-    if (coilHeaderMatch) {
-      if (coilHeaderMatch[1] === coilId) {
-        inTargetCoil = true;
-        targetLine = l;
-      } else if (inTargetCoil && !/^\s*-\s*/.test(lineText)) {
-        // Exited target coil
-        break;
-      }
-    }
-
-    if (inTargetCoil && /^\s*(melody|harmony|rhythm)\s*:\s*\[/.test(lineText)) {
-      targetLine = l;
-      const arrayMatch = lineText.match(/\[(.*?)\]/);
-      if (arrayMatch) {
-        const rawTokens = arrayMatch[1].split(',').map(s => s.trim()).filter(Boolean);
-        const tokIdx = Math.max(0, Math.min(onsetIndex - 1, rawTokens.length - 1));
-        const targetTokenStr = rawTokens[tokIdx];
-        if (targetTokenStr) {
-          const chStart = lineText.indexOf(targetTokenStr, lineText.indexOf('['));
-          if (chStart !== -1) {
-            targetCh = chStart;
-            break;
-          }
-        }
-      }
-      break;
-    }
-  }
+  const yamlText = doc.getValue();
+  const { targetLine, targetCh } = findYamlTarget(yamlText, coilId, onsetIndex);
 
   if (targetLine !== -1) {
     editor.setCursor({ line: targetLine, ch: targetCh });
     editor.scrollIntoView({ line: targetLine, ch: targetCh }, 150);
     editor.focus();
+
+    // Trigger cursor update so inline preview strip updates immediately
+    updateInlineSolfegeWidget();
 
     // Flash animation on the target line
     editor.addLineClass(targetLine, 'background', 'cm-point-click-flash');
