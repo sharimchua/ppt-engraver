@@ -50,3 +50,17 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
   - Takes an integer semitone difference `(targetMidi - anchorMidi) mod 12`.
   - Maps `0` $\to$ `Do`, `1` $\to$ `Ra`, `2` $\to$ `Re`, `3` $\to$ `Me`, `4` $\to$ `Mi`, `5` $\to$ `Fa`, `6` $\to$ `Fi`, `7` $\to$ `So`, `8` $\to$ `Le`, `9` $\to$ `La`, `10` $\to$ `Te`, `11` $\to$ `Ti`.
   - In `melodyCoilInterval`, the first onset is the anchor formatted with axis (e.g. `Dox`), followed by relative interval tokens.
+
+---
+
+## Harmonic Grammar & Axis Bass Prefix (`${Bass}x${Root}${Modifiers}`)
+
+- **Standard Chords**: Root syllable + optional modifiers (e.g. `Do` for major triad, `DoMe` for minor, `DoTe` for dominant 7th, `DoFi` for diminished).
+- **Axis Bass Prefix**: Prepending an axis-marked Solfège syllable (e.g. `Sox`, `Miex`, `Mex`, `Rex`, `Dox`) defines an explicit bass note (inversion or slash chord):
+  - `SoxDo`: C major triad with G in the bass (**C/G**).
+  - `MiexDo` / `MixDo`: C major triad with E in the bass (**C/E** / 1st inversion).
+  - `MexDoMe`: C minor triad with E♭ in the bass (**Cm/E♭** / 1st inversion).
+  - `RexSo`: G major triad with D in the bass (**G/D**).
+  - `DoxDo`: C major triad with C in the bass (**C/C**).
+- **Visual Coil Representation**: In the visual Harmony Coil row, the Axis Bass syllable is rendered with its full geometric glyph and horizontal axis diacritic line preceding the root glyph.
+- **Score Notation & Chord Names**: Emits slash chord notation (`<g c' e' g'>`) and LilyPond chord symbols (`c4/g`).

@@ -521,6 +521,19 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
  */
 export function chordTokenToCoilMarkup(token: string): string {
   const parsed = parseHarmonyChord(token);
+
+  let bassStencil = "";
+  if (parsed.hasAxisBass && parsed.bassSyllable) {
+    const bassSpec = getSolfegeGlyphSpec(parsed.bassSyllable, true);
+    const bassPathVar =
+      bassSpec.glyphType === "base"
+        ? "pptPathBase"
+        : bassSpec.glyphType === "sharp"
+          ? "pptPathSharp"
+          : "pptPathFlat";
+    bassStencil = `\\stencil #(make-solfege-glyph ${bassPathVar} ${bassSpec.rotation} ${bassSpec.colorSchemeVar} #t) `;
+  }
+
   const rootSpec = getSolfegeGlyphSpec(parsed.rootSyllable, parsed.hasAxis);
   const basePathVar =
     rootSpec.glyphType === "base"
@@ -529,10 +542,10 @@ export function chordTokenToCoilMarkup(token: string): string {
         ? "pptPathSharp"
         : "pptPathFlat";
   const rootAxisBool = rootSpec.hasAxis ? "#t" : "#f";
-  const rootStencil = `(make-solfege-glyph ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool})`;
+  const rootStencil = `\\stencil #(make-solfege-glyph ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool})`;
 
-  if (parsed.modifiers.length === 0) {
-    return `\\markup \\vcenter { \\stencil #${rootStencil} }`;
+  if (parsed.modifiers.length === 0 && !bassStencil) {
+    return `\\markup \\vcenter { ${rootStencil} }`;
   }
 
   const modifierStencils = parsed.modifiers.map((mod) => {
@@ -547,7 +560,7 @@ export function chordTokenToCoilMarkup(token: string): string {
     return `\\lower #0.35 \\stencil #(make-solfege-glyph-sub ${modPathVar} ${modSpec.rotation} ${modSpec.colorSchemeVar} ${modAxisBool})`;
   });
 
-  return `\\markup \\vcenter \\concat { \\stencil #${rootStencil} ${modifierStencils.join(" ")} }`;
+  return `\\markup \\vcenter \\concat { ${bassStencil}${rootStencil} ${modifierStencils.join(" ")} }`;
 }
 
 /**

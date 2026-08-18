@@ -160,6 +160,26 @@ describe('resolveCoil', () => {
       expect(onsets[6].chordRoot).toBe('So'); // Remainder filled with last chord
     });
 
+    it('resolves harmony chords with Axis Bass prefix (slash chords / inversions)', () => {
+      const coil: Coil = {
+        id: 'test',
+        melody: ['Do', 'Re', 'Mi'],
+        harmony: ['SoxDo', 'MiexDo', 'RexSo'],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      // SoxDo: C major with G3 bass (55) -> [55, 60, 64, 67]
+      expect(onsets[0].chordRoot).toBe('SoxDo');
+      expect(onsets[0].chordMidi).toEqual([55, 60, 64, 67]);
+
+      // MiexDo: C major with E3 bass (52) -> [52, 60, 64, 67]
+      expect(onsets[1].chordRoot).toBe('MiexDo');
+      expect(onsets[1].chordMidi).toEqual([52, 60, 64, 67]);
+
+      // RexSo: G3 major (55, 59, 62) with D3 bass (50) -> [50, 55, 59, 62]
+      expect(onsets[2].chordRoot).toBe('RexSo');
+      expect(onsets[2].chordMidi).toEqual([50, 55, 59, 62]);
+    });
+
     it('throws when harmony starts with a repeat number', () => {
       const coil: Coil = {
         id: 'test',

@@ -377,6 +377,7 @@ export function chordMidiToLilyPond(
  * Converts a chord root MIDI note + quality into a LilyPond chordmode token.
  * E.g. (69, 'minor', '4', 'sharps') -> "a4:m"
  * E.g. (63, 'major', '4', 'flats')  -> "ees4"
+ * E.g. (60, 'major', '4', 'sharps', 55) -> "c4/g" (C/G slash chord)
  * E.g. (67, 'dominant7', '4', 'sharps') -> "g4:7"
  * E.g. (71, 'diminished', '4', 'sharps') -> "b4:dim"
  */
@@ -385,6 +386,7 @@ export function chordToLilyPondChordMode(
   quality: string = 'major',
   durationToken: string = '4',
   accidentalMode: 'sharps' | 'flats' = 'sharps',
+  bassMidi?: number,
 ): string {
   const noteIndex = ((rootMidi % 12) + 12) % 12;
   const baseNote = accidentalMode === 'flats'
@@ -404,7 +406,18 @@ export function chordToLilyPondChordMode(
     qualitySuffix = ':aug';
   }
 
-  return `${baseNote}${durationToken}${qualitySuffix}`;
+  let slashBass = '';
+  if (bassMidi !== undefined) {
+    const bassIndex = ((bassMidi % 12) + 12) % 12;
+    if (bassIndex !== noteIndex) {
+      const bassNote = accidentalMode === 'flats'
+        ? LILYPOND_FLAT_NOTES[bassIndex]
+        : LILYPOND_SHARP_NOTES[bassIndex];
+      slashBass = `/${bassNote}`;
+    }
+  }
+
+  return `${baseNote}${durationToken}${qualitySuffix}${slashBass}`;
 }
 
 

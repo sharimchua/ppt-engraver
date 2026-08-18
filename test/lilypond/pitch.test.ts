@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { midiToLilyPondPitch, chordMidiToLilyPond } from '../../src/lilypond/pitch.js';
+import { midiToLilyPondPitch, chordMidiToLilyPond, chordToLilyPondChordMode } from '../../src/lilypond/pitch.js';
 
 describe('midiToLilyPondPitch', () => {
   it('formats Middle C (C4, MIDI 60) as c\'', () => {
@@ -86,6 +86,31 @@ describe('chordMidiToLilyPond', () => {
   it('formats Bb minor triad with flat spelling', () => {
     // Bb4 minor triad [70, 73, 77] -> <bes' des'' f''>
     expect(chordMidiToLilyPond([70, 73, 77], 0, 'flats')).toBe("<bes' des'' f''>");
+  });
+});
+
+describe('chordToLilyPondChordMode', () => {
+  it('formats standard chords without slash bass', () => {
+    expect(chordToLilyPondChordMode(60, 'major', '4', 'sharps')).toBe('c4');
+    expect(chordToLilyPondChordMode(60, 'minor', '4', 'sharps')).toBe('c4:m');
+    expect(chordToLilyPondChordMode(67, 'dominant7', '4', 'sharps')).toBe('g4:7');
+  });
+
+  it('formats slash chords and inversions when bass note is specified', () => {
+    // C/G (C major over G bass)
+    expect(chordToLilyPondChordMode(60, 'major', '4', 'sharps', 55)).toBe('c4/g');
+
+    // C/E (C major over E bass / 1st inversion)
+    expect(chordToLilyPondChordMode(60, 'major', '4', 'sharps', 52)).toBe('c4/e');
+
+    // Cm/Eb (C minor over Eb bass / 1st inversion)
+    expect(chordToLilyPondChordMode(60, 'minor', '4', 'flats', 51)).toBe('c4:m/ees');
+
+    // G/D (G major over D bass)
+    expect(chordToLilyPondChordMode(67, 'major', '4', 'sharps', 62)).toBe('g4/d');
+
+    // Root position bass note matches root -> no redundant slash
+    expect(chordToLilyPondChordMode(60, 'major', '4', 'sharps', 48)).toBe('c4');
   });
 });
 

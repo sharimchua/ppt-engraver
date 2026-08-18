@@ -404,6 +404,13 @@ describe('chordTokenToCoilMarkup', () => {
     expect(markup).toContain('\\lower #0.35 \\stencil #(make-solfege-glyph-sub pptPathBase 270 colorMi #f)');
     expect(markup).toContain('\\lower #0.35 \\stencil #(make-solfege-glyph-sub pptPathSharp 90 colorTi #f)');
   });
+
+  it('formats chord with Axis Bass prefix (SoxDo)', () => {
+    const markup = chordTokenToCoilMarkup('SoxDo');
+    // Sox bass prefix (sharp 180 colorSo axis #t) + Do root (base 0 colorDo axis #f)
+    expect(markup).toContain('\\stencil #(make-solfege-glyph pptPathSharp 180 colorSo #t)');
+    expect(markup).toContain('\\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f)');
+  });
 });
 
 describe('rhythmTokenToCoilMarkup', () => {

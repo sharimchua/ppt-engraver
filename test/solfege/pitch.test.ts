@@ -313,6 +313,82 @@ describe('buildChordFromToken & parseHarmonyChord', () => {
       octaveShift: 0,
       quality: 'minor7',
     });
+
+    // Axis Bass prefix tests (slash chords / inversions)
+    expect(parseHarmonyChord('SoxDo')).toEqual({
+      hasAxisBass: true,
+      bassSyllable: 'So',
+      rootSyllable: 'Do',
+      hasAxis: false,
+      modifiers: [],
+      octaveShift: 0,
+      quality: 'major',
+    });
+
+    expect(parseHarmonyChord('MiexDo')).toEqual({
+      hasAxisBass: true,
+      bassSyllable: 'Mi',
+      rootSyllable: 'Do',
+      hasAxis: false,
+      modifiers: [],
+      octaveShift: 0,
+      quality: 'major',
+    });
+
+    expect(parseHarmonyChord('MexDoMe')).toEqual({
+      hasAxisBass: true,
+      bassSyllable: 'Me',
+      rootSyllable: 'Do',
+      hasAxis: false,
+      modifiers: [{ syllable: 'Me', hasAxis: false }],
+      octaveShift: 0,
+      quality: 'minor',
+    });
+
+    expect(parseHarmonyChord('RexSo')).toEqual({
+      hasAxisBass: true,
+      bassSyllable: 'Re',
+      rootSyllable: 'So',
+      hasAxis: false,
+      modifiers: [],
+      octaveShift: 0,
+      quality: 'major',
+    });
+
+    expect(parseHarmonyChord('DoxDo')).toEqual({
+      hasAxisBass: true,
+      bassSyllable: 'Do',
+      rootSyllable: 'Do',
+      hasAxis: false,
+      modifiers: [],
+      octaveShift: 0,
+      quality: 'major',
+    });
+
+    expect(parseHarmonyChord('So_xDo')).toEqual({
+      hasAxisBass: true,
+      bassSyllable: 'So',
+      bassOctaveShift: -1,
+      rootSyllable: 'Do',
+      hasAxis: false,
+      modifiers: [],
+      octaveShift: 0,
+      quality: 'major',
+    });
+  });
+
+  it('builds slash chord voicings with bass note positioned at the bottom', () => {
+    // C major (60, 64, 67) with G bass (55) -> [55, 60, 64, 67]
+    const chordSoxDo = buildChordFromToken(60, 'SoxDo', 60);
+    expect(chordSoxDo).toEqual([55, 60, 64, 67]);
+
+    // C major (60, 64, 67) with E bass (52) -> [52, 60, 64, 67]
+    const chordMiexDo = buildChordFromToken(60, 'MiexDo', 60);
+    expect(chordMiexDo).toEqual([52, 60, 64, 67]);
+
+    // C minor (60, 63, 67) with Eb bass (51) -> [51, 60, 63, 67]
+    const chordMexDoMe = buildChordFromToken(60, 'MexDoMe', 60);
+    expect(chordMexDoMe).toEqual([51, 60, 63, 67]);
   });
 });
 

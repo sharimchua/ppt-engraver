@@ -651,7 +651,7 @@ function resolveHarmony(
     const semitone = solfegeToHarmonyRootOffset(parsed.rootSyllable);
     const rootMidi = knot.doMidi + semitone + (harmonyOctave * 12);
     return {
-      triad: buildChordFromToken(rootMidi, token),
+      triad: buildChordFromToken(rootMidi, token, knot.doMidi + (harmonyOctave * 12)),
       root: token,
     };
   };

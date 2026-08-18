@@ -506,10 +506,18 @@ export interface ParsedHarmonyModifier {
 
 /**
  * Parsed representation of a harmony chord token.
- * E.g. "Do" (major triad), "DoMe" (minor triad), "DoTe" (dominant 7th), "Dox", "DoxMe", "So^", "Do_"
+ * E.g. "Do" (major triad), "DoMe" (minor triad), "SoxDo" (C/G slash chord / inversion), "MiexDo" (C/E), "MexDoMe" (Cm/Eb), "DoTe" (dominant 7th), "Dox", "DoxMe", "So^", "Do_"
  */
 export interface ParsedHarmonyChord {
+  /** Explicit bass syllable if an axis prefix is present (e.g. "So" in "SoxDo") */
+  bassSyllable?: string;
+  /** Octave shift on the bass note if specified (e.g. -1 for "So_xDo") */
+  bassOctaveShift?: number;
+  /** Whether an explicit axis bass prefix was specified (e.g. "Sox" in "SoxDo") */
+  hasAxisBass?: boolean;
+  /** The chord root syllable (e.g. "Do" in "DoMe" or "Do" in "SoxDo") */
   rootSyllable: string;
+  /** Whether the chord root has an axis marker */
   hasAxis: boolean;
   modifiers: ParsedHarmonyModifier[];
   octaveShift: number;
@@ -561,10 +569,8 @@ export function getSolfegeGlyphSpec(syllable: string, hasAxis: boolean = false):
 }
 
 /**
- * Parses a harmony chord token like "Do", "DoMe", "So", "DoTe", "Dox", "DoxMe", "So^", "Do_".
- * The first solfège syllable is the root (optionally with 'x' axis marker);
- * trailing solfège syllables (with optional 'x') are modifiers;
- * trailing ^/_ are octave shifts.
+ * Parses a harmony chord token like "Do", "DoMe", "So", "DoTe", "Dox", "DoxMe", "So^", "Do_",
+ * or with Axis Bass prefix like "SoxDo" (C/G), "MiexDo" (C/E), "MexDoMe" (Cm/Eb), "RexSo" (G/D).
  */
 export function parseHarmonyChord(token: string): ParsedHarmonyChord {
   let remaining = token;
@@ -578,14 +584,47 @@ export function parseHarmonyChord(token: string): ParsedHarmonyChord {
     remaining = remaining.slice(0, -1);
   }
 
-  const match = remaining.match(/^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(x?)(.*)$/);
-  if (!match) {
-    throw new Error(`Invalid harmony chord token: "${token}"`);
+  // 1. Check for Axis Bass prefix: (BassSyllable)(octave?)x(RootSyllable)(x?)(modifiers...)
+  // E.g. "SoxDo", "MixDo", "MiexDo", "MexDoMe", "So_xDo", "DoxDo", "RexSo"
+  const bassPrefixMatch = remaining.match(
+    /^(Do|Ra|Di|Re|Me|Ri|Mi|Mie|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)([\^_]*)x(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(x?)(.*)$/
+  );
+
+  let bassSyllable: string | undefined;
+  let bassOctaveShift = 0;
+  let hasAxisBass = false;
+  let rootSyllable: string;
+  let hasAxis = false;
+  let rest = '';
+
+  const isModifierOnly = (firstSyl: string, secondSyl: string) => {
+    return firstSyl === 'Do' && ['Me', 'Ri', 'Te', 'Li', 'Fi', 'Se'].includes(secondSyl);
+  };
+
+  if (bassPrefixMatch && (bassPrefixMatch[5] !== '' || !isModifierOnly(bassPrefixMatch[1], bassPrefixMatch[3]))) {
+    let rawBass = bassPrefixMatch[1];
+    if (rawBass === 'Mie') rawBass = 'Mi';
+    bassSyllable = rawBass;
+    const bassOctStr = bassPrefixMatch[2];
+    for (const ch of bassOctStr) {
+      if (ch === '^') bassOctaveShift++;
+      else if (ch === '_') bassOctaveShift--;
+    }
+    hasAxisBass = true;
+    rootSyllable = bassPrefixMatch[3];
+    hasAxis = bassPrefixMatch[4] === 'x';
+    rest = bassPrefixMatch[5];
+  } else {
+    // 2. Standard chord without axis bass prefix
+    const match = remaining.match(/^(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(x?)(.*)$/);
+    if (!match) {
+      throw new Error(`Invalid harmony chord token: "${token}"`);
+    }
+    rootSyllable = match[1];
+    hasAxis = match[2] === 'x';
+    rest = match[3];
   }
-  const rootSyllable = match[1];
-  const hasAxis = match[2] === 'x';
-  const rest = match[3];
-  
+
   // Extract modifier syllables (e.g. "Me", "Te", "Mex", "Te", "MeTe")
   const modifiers: ParsedHarmonyModifier[] = [];
   const modifierRegex = /(Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)(x?)/g;
@@ -596,7 +635,7 @@ export function parseHarmonyChord(token: string): ParsedHarmonyChord {
       hasAxis: modMatch[2] === 'x',
     });
   }
-  
+
   let quality: ParsedHarmonyChord['quality'] = 'major';
   const hasMe = modifiers.some(m => m.syllable === 'Me' || m.syllable === 'Ri');
   const hasTe = modifiers.some(m => m.syllable === 'Te' || m.syllable === 'Li');
@@ -612,28 +651,63 @@ export function parseHarmonyChord(token: string): ParsedHarmonyChord {
     quality = 'diminished';
   }
 
-  return { rootSyllable, hasAxis, modifiers, octaveShift, quality };
+  const result: ParsedHarmonyChord = {
+    rootSyllable,
+    hasAxis,
+    modifiers,
+    octaveShift,
+    quality,
+  };
+
+  if (hasAxisBass) {
+    result.hasAxisBass = true;
+    result.bassSyllable = bassSyllable;
+    if (bassOctaveShift !== 0) {
+      result.bassOctaveShift = bassOctaveShift;
+    }
+  }
+
+  return result;
 }
 
 /**
  * Builds chord tones (MIDI notes) for a harmony token relative to root MIDI.
  * Default is a major triad [root, root+4, root+7].
  * If minor (e.g. "DoMe"), builds [root, root+3, root+7].
+ * If an Axis Bass prefix is specified (e.g. "SoxDo"), includes the bass pitch voiced at the bottom.
  * Applies any octave shifts (^ or _) from the token.
  */
-export function buildChordFromToken(rootMidi: number, chordToken: string): number[] {
+export function buildChordFromToken(rootMidi: number, chordToken: string, knotDoMidi?: number): number[] {
   const parsed = parseHarmonyChord(chordToken);
   const shiftedRoot = rootMidi + (parsed.octaveShift * 12);
+  
+  let upperTones: number[] = [];
   if (parsed.quality === 'minor') {
-    return [shiftedRoot, shiftedRoot + 3, shiftedRoot + 7];
+    upperTones = [shiftedRoot, shiftedRoot + 3, shiftedRoot + 7];
   } else if (parsed.quality === 'minor7') {
-    return [shiftedRoot, shiftedRoot + 3, shiftedRoot + 7, shiftedRoot + 10];
+    upperTones = [shiftedRoot, shiftedRoot + 3, shiftedRoot + 7, shiftedRoot + 10];
   } else if (parsed.quality === 'dominant7') {
-    return [shiftedRoot, shiftedRoot + 4, shiftedRoot + 7, shiftedRoot + 10];
+    upperTones = [shiftedRoot, shiftedRoot + 4, shiftedRoot + 7, shiftedRoot + 10];
   } else if (parsed.quality === 'diminished') {
-    return [shiftedRoot, shiftedRoot + 3, shiftedRoot + 6];
+    upperTones = [shiftedRoot, shiftedRoot + 3, shiftedRoot + 6];
+  } else {
+    upperTones = [shiftedRoot, shiftedRoot + 4, shiftedRoot + 7];
   }
-  return [shiftedRoot, shiftedRoot + 4, shiftedRoot + 7];
+
+  if (parsed.hasAxisBass && parsed.bassSyllable) {
+    const doRef = knotDoMidi !== undefined ? knotDoMidi : (rootMidi - solfegeToHarmonyRootOffset(parsed.rootSyllable));
+    const bassOffset = solfegeToHarmonyRootOffset(parsed.bassSyllable);
+    let bassMidi = doRef + bassOffset + ((parsed.bassOctaveShift ?? 0) * 12);
+    
+    // Ensure bassMidi is positioned as the lowest tone in the chord
+    while (bassMidi >= upperTones[0]) {
+      bassMidi -= 12;
+    }
+    
+    return [bassMidi, ...upperTones];
+  }
+
+  return upperTones;
 }
 
 /**
