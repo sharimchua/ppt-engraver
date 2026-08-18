@@ -26,10 +26,17 @@ Generated `.ly` documents contain:
 
 ## Point-and-Click Source Tagging
 
-- Every musical onset in LilyPond is tagged with a unique identifier:
-  `\tag #'ppt_${coilId}_${voiceId}_${onsetIndex}`
-- Example: `\tag #'ppt_introMotif_melody_1 c'4`
-- This enables Frescobaldi and the PPT Studio preview to map PDF/SVG clicks directly back to the original token in the YAML source document.
+- Every musical onset in LilyPond is tagged with an explicit layer-encoded identifier:
+  `\tag #'ppt_${weaveId}_${coilId}_${layer}_${onsetIndex}`
+  - Melody staff: `melody` (e.g. `ppt_verse_introMotif_melody_1`)
+  - Melody Absolute coil: `melodyAbs` (e.g. `ppt_verse_introMotif_melodyAbs_1`)
+  - Melody Interval coil: `melodyInt` (e.g. `ppt_verse_introMotif_melodyInt_1`)
+  - Rhythm coil: `rhythm` (e.g. `ppt_verse_introMotif_rhythm_1`)
+  - Harmony coil: `harmony` (e.g. `ppt_verse_introMotif_harmony_1`)
+  - Harmony staff: `harmonyStaff` (e.g. `ppt_verse_introMotif_harmonyStaff_1`)
+  - Chord names: `chordName` (e.g. `ppt_verse_introMotif_chordName_1`)
+- Example: `\tag #'ppt_verse_introMotif_melody_1 c'4`
+- This enables PPT Studio point-and-click navigation to route clicks unambiguously to the exact layer line (`melody:`, `rhythm:`, or `harmony:`), and trace concatenated / inherited sub-coils back to their definition in YAML.
 
 ---
 

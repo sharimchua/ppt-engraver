@@ -8,7 +8,7 @@
  * - Configurable LilyPond executable path via env or API
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { join, resolve, extname, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
@@ -249,11 +249,39 @@ const server = createServer(async (req, res) => {
       if (pathname === '/api/scores' && req.method === 'GET') {
         const files = readdirSync(SCORES_DIR)
           .filter(f => f.endsWith('.ppt.yaml'))
-          .map(f => ({
-            name: f,
-            path: f,
-            displayName: f.replace('.ppt.yaml', ''),
-          }));
+          .map(f => {
+            const filePath = join(SCORES_DIR, f);
+            let title = '';
+            let composer = '';
+            let arranger = '';
+            let tonic = '';
+            let tempo = '';
+            try {
+              const text = readFileSync(filePath, 'utf-8');
+              const titleMatch = text.match(/\btitle\s*:\s*["']?([^"'\r\n]+)["']?/i);
+              if (titleMatch) title = titleMatch[1].trim();
+              const composerMatch = text.match(/\bcomposer\s*:\s*["']?([^"'\r\n]+)["']?/i);
+              if (composerMatch) composer = composerMatch[1].trim();
+              const arrangerMatch = text.match(/\barranger\s*:\s*["']?([^"'\r\n]+)["']?/i);
+              if (arrangerMatch) arranger = arrangerMatch[1].trim();
+              const tonicMatch = text.match(/\btonic\s*:\s*["']?([^"'\r\n]+)["']?/i);
+              if (tonicMatch) tonic = tonicMatch[1].trim();
+              const tempoMatch = text.match(/\btempo\s*:\s*(\d+)/i);
+              if (tempoMatch) tempo = tempoMatch[1].trim();
+            } catch (e) {
+              // fallback
+            }
+            return {
+              name: f,
+              path: f,
+              displayName: title ? `${title} (${f})` : f.replace('.ppt.yaml', ''),
+              title: title || f.replace('.ppt.yaml', ''),
+              composer,
+              arranger,
+              tonic,
+              tempo,
+            };
+          });
         return sendJson(res, { scores: files });
       }
 
@@ -277,6 +305,33 @@ const server = createServer(async (req, res) => {
         const safePath = join(SCORES_DIR, basename(fileName));
         writeFileSync(safePath, body.content, 'utf-8');
         return sendJson(res, { success: true, file: basename(fileName) });
+      }
+
+      // POST /api/delete
+      if (pathname === '/api/delete' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.file) {
+          return sendError(res, 'Missing file parameter', 400);
+        }
+        const baseName = basename(body.file).replace(/\.ppt\.yaml$/, '');
+        const yamlPath = join(SCORES_DIR, `${baseName}.ppt.yaml`);
+        if (existsSync(yamlPath)) {
+          unlinkSync(yamlPath);
+        }
+        const relatedFiles = [
+          `${baseName}.notation.ly`,
+          `${baseName}.pdf`,
+          `${baseName}.ppt-map.json`,
+          `${baseName}.svg`,
+          `${baseName}.cropped.svg`
+        ];
+        for (const rel of relatedFiles) {
+          const relPath = join(SCORES_DIR, rel);
+          if (existsSync(relPath)) {
+            try { unlinkSync(relPath); } catch (e) {}
+          }
+        }
+        return sendJson(res, { success: true, file: `${baseName}.ppt.yaml` });
       }
 
       // GET /api/config

@@ -12,9 +12,10 @@ The `studio/` directory houses the interactive web development environment for P
 
 | Endpoint | Method | Payload / Query | Output | Description |
 |---|---|---|---|---|
-| `/api/scores` | `GET` | - | `{ scores: [...] }` | Lists all `.ppt.yaml` files in `scores/` |
-| `/api/score` | `GET` | `?file=...` | `{ content: string }` | Reads score YAML text |
+| `/api/scores` | `GET` | - | `{ scores: [{ name, path, displayName, title, composer, arranger, tonic, tempo }] }` | Lists all `.ppt.yaml` files with parsed score metadata |
+| `/api/score` | `GET` | `?file=...` | `{ name, content }` | Reads score YAML text |
 | `/api/save` | `POST` | `{ file, content }` | `{ success, file }` | Saves YAML score file |
+| `/api/delete` | `POST` | `{ file }` | `{ success, file }` | Deletes YAML score file and associated export artifacts |
 | `/api/compile` | `POST` | `{ yaml, format }` | `{ success, format, pdfBase64, svg, lilypondSource, onsets, sidecarMap, metrics }` | Compiles YAML with LilyPond and returns PDF/SVG |
 | `/api/export-pdf` | `POST` | `{ yaml, file }` | `{ success, pdfFile }` | Exports standalone PDF to `scores/` |
 

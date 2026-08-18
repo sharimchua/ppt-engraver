@@ -47,6 +47,16 @@ export interface ResolvedOnset {
   durationBeats?: number;
   /** LilyPond duration string, e.g. "4", "8", "16", "4*1/3" */
   duration?: string;
+  /** Provenance: underlying coil ID for concats / sub-coils */
+  sourceCoilId?: string;
+  /** Provenance: 1-based onset index within the underlying sub-coil */
+  sourceOnsetIndex?: number;
+  /** Provenance: coil where melody was defined (local or inherited parent) */
+  melodySourceCoil?: string;
+  /** Provenance: coil where rhythm was defined (local or inherited parent) */
+  rhythmSourceCoil?: string;
+  /** Provenance: coil where harmony was defined (local or inherited parent) */
+  harmonySourceCoil?: string;
 }
 
 
@@ -87,6 +97,7 @@ export function resolveConcatCoil(
   for (let i = 0; i < concatEntries.length; i++) {
     const entry = concatEntries[i];
     let subCoil: Coil;
+    const subCoilId = typeof entry === 'string' ? entry : (entry.id ?? `subCoil_${i}`);
     if (typeof entry === 'string') {
       const found = coilLibrary.get(entry);
       if (!found) {
@@ -94,9 +105,9 @@ export function resolveConcatCoil(
           `Coil "${coil.id ?? 'anonymous'}" concat references unknown coil "${entry}"`
         );
       }
-      subCoil = found;
+      subCoil = { ...found, id: subCoilId };
     } else {
-      subCoil = entry;
+      subCoil = { ...entry, id: subCoilId };
     }
 
     const { onsets: subOnsets, warnings: subWarnings } = resolveCoil(
@@ -108,6 +119,15 @@ export function resolveConcatCoil(
     warnings.push(...subWarnings);
 
     if (subOnsets.length === 0) continue;
+
+    // Ensure sub-coil provenance is set on each onset
+    for (let s = 0; s < subOnsets.length; s++) {
+      subOnsets[s].sourceCoilId = subOnsets[s].sourceCoilId || subCoilId;
+      subOnsets[s].sourceOnsetIndex = subOnsets[s].sourceOnsetIndex || (s + 1);
+      subOnsets[s].melodySourceCoil = subOnsets[s].melodySourceCoil || subCoilId;
+      subOnsets[s].rhythmSourceCoil = subOnsets[s].rhythmSourceCoil || subCoilId;
+      subOnsets[s].harmonySourceCoil = subOnsets[s].harmonySourceCoil || subCoilId;
+    }
 
     if (mergedOnsets.length === 0) {
       mergedOnsets.push(...subOnsets);
@@ -150,6 +170,7 @@ export function resolveConcatCoil(
     for (let k = 0; k < totalOnsets; k++) {
       mergedOnsets[k].chordMidi = harmonyChords[k].triad;
       mergedOnsets[k].chordRoot = harmonyChords[k].root;
+      mergedOnsets[k].harmonySourceCoil = coil.id;
     }
   } else if (coil.harmonyOctave !== undefined && coil.harmonyOctave !== 0) {
     const shiftSemitones = coil.harmonyOctave * 12;
@@ -263,6 +284,11 @@ export function resolveCoil(
         rhythmToken: ro.token,
         durationBeats: ro.durationBeats,
         duration: ro.lilypondDuration,
+        sourceCoilId: coil.id,
+        sourceOnsetIndex: k + 1,
+        melodySourceCoil: resolvedLayers.melodySourceCoil || coil.id,
+        rhythmSourceCoil: resolvedLayers.rhythmSourceCoil || coil.id,
+        harmonySourceCoil: resolvedLayers.harmonySourceCoil || coil.id,
       });
     }
   } else {
@@ -278,6 +304,11 @@ export function resolveCoil(
         rhythmToken: undefined,
         durationBeats: undefined,
         duration: undefined,
+        sourceCoilId: coil.id,
+        sourceOnsetIndex: i + 1,
+        melodySourceCoil: resolvedLayers.melodySourceCoil || coil.id,
+        rhythmSourceCoil: resolvedLayers.rhythmSourceCoil || coil.id,
+        harmonySourceCoil: resolvedLayers.harmonySourceCoil || coil.id,
       });
     }
   }
@@ -291,6 +322,9 @@ interface ResolvedLayers {
   rhythm?: string | (string | number)[];
   meter?: string;
   harmonyOctave?: number;
+  melodySourceCoil?: string;
+  harmonySourceCoil?: string;
+  rhythmSourceCoil?: string;
 }
 
 
@@ -313,9 +347,18 @@ function resolveParentChain(
   }
   const nextVisited = new Set(visited).add(parentId);
   const direct: ResolvedLayers = {};
-  if (parent.melody && parent.melody.length > 0) direct.melody = parent.melody;
-  if (parent.harmony && parent.harmony.length > 0) direct.harmony = parent.harmony;
-  if (parent.rhythm) direct.rhythm = parent.rhythm;
+  if (parent.melody && parent.melody.length > 0) {
+    direct.melody = parent.melody;
+    direct.melodySourceCoil = parent.id ?? parentId;
+  }
+  if (parent.harmony && parent.harmony.length > 0) {
+    direct.harmony = parent.harmony;
+    direct.harmonySourceCoil = parent.id ?? parentId;
+  }
+  if (parent.rhythm) {
+    direct.rhythm = parent.rhythm;
+    direct.rhythmSourceCoil = parent.id ?? parentId;
+  }
   if (parent.harmonyOctave !== undefined) direct.harmonyOctave = parent.harmonyOctave;
 
   // Check parent's parents
@@ -328,9 +371,18 @@ function resolveParentChain(
 
   for (const ancId of ancestorIds) {
     const ancLayers = resolveParentChain(ancId, library, nextVisited, parentId);
-    if (!direct.melody && ancLayers.melody) direct.melody = ancLayers.melody;
-    if (!direct.harmony && ancLayers.harmony) direct.harmony = ancLayers.harmony;
-    if (!direct.rhythm && ancLayers.rhythm) direct.rhythm = ancLayers.rhythm;
+    if (!direct.melody && ancLayers.melody) {
+      direct.melody = ancLayers.melody;
+      direct.melodySourceCoil = ancLayers.melodySourceCoil || ancId;
+    }
+    if (!direct.harmony && ancLayers.harmony) {
+      direct.harmony = ancLayers.harmony;
+      direct.harmonySourceCoil = ancLayers.harmonySourceCoil || ancId;
+    }
+    if (!direct.rhythm && ancLayers.rhythm) {
+      direct.rhythm = ancLayers.rhythm;
+      direct.rhythmSourceCoil = ancLayers.rhythmSourceCoil || ancId;
+    }
     if (direct.harmonyOctave === undefined && ancLayers.harmonyOctave !== undefined) {
       direct.harmonyOctave = ancLayers.harmonyOctave;
     }
@@ -351,9 +403,18 @@ function inheritCoilLayers(
   const coilId = coil.id ?? 'anonymousCoil';
   
   // 1. Explicit local definition
-  if (coil.melody && coil.melody.length > 0) result.melody = coil.melody;
-  if (coil.harmony && coil.harmony.length > 0) result.harmony = coil.harmony;
-  if (coil.rhythm) result.rhythm = coil.rhythm;
+  if (coil.melody && coil.melody.length > 0) {
+    result.melody = coil.melody;
+    result.melodySourceCoil = coil.id;
+  }
+  if (coil.harmony && coil.harmony.length > 0) {
+    result.harmony = coil.harmony;
+    result.harmonySourceCoil = coil.id;
+  }
+  if (coil.rhythm) {
+    result.rhythm = coil.rhythm;
+    result.rhythmSourceCoil = coil.id;
+  }
   if (coil.harmonyOctave !== undefined) result.harmonyOctave = coil.harmonyOctave;
   
   // 2. Parents in priority order
@@ -374,12 +435,15 @@ function inheritCoilLayers(
       );
       if (!result.melody && parentLayers.melody && parentLayers.melody.length > 0) {
         result.melody = parentLayers.melody;
+        result.melodySourceCoil = parentLayers.melodySourceCoil || parentId;
       }
       if (!result.harmony && parentLayers.harmony && parentLayers.harmony.length > 0) {
         result.harmony = parentLayers.harmony;
+        result.harmonySourceCoil = parentLayers.harmonySourceCoil || parentId;
       }
       if (!result.rhythm && parentLayers.rhythm) {
         result.rhythm = parentLayers.rhythm;
+        result.rhythmSourceCoil = parentLayers.rhythmSourceCoil || parentId;
       }
       if (result.harmonyOctave === undefined && parentLayers.harmonyOctave !== undefined) {
         result.harmonyOctave = parentLayers.harmonyOctave;
@@ -391,12 +455,15 @@ function inheritCoilLayers(
   if (defaultCoil) {
     if (!result.melody && defaultCoil.melody && defaultCoil.melody.length > 0) {
       result.melody = defaultCoil.melody;
+      result.melodySourceCoil = defaultCoil.id;
     }
     if (!result.harmony && defaultCoil.harmony && defaultCoil.harmony.length > 0) {
       result.harmony = defaultCoil.harmony;
+      result.harmonySourceCoil = defaultCoil.id;
     }
     if (!result.rhythm && defaultCoil.rhythm) {
       result.rhythm = defaultCoil.rhythm;
+      result.rhythmSourceCoil = defaultCoil.id;
     }
     if (result.harmonyOctave === undefined && defaultCoil.harmonyOctave !== undefined) {
       result.harmonyOctave = defaultCoil.harmonyOctave;

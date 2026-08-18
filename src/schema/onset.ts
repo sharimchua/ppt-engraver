@@ -40,6 +40,16 @@ export const OnsetSchema = z.object({
   durationBeats: z.number().positive().optional(),
   /** LilyPond duration string, e.g. "4", "8", "16", "4*1/3" */
   duration: z.string().optional(),
+  /** Provenance: underlying coil ID for concats / sub-coils */
+  sourceCoilId: z.string().optional(),
+  /** Provenance: 1-based onset index within the underlying sub-coil */
+  sourceOnsetIndex: z.number().int().positive().optional(),
+  /** Provenance: coil where melody was defined (local or inherited parent) */
+  melodySourceCoil: z.string().optional(),
+  /** Provenance: coil where rhythm was defined (local or inherited parent) */
+  rhythmSourceCoil: z.string().optional(),
+  /** Provenance: coil where harmony was defined (local or inherited parent) */
+  harmonySourceCoil: z.string().optional(),
 });
 
 /**

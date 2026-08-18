@@ -36,6 +36,16 @@ export interface SidecarEntry {
   coilId: string;
   /** 1-based index within the coil */
   onsetIndex: number;
+  /** Underlying source coil ID (for concatenated sub-coils) */
+  sourceCoilId?: string;
+  /** 1-based index within the underlying sub-coil */
+  sourceOnsetIndex?: number;
+  /** Coil where melody layer was defined (local or inherited parent) */
+  melodySourceCoil?: string;
+  /** Coil where rhythm layer was defined (local or inherited parent) */
+  rhythmSourceCoil?: string;
+  /** Coil where harmony layer was defined (local or inherited parent) */
+  harmonySourceCoil?: string;
   /** Expected melodic values */
   melody: SidecarMelodyExpectation;
   /** Expected harmonic values */
@@ -57,11 +67,16 @@ export function generateSidecarMap(onsets: OnsetStream): SidecarMap {
   const map: SidecarMap = {};
 
   for (const onset of onsets) {
-    map[onset.tag] = {
+    const entry: SidecarEntry = {
       tag: onset.tag,
       weaveId: onset.weaveId,
       coilId: onset.coilId,
       onsetIndex: onset.onsetIndex,
+      sourceCoilId: onset.sourceCoilId,
+      sourceOnsetIndex: onset.sourceOnsetIndex,
+      melodySourceCoil: onset.melodySourceCoil,
+      rhythmSourceCoil: onset.rhythmSourceCoil,
+      harmonySourceCoil: onset.harmonySourceCoil,
       melody: {
         scaleDegree: onset.scaleDegree,
         pitch: onset.pitch,
@@ -74,6 +89,21 @@ export function generateSidecarMap(onsets: OnsetStream): SidecarMap {
         chordMidi: onset.chordMidi,
       },
     };
+
+    // Primary tag: ppt_weave_coil_index
+    map[onset.tag] = entry;
+
+    // Layer-specific tags: ppt_weave_coil_layer_index
+    const prefix = `ppt_${onset.weaveId}_${onset.coilId}`;
+    const idx = onset.onsetIndex;
+    map[`${prefix}_melody_${idx}`] = entry;
+    map[`${prefix}_melodyAbs_${idx}`] = entry;
+    map[`${prefix}_melodyInt_${idx}`] = entry;
+    map[`${prefix}_rhythm_${idx}`] = entry;
+    map[`${prefix}_harmony_${idx}`] = entry;
+    map[`${prefix}_harmCoil_${idx}`] = entry;
+    map[`${prefix}_harmonyStaff_${idx}`] = entry;
+    map[`${prefix}_chordName_${idx}`] = entry;
   }
 
   return map;

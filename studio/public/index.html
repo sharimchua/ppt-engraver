@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
@@ -16,6 +17,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/indent-fold.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/comment-fold.min.js"></script>
   <!-- Mozilla PDF.js for crisp, responsive vector canvas rendering & smooth zooming -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -32,7 +38,7 @@
           <select id="score-select" title="Select Score">
             <option value="" disabled selected>Loading scores...</option>
           </select>
-          <button id="btn-new-score" class="btn-icon" title="New Score">+</button>
+          <button id="btn-new-score" class="btn-icon" title="Create Tapestry (Ctrl+N)">+</button>
         </div>
       </div>
 
@@ -42,11 +48,14 @@
       </div>
 
       <div class="header-right">
+        <button id="btn-command-palette" class="btn btn-secondary" title="Command Palette (Ctrl+Shift+P / F1)">
+          <span>⌨</span> Commands
+        </button>
         <button id="btn-compile" class="btn btn-primary" title="Compile (Ctrl+Enter)">
           <span class="btn-icon-symbol">▶</span> Compile
         </button>
-        <button id="btn-save" class="btn btn-secondary" title="Save (Ctrl+S)">
-          <span>💾</span> Save
+        <button id="btn-save" class="btn btn-secondary" title="Save Tapestry (Ctrl+S)">
+          <span>💾</span> Save Tapestry
         </button>
         <button id="btn-export-pdf" class="btn btn-secondary" title="Export PDF">
           <span>📑</span> Export PDF
@@ -143,6 +152,41 @@
         </div>
       </section>
     </main>
+
+    <!-- Command Palette Modal -->
+    <div id="command-palette-modal" class="modal hidden">
+      <div class="modal-backdrop" id="palette-backdrop"></div>
+      <div class="palette-card">
+        <div class="palette-header">
+          <input type="text" id="palette-search" class="palette-input" placeholder="Type a command or search actions..." autocomplete="off" spellcheck="false">
+        </div>
+        <div id="palette-list" class="palette-list"></div>
+        <div class="palette-footer">
+          <span><kbd>↑</kbd> <kbd>↓</kbd> to navigate</span>
+          <span><kbd>Enter</kbd> to run</span>
+          <span><kbd>Esc</kbd> to close</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Refactoring / Prompt Modal -->
+    <div id="refactor-modal" class="modal hidden">
+      <div class="modal-backdrop" id="refactor-backdrop"></div>
+      <div class="modal-card refactor-card">
+        <div class="modal-header">
+          <h3 id="refactor-title">Refactor</h3>
+          <button id="btn-close-refactor" class="btn-icon">&times;</button>
+        </div>
+        <div class="modal-body" id="refactor-body">
+          <p id="refactor-desc" class="refactor-desc-text"></p>
+          <div id="refactor-fields" class="refactor-fields-container"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-refactor-cancel" class="btn btn-secondary">Cancel</button>
+          <button id="btn-refactor-confirm" class="btn btn-primary">Apply Refactoring</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal hidden">

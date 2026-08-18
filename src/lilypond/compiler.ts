@@ -722,9 +722,9 @@ export function compileToLilyPond(
 
     const onsetDur = onset.duration ?? dur;
     if (onset.isRest) {
-      melodyLines.push(`  \\tag #'${onset.tag} s${onsetDur}`);
+      melodyLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} s${onsetDur}`);
     } else {
-      // Melody: \tag #'tag pitch4
+      // Melody: \tag #'ppt_weave_coil_melody_index pitch4
       const melPitch = midiToLilyPondPitch(
         onset.midiNote,
         accMode,
@@ -738,7 +738,7 @@ export function compileToLilyPond(
         ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[onset.scaleDegree] ?? "colorDo"} `
         : "";
       melodyLines.push(
-        `  \\tag #'${onset.tag} ${stencilTweak}${colorTweak}${melPitch}${onsetDur}`,
+        `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} ${stencilTweak}${colorTweak}${melPitch}${onsetDur}`,
       );
     }
   }
@@ -783,11 +783,11 @@ export function compileToLilyPond(
       lastAbsWeaveId = onset.weaveId;
       const onsetDur = onset.duration ?? dur;
       if (onset.isRest) {
-        melodyCoilAbsoluteLines.push(`  \\tag #'${onset.tag} s${onsetDur}`);
+        melodyCoilAbsoluteLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_${onset.onsetIndex} s${onsetDur}`);
       } else {
         const markup = chordTokenToCoilMarkup(onset.scaleDegree);
         melodyCoilAbsoluteLines.push(
-          `  \\tag #'${onset.tag} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
+          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyAbs_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
         );
       }
     }
@@ -821,7 +821,7 @@ export function compileToLilyPond(
 
       const onsetDur = onset.duration ?? dur;
       if (onset.isRest) {
-        melodyCoilIntervalLines.push(`  \\tag #'${onset.tag} s${onsetDur}`);
+        melodyCoilIntervalLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyInt_${onset.onsetIndex} s${onsetDur}`);
       } else {
         let token: string;
         if (i === 0 || isNewCoil) {
@@ -841,7 +841,7 @@ export function compileToLilyPond(
         }
         const markup = chordTokenToCoilMarkup(token);
         melodyCoilIntervalLines.push(
-          `  \\tag #'${onset.tag} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
+          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melodyInt_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
         );
       }
     }
@@ -875,11 +875,11 @@ export function compileToLilyPond(
 
       const onsetDur = onset.duration ?? dur;
       if (!onset.rhythmToken) {
-        rhythmCoilLines.push(`  \\tag #'${onset.tag} s${onsetDur}`);
+        rhythmCoilLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_rhythm_${onset.onsetIndex} s${onsetDur}`);
       } else {
         const markup = rhythmTokenToCoilMarkup(onset.rhythmToken);
         rhythmCoilLines.push(
-          `  \\tag #'${onset.tag} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
+          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_rhythm_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
         );
       }
     }
@@ -897,6 +897,9 @@ export function compileToLilyPond(
 
   if (harmonyChangesOnly) {
     const coilChunks: Array<{
+      weaveId: string;
+      coilId: string;
+      onsetIndex: number;
       tag: string;
       chordRoot: string;
       spanCount: number;
@@ -905,13 +908,14 @@ export function compileToLilyPond(
     }> = [];
 
     let currentChunk: {
+      weaveId: string;
+      coilId: string;
+      onsetIndex: number;
       tag: string;
       chordRoot: string;
       spanCount: number;
       totalDurationBeats?: number;
       isBarStart: boolean;
-      coilId: string;
-      weaveId: string;
     } | null = null;
 
     for (let i = 0; i < onsets.length; i++) {
@@ -939,12 +943,13 @@ export function compileToLilyPond(
         }
         currentChunk = {
           tag: onset.tag,
+          weaveId: onset.weaveId,
+          coilId: onset.coilId,
+          onsetIndex: onset.onsetIndex,
           chordRoot: onset.chordRoot,
           spanCount: 1,
           totalDurationBeats: onset.durationBeats,
           isBarStart: isNewCoil,
-          coilId: onset.coilId,
-          weaveId: onset.weaveId,
         };
       }
     }
@@ -964,7 +969,7 @@ export function compileToLilyPond(
             : `1*${chunk.spanCount}/4`;
       const markup = chordTokenToCoilMarkup(chunk.chordRoot);
       harmonyCoilLines.push(
-        `  \\tag #'${chunk.tag} \\tweak NoteHead.text ${markup} b'${chordDuration}`,
+        `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmony_${chunk.onsetIndex} \\tweak NoteHead.text ${markup} b'${chordDuration}`,
       );
     }
   } else {
@@ -985,7 +990,7 @@ export function compileToLilyPond(
       const markup = chordTokenToCoilMarkup(onset.chordRoot);
       const onsetDur = onset.duration ?? dur;
       harmonyCoilLines.push(
-        `  \\tag #'${onset.tag} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
+        `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_harmony_${onset.onsetIndex} \\tweak NoteHead.text ${markup} b'${onsetDur}`,
       );
     }
   }
@@ -1017,6 +1022,9 @@ export function compileToLilyPond(
   if (harmonyChangesOnly) {
     // Group consecutive onsets within the same coil that share the same chord
     const harmonyChunks: Array<{
+      weaveId: string;
+      coilId: string;
+      onsetIndex: number;
       tag: string;
       chordMidi: number[];
       chordRoot: string;
@@ -1026,14 +1034,15 @@ export function compileToLilyPond(
     }> = [];
 
     let currentChunk: {
+      weaveId: string;
+      coilId: string;
+      onsetIndex: number;
       tag: string;
       chordMidi: number[];
       chordRoot: string;
       spanCount: number;
       totalDurationBeats?: number;
       isBarStart: boolean;
-      coilId: string;
-      weaveId: string;
     } | null = null;
 
     for (let i = 0; i < onsets.length; i++) {
@@ -1062,13 +1071,14 @@ export function compileToLilyPond(
         }
         currentChunk = {
           tag: onset.tag,
+          weaveId: onset.weaveId,
+          coilId: onset.coilId,
+          onsetIndex: onset.onsetIndex,
           chordMidi: onset.chordMidi,
           chordRoot: onset.chordRoot,
           spanCount: 1,
           totalDurationBeats: onset.durationBeats,
           isBarStart: isNewCoil,
-          coilId: onset.coilId,
-          weaveId: onset.weaveId,
         };
       }
     }
@@ -1093,13 +1103,13 @@ export function compileToLilyPond(
           : chunk.spanCount === 4
             ? "1"
             : `1*${chunk.spanCount}/4`;
-      harmonyLines.push(`  \\tag #'${chunk.tag} ${chord}${chordDuration}`);
+      harmonyLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_harmonyStaff_${chunk.onsetIndex} ${chord}${chordDuration}`);
 
       const rootSyllable = parseHarmonyChord(chunk.chordRoot).rootSyllable;
       const rootColor = SOLFEGE_TO_SCHEME_COLOR[rootSyllable] ?? "colorDo";
       const colorTweak = colorNotes ? `\\tweak color #${rootColor} ` : "";
       chordNamesLines.push(
-        `  \\tag #'${chunk.tag} ${colorTweak}${chord}${chordDuration}`,
+        `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} ${colorTweak}${chord}${chordDuration}`,
       );
     }
   } else {
@@ -1127,13 +1137,13 @@ export function compileToLilyPond(
         forceAccidentals,
       );
       const onsetDur = onset.duration ?? dur;
-      harmonyLines.push(`  \\tag #'${onset.tag} ${chord}${onsetDur}`);
+      harmonyLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_harmonyStaff_${onset.onsetIndex} ${chord}${onsetDur}`);
 
       const rootSyllable = parseHarmonyChord(onset.chordRoot).rootSyllable;
       const rootColor = SOLFEGE_TO_SCHEME_COLOR[rootSyllable] ?? "colorDo";
       const colorTweak = colorNotes ? `\\tweak color #${rootColor} ` : "";
       chordNamesLines.push(
-        `  \\tag #'${onset.tag} ${colorTweak}${chord}${onsetDur}`,
+        `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordName_${onset.onsetIndex} ${colorTweak}${chord}${onsetDur}`,
       );
     }
   }

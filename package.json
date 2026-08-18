@@ -12,6 +12,7 @@
 
   "scripts": {
     "build": "tsup",
+    "compile": "tsx src/compile-cli.ts",
     "studio": "tsx studio/server.ts",
     "dev": "tsx src/index.ts",
     "test": "vitest run",

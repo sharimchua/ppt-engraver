@@ -15,70 +15,425 @@ let enableSolfegeColors = localStorage.getItem('ppt_enable_solfege_colors') !== 
 let enableCoilSuggestions = localStorage.getItem('ppt_enable_coil_suggestions') !== 'false';
 let enableSolfegeContext = localStorage.getItem('ppt_enable_solfege_context') !== 'false';
 
-// --- Domain Keyword Sets ---
+// --- Domain Keyword Sets with Rich Metadata ---
 const ENUMS_SHOW = [
-  'melody', 'harmony', 'harmonyCoil', 'rhythmCoil', 'rhythmGrid', 'chordNames',
-  'melodyCoilInterval', 'melodyCoilAbsolute', 'traditionalHarmony'
+  { text: 'melody', displayText: 'melody', type: 'enum', desc: 'Melody notation staff' },
+  { text: 'harmony', displayText: 'harmony', type: 'enum', desc: 'Traditional harmony staff' },
+  { text: 'melodyCoilInterval', displayText: 'melodyCoilInterval', type: 'enum', desc: 'Relative Solfège interval coil' },
+  { text: 'melodyCoilAbsolute', displayText: 'melodyCoilAbsolute', type: 'enum', desc: 'Absolute Solfège pitch coil' },
+  { text: 'rhythmCoil', displayText: 'rhythmCoil', type: 'enum', desc: 'PPT Rhythm Coil staff' },
+  { text: 'harmonyCoil', displayText: 'harmonyCoil', type: 'enum', desc: 'PPT Harmony Coil staff' },
+  { text: 'rhythmGrid', displayText: 'rhythmGrid', type: 'enum', desc: 'Pulse rhythm grid' },
+  { text: 'chordNames', displayText: 'chordNames', type: 'enum', desc: 'Chord symbols above staff' },
+  { text: 'traditionalHarmony', displayText: 'traditionalHarmony', type: 'enum', desc: 'Traditional Roman harmony' }
 ];
 
 const ENUMS_CLEF = [
-  'treble', 'treble_8', 'treble^8', 'bass', 'bass_8', 'bass_15'
+  { text: 'treble', displayText: 'treble', type: 'enum', desc: 'Standard Treble clef' },
+  { text: 'treble_8', displayText: 'treble_8', type: 'enum', desc: 'Treble 8vb (Guitar/Tenor)' },
+  { text: 'treble^8', displayText: 'treble^8', type: 'enum', desc: 'Treble 8va (Piccolo)' },
+  { text: 'bass', displayText: 'bass', type: 'enum', desc: 'Standard Bass clef' },
+  { text: 'bass_8', displayText: 'bass_8', type: 'enum', desc: 'Bass 8vb (Sub-bass)' },
+  { text: 'bass_15', displayText: 'bass_15', type: 'enum', desc: 'Bass 15mb (Double bass)' }
 ];
 
 const ENUMS_NOTEHEAD_STYLE = [
-  'ppt', 'sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default'
+  { text: 'ppt', displayText: 'ppt', type: 'enum', desc: 'PPT Geometric Solfège shapes' },
+  { text: 'sacredHarp', displayText: 'sacredHarp', type: 'enum', desc: 'Sacred Harp 4-shape system' },
+  { text: 'aiken', displayText: 'aiken', type: 'enum', desc: 'Aiken 7-shape system' },
+  { text: 'funk', displayText: 'funk', type: 'enum', desc: 'Funk 7-shape system' },
+  { text: 'walker', displayText: 'walker', type: 'enum', desc: 'Walker 7-shape system' },
+  { text: 'diamond', displayText: 'diamond', type: 'enum', desc: 'Diamond noteheads' },
+  { text: 'default', displayText: 'default', type: 'enum', desc: 'Standard oval noteheads' }
 ];
 
 const TOKENS_MELODY = [
-  'Do', 'Ra', 'Di', 'Re', 'Me', 'Ri', 'Mi', 'Fa', 'Fi', 'Se', 'So', 'Le', 'Si', 'La', 'Te', 'Li', 'Ti',
-  'Dox', 'Do^', 'Re^', 'Me^', 'Fa^', 'So^', 'La^', 'Te^', 'Do_', 'Re_', 'Me_', 'Fa_', 'So_', 'La_', 'Te_'
+  { text: 'Do', displayText: 'Do', type: 'note', solfege: 'Do', desc: '0 semitones (Red)' },
+  { text: 'Dox', displayText: 'Dox', type: 'note', solfege: 'Dox', desc: '0 semitones (Axis Root)' },
+  { text: 'Ra', displayText: 'Ra', type: 'note', solfege: 'Ra', desc: '1 semitone (Orange)' },
+  { text: 'Di', displayText: 'Di', type: 'note', solfege: 'Di', desc: '1 semitone (Orange)' },
+  { text: 'Re', displayText: 'Re', type: 'note', solfege: 'Re', desc: '2 semitones (Orange)' },
+  { text: 'Me', displayText: 'Me', type: 'note', solfege: 'Me', desc: '3 semitones (Yellow)' },
+  { text: 'Ri', displayText: 'Ri', type: 'note', solfege: 'Ri', desc: '3 semitones (Yellow)' },
+  { text: 'Mi', displayText: 'Mi', type: 'note', solfege: 'Mi', desc: '4 semitones (Yellow)' },
+  { text: 'Fa', displayText: 'Fa', type: 'note', solfege: 'Fa', desc: '5 semitones (Green)' },
+  { text: 'Fi', displayText: 'Fi', type: 'note', solfege: 'Fi', desc: '6 semitones (Slate/Dark)' },
+  { text: 'Se', displayText: 'Se', type: 'note', solfege: 'Se', desc: '5 semitones (Green)' },
+  { text: 'So', displayText: 'So', type: 'note', solfege: 'So', desc: '7 semitones (Blue)' },
+  { text: 'Le', displayText: 'Le', type: 'note', solfege: 'Le', desc: '8 semitones (Purple)' },
+  { text: 'Si', displayText: 'Si', type: 'note', solfege: 'Si', desc: '7 semitones (Blue)' },
+  { text: 'La', displayText: 'La', type: 'note', solfege: 'La', desc: '9 semitones (Indigo)' },
+  { text: 'Te', displayText: 'Te', type: 'note', solfege: 'Te', desc: '10 semitones (Pink)' },
+  { text: 'Li', displayText: 'Li', type: 'note', solfege: 'Li', desc: '9 semitones (Indigo)' },
+  { text: 'Ti', displayText: 'Ti', type: 'note', solfege: 'Ti', desc: '11 semitones (Pink)' },
+  { text: 'Do^', displayText: 'Do^', type: 'note', solfege: 'Do', desc: 'High octave (+12)' },
+  { text: 'Re^', displayText: 'Re^', type: 'note', solfege: 'Re', desc: 'High octave' },
+  { text: 'Me^', displayText: 'Me^', type: 'note', solfege: 'Me', desc: 'High octave' },
+  { text: 'Fa^', displayText: 'Fa^', type: 'note', solfege: 'Fa', desc: 'High octave' },
+  { text: 'So^', displayText: 'So^', type: 'note', solfege: 'So', desc: 'High octave' },
+  { text: 'La^', displayText: 'La^', type: 'note', solfege: 'La', desc: 'High octave' },
+  { text: 'Te^', displayText: 'Te^', type: 'note', solfege: 'Te', desc: 'High octave' },
+  { text: 'Do_', displayText: 'Do_', type: 'note', solfege: 'Do', desc: 'Low octave (-12)' },
+  { text: 'Re_', displayText: 'Re_', type: 'note', solfege: 'Re', desc: 'Low octave' },
+  { text: 'Me_', displayText: 'Me_', type: 'note', solfege: 'Me', desc: 'Low octave' },
+  { text: 'Fa_', displayText: 'Fa_', type: 'note', solfege: 'Fa', desc: 'Low octave' },
+  { text: 'So_', displayText: 'So_', type: 'note', solfege: 'So', desc: 'Low octave' },
+  { text: 'La_', displayText: 'La_', type: 'note', solfege: 'La', desc: 'Low octave' },
+  { text: 'Te_', displayText: 'Te_', type: 'note', solfege: 'Te', desc: 'Low octave' },
+  { text: '1', displayText: '1', type: 'enum', desc: '1 beat rest / hold' },
+  { text: '2', displayText: '2', type: 'enum', desc: '2 beat rest / hold' },
+  { text: '3', displayText: '3', type: 'enum', desc: '3 beat rest / hold' },
+  { text: '4', displayText: '4', type: 'enum', desc: '4 beat rest / hold' }
 ];
 
 const TOKENS_RHYTHM = [
-  'Do', 'Fi', 'Me', 'La', 'Mi', 'Le', 'Te', 'Dox', 'DoxDo', 'DoxFi', 'DoxMe', 'DoxLa', 'DoxDoxDo'
+  { text: 'Do', displayText: 'Do', type: 'note', solfege: 'Do', desc: 'Full beat / 0° Base' },
+  { text: 'Fi', displayText: 'Fi', type: 'note', solfege: 'Fi', desc: 'Offbeat / 180° Base' },
+  { text: 'Me', displayText: 'Me', type: 'note', solfege: 'Me', desc: 'Quarter / 270° Base' },
+  { text: 'La', displayText: 'La', type: 'note', solfege: 'La', desc: 'Quarter / 90° Base' },
+  { text: 'Mi', displayText: 'Mi', type: 'note', solfege: 'Mi', desc: 'Triplet / 270° Sharp' },
+  { text: 'Le', displayText: 'Le', type: 'note', solfege: 'Le', desc: 'Triplet / 90° Flat' },
+  { text: 'Te', displayText: 'Te', type: 'note', solfege: 'Te', desc: 'Sixteenth / 90° Sharp' },
+  { text: 'Dox', displayText: 'Dox', type: 'note', solfege: 'Dox', desc: 'Axis Accent Onset' },
+  { text: 'DoxDo', displayText: 'DoxDo', type: 'note', solfege: 'Dox', desc: 'Compound Dox-Do' },
+  { text: 'DoxFi', displayText: 'DoxFi', type: 'note', solfege: 'Dox', desc: 'Compound Dox-Fi' },
+  { text: 'DoxMe', displayText: 'DoxMe', type: 'note', solfege: 'Dox', desc: 'Compound Dox-Me' },
+  { text: 'DoxLa', displayText: 'DoxLa', type: 'note', solfege: 'Dox', desc: 'Compound Dox-La' },
+  { text: 'DoxDoxDo', displayText: 'DoxDoxDo', type: 'note', solfege: 'Dox', desc: 'Compound Dox-Dox-Do' },
+  { text: '1', displayText: '1', type: 'enum', desc: '1 beat rest / hold' },
+  { text: '2', displayText: '2', type: 'enum', desc: '2 beat rest / hold' },
+  { text: '3', displayText: '3', type: 'enum', desc: '3 beat rest / hold' },
+  { text: '4', displayText: '4', type: 'enum', desc: '4 beat rest / hold' }
 ];
 
 const TOKENS_HARMONY = [
-  'Do', 'DoMe', 'DoSo', 'DoMeTe', 'DoLa', 'DoRe', 'DoSi', 'DoFi',
-  '1', '2', '4', '8', '16', '32'
+  { text: 'Do', displayText: 'Do', type: 'note', solfege: 'Do', desc: 'Root unison' },
+  { text: 'DoMe', displayText: 'DoMe', type: 'note', solfege: 'Do', desc: 'Minor 3rd dyad' },
+  { text: 'DoMi', displayText: 'DoMi', type: 'note', solfege: 'Do', desc: 'Major 3rd dyad' },
+  { text: 'DoSo', displayText: 'DoSo', type: 'note', solfege: 'Do', desc: 'Fifth power dyad' },
+  { text: 'DoMeSo', displayText: 'DoMeSo', type: 'note', solfege: 'Do', desc: 'Minor triad' },
+  { text: 'DoMiSo', displayText: 'DoMiSo', type: 'note', solfege: 'Do', desc: 'Major triad' },
+  { text: 'DoMeTe', displayText: 'DoMeTe', type: 'note', solfege: 'Do', desc: 'Minor 7th chord' },
+  { text: 'DoLa', displayText: 'DoLa', type: 'note', solfege: 'Do', desc: 'Major 6th dyad' },
+  { text: 'DoRe', displayText: 'DoRe', type: 'note', solfege: 'Do', desc: 'Suspended 2nd dyad' },
+  { text: 'DoSi', displayText: 'DoSi', type: 'note', solfege: 'Do', desc: 'Major 7th dyad' },
+  { text: 'DoFi', displayText: 'DoFi', type: 'note', solfege: 'Do', desc: 'Diminished / Tritone dyad' },
+  { text: '1', displayText: '1', type: 'enum', desc: '1 beat hold' },
+  { text: '2', displayText: '2', type: 'enum', desc: '2 beat hold' },
+  { text: '3', displayText: '3', type: 'enum', desc: '3 beat hold' },
+  { text: '4', displayText: '4', type: 'enum', desc: '4 beat hold' },
+  { text: '8', displayText: '8', type: 'enum', desc: '8 beat hold' }
 ];
 
 const TOP_LEVEL_KEYS = [
-  'tapestry:', 'knot:', 'tonic:', 'engraving:', 'title:', 'composer:', 'arranger:', 'tempo:',
-  'show:', 'harmonyClef:', 'melodyClef:', 'colorNotes:', 'omitStem:', 'noteheadStyle:',
-  'weaves:', 'coils:', 'children:', 'melody:', 'rhythm:', 'harmony:', 'concat:', 'parents:', 'id:'
+  { text: 'tapestry:', displayText: 'tapestry:', type: 'prop', desc: 'Score root block' },
+  { text: 'knot:', displayText: 'knot:', type: 'prop', desc: 'Score metadata & settings' },
+  { text: 'tonic:', displayText: 'tonic: "C4"', type: 'prop', desc: 'Root pitch reference' },
+  { text: 'engraving:', displayText: 'engraving:', type: 'prop', desc: 'Visual engraving toggles' },
+  { text: 'title:', displayText: 'title: "..."', type: 'prop', desc: 'Score title' },
+  { text: 'composer:', displayText: 'composer: "..."', type: 'prop', desc: 'Composer name' },
+  { text: 'arranger:', displayText: 'arranger: "..."', type: 'prop', desc: 'Arranger name' },
+  { text: 'tempo:', displayText: 'tempo: 120', type: 'prop', desc: 'Score tempo in BPM' },
+  { text: 'weaves:', displayText: 'weaves:', type: 'prop', desc: 'Hierarchical weave dictionary' },
+  { text: 'coils:', displayText: 'coils:', type: 'prop', desc: 'Coil definitions dictionary' },
+  { text: 'children:', displayText: 'children:', type: 'prop', desc: 'Sequence of child coils/weaves' },
+  { text: 'melody:', displayText: 'melody: [ ... ]', type: 'prop', desc: 'Solfège pitch degree array' },
+  { text: 'rhythm:', displayText: 'rhythm: [ ... ]', type: 'prop', desc: 'Duration token array' },
+  { text: 'harmony:', displayText: 'harmony: [ ... ]', type: 'prop', desc: 'Chord roots & dyads array' },
+  { text: 'parents:', displayText: 'parents: ...', type: 'prop', desc: 'Parent coil inheritance' },
+  { text: 'concat:', displayText: 'concat:', type: 'prop', desc: 'Sub-coil concatenation list' },
+  { text: 'id:', displayText: 'id: ...', type: 'prop', desc: 'Coil or weave identifier' }
 ];
+
+// --- Contextual YAML Snippets Library ---
+const SNIPPET_TEMPLATES = [
+  {
+    id: 'snip-tapestry-full',
+    label: 'New Tapestry Score Scaffold',
+    displayText: 'New Tapestry Score (Full)',
+    type: 'snip',
+    desc: 'Complete score template',
+    context: ['root', 'top'],
+    snippet: `tapestry:
+  knot:
+    tonic: "C4"
+    weave: song
+    engraving:
+      title: "New PPT Score"
+      composer: "Composer"
+      colorNotes: true
+      omitStem: true
+      noteheadStyle: ppt
+      show:
+        - melody
+        - harmony
+        - melodyCoilInterval
+        - rhythmCoil
+        - rhythmGrid
+        - chordNames
+
+  weaves:
+    song:
+      children:
+        - coil: verse
+
+  coils:
+    verse:
+      melody: [Dox, Do, Me, So, Me, Do]
+      rhythm: [Do, Fi, Do, Fi, Do, 2]
+      harmony: [DoMe]`
+  },
+  {
+    id: 'snip-knot-header',
+    label: 'Tapestry & Knot Header',
+    displayText: 'Tapestry & Knot Header',
+    type: 'snip',
+    desc: 'Score metadata header',
+    context: ['root', 'top'],
+    snippet: `tapestry:
+  knot:
+    tonic: "C4"
+    weave: song
+    engraving:
+      title: "Score Title"
+      composer: "Composer"
+      noteheadStyle: ppt
+      colorNotes: true
+      omitStem: true`
+  },
+  {
+    id: 'snip-weave-with-coils',
+    label: 'New Weave (with Coils & Children)',
+    displayText: 'New Weave (with Coils & Children)',
+    type: 'snip',
+    desc: 'Weave with local coil dictionary',
+    context: ['weaves', 'weave-body'],
+    snippet: `section:
+  coils:
+    _base_harm:
+      harmony: [DoMe]
+    _part1:
+      parents: _base_harm
+      melody: [Dox, Do, Me, La]
+      rhythm: [Do, Fi, Do, Fi]
+  children:
+    - coil: _part1`
+  },
+  {
+    id: 'snip-weave-simple',
+    label: 'New Weave (Children only)',
+    displayText: 'New Weave (Children only)',
+    type: 'snip',
+    desc: 'Weave container for child coils',
+    context: ['weaves', 'weave-body'],
+    snippet: `section:
+  children:
+    - coil: verse
+    - coil: chorus`
+  },
+  {
+    id: 'snip-child-coil-inline',
+    label: 'Add Inline Coil (Melody + Rhythm + Harmony)',
+    displayText: 'Add Inline Coil',
+    type: 'snip',
+    desc: '3-layer inline child coil',
+    context: ['children'],
+    snippet: `- coil:
+    id: motif
+    melody: [Dox, Do, Me, So]
+    rhythm: [Do, Fi, Do, Fi]
+    harmony: [DoMe]`
+  },
+  {
+    id: 'snip-child-coil-parent',
+    label: 'Add Inline Child Coil with Parent',
+    displayText: 'Add Inline Child Coil with Parent',
+    type: 'snip',
+    desc: 'Inherits layers from parent coil',
+    context: ['children'],
+    snippet: `- coil:
+    id: motif_var
+    parents: motif
+    melody: [Dox, Re, Fa, La]`
+  },
+  {
+    id: 'snip-child-ref-coil',
+    label: 'Add Child Coil Reference',
+    displayText: 'Add Child Coil Reference (- coil: ...)',
+    type: 'snip',
+    desc: 'Reference to declared coil',
+    context: ['children'],
+    snippet: `- coil: `
+  },
+  {
+    id: 'snip-child-ref-weave',
+    label: 'Add Child Weave Reference',
+    displayText: 'Add Child Weave Reference (- weave: ...)',
+    type: 'snip',
+    desc: 'Reference to child weave',
+    context: ['children'],
+    snippet: `- weave: `
+  },
+  {
+    id: 'snip-coil-full',
+    label: 'New Coil Definition',
+    displayText: 'New Coil Definition',
+    type: 'snip',
+    desc: 'Full 3-layer coil entry',
+    context: ['coils', 'coil-body'],
+    snippet: `new_coil:
+  melody: [Dox, Do, Me, So, Me, Do]
+  rhythm: [Do, Fi, Do, Fi, Do, 2]
+  harmony: [DoMe]`
+  },
+  {
+    id: 'snip-coil-parent',
+    label: 'New Coil with Parent',
+    displayText: 'New Coil with Parent',
+    type: 'snip',
+    desc: 'Coil inheriting from parent',
+    context: ['coils', 'coil-body'],
+    snippet: `new_coil_var:
+  parents: base_coil
+  melody: [Dox, Re, Fa, La]`
+  },
+  {
+    id: 'snip-coil-concat',
+    label: 'New Concat Coil Block',
+    displayText: 'New Concat Coil Block',
+    type: 'snip',
+    desc: 'Concatenates multiple sub-coils',
+    context: ['coils', 'coil-body'],
+    snippet: `full_section:
+  concat:
+    - part1
+    - part2`
+  },
+  {
+    id: 'snip-layer-melody',
+    label: 'Add Melody Layer',
+    displayText: 'melody: [ ... ]',
+    type: 'snip',
+    desc: 'Solfège pitch degree array',
+    context: ['coil-body'],
+    snippet: `melody: [Dox, Do, Me, So]`
+  },
+  {
+    id: 'snip-layer-rhythm',
+    label: 'Add Rhythm Layer',
+    displayText: 'rhythm: [ ... ]',
+    type: 'snip',
+    desc: 'PPT duration token array',
+    context: ['coil-body'],
+    snippet: `rhythm: [Do, Fi, Do, Fi]`
+  },
+  {
+    id: 'snip-layer-harmony',
+    label: 'Add Harmony Layer',
+    displayText: 'harmony: [ ... ]',
+    type: 'snip',
+    desc: 'PPT chord / dyad array',
+    context: ['coil-body'],
+    snippet: `harmony: [DoMe]`
+  },
+  {
+    id: 'snip-engraving-preset',
+    label: 'Standard PPT Engraving Preset',
+    displayText: 'Standard PPT Engraving Preset',
+    type: 'snip',
+    desc: 'High-contrast Solfège noteheads & coils',
+    context: ['engraving'],
+    snippet: `noteheadStyle: ppt
+colorNotes: true
+omitStem: true
+harmonyClef: treble_8
+show:
+  - melody
+  - harmony
+  - melodyCoilInterval
+  - rhythmCoil
+  - rhythmGrid
+  - chordNames`
+  }
+];
+
+function indentSnippet(snippetText, baseIndent) {
+  const lines = snippetText.split('\n');
+  return lines.map((line, idx) => idx === 0 ? line : baseIndent + line).join('\n');
+}
+
+/**
+ * Cache of declared coil and weave IDs in the document.
+ */
+let declaredIdsCache = new Set();
+
+function scanDeclaredCoilsAndWeaves(cm) {
+  if (!cm) return { coils: [], weaves: [], all: [] };
+  const text = cm.getValue();
+  const coilIds = new Set();
+  const weaveIds = new Set();
+
+  const lines = text.split('\n');
+  let currentSection = null; // 'weaves' | 'coils' | other
+
+  for (let l = 0; l < lines.length; l++) {
+    const line = lines[l];
+    if (/^\s*#/.test(line)) continue;
+
+    if (/^weaves\s*:/i.test(line) || /^\s+weaves\s*:/i.test(line)) {
+      currentSection = 'weaves';
+      continue;
+    } else if (/^coils\s*:/i.test(line) || /^\s+coils\s*:/i.test(line)) {
+      currentSection = 'coils';
+      continue;
+    } else if (/^[a-zA-Z0-9_]+\s*:/i.test(line)) {
+      currentSection = null;
+    }
+
+    const dictKeyMatch = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)/);
+    if (dictKeyMatch) {
+      const key = dictKeyMatch[2];
+      if (!['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem', 'id'].includes(key)) {
+        if (currentSection === 'weaves') weaveIds.add(key);
+        else coilIds.add(key);
+      }
+    }
+
+    const inlineIdMatch = line.match(/\bid\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
+    if (inlineIdMatch) {
+      coilIds.add(inlineIdMatch[1]);
+    }
+  }
+
+  const all = Array.from(new Set([...coilIds, ...weaveIds]));
+  declaredIdsCache = new Set(all);
+
+  return {
+    coils: Array.from(coilIds),
+    weaves: Array.from(weaveIds),
+    all
+  };
+}
+
+function updateDeclaredIdsCache(cm) {
+  const result = scanDeclaredCoilsAndWeaves(cm);
+  return result.all;
+}
 
 /**
  * Scans the current document text for declared coil and weave IDs.
  */
 function scanDeclaredIds(cm) {
-  if (!enableCoilSuggestions) return [];
-  const text = cm.getValue();
-  const ids = new Set();
-  
-  const coilMapMatch = text.matchAll(/^\s*([_a-zA-Z0-9]+)\s*:/gm);
-  for (const m of coilMapMatch) {
-    const key = m[1];
-    if (!['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem'].includes(key)) {
-      ids.add(key);
-    }
-  }
-
-  const inlineIdMatch = text.matchAll(/\bid\s*:\s*([_a-zA-Z0-9]+)/g);
-  for (const m of inlineIdMatch) {
-    ids.add(m[1]);
-  }
-
-  return Array.from(ids);
+  return updateDeclaredIdsCache(cm);
 }
 
 /**
- * Determines autocomplete context based on cursor position and line content.
+ * Determines autocomplete context and suggestions based on cursor position and surrounding lines.
  */
 function getContextSuggestions(cm, cursor) {
   const line = cm.getLine(cursor.line);
   const beforeCursor = line.slice(0, cursor.ch);
+  const { coils, weaves, all } = scanDeclaredCoilsAndWeaves(cm);
 
   // 1. Show layers: show: [ ... ] or under show:
   if (/show\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*-\s*(melody|harmony|rhythm|chord)/i.test(line)) {
@@ -102,33 +457,148 @@ function getContextSuggestions(cm, cursor) {
     return ENUMS_NOTEHEAD_STYLE;
   }
 
-  // 4. Melody array
+  // 4. Melody array: inside melody: [ ... ] or on melody: line
   if (/melody\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*melody\s*:/i.test(line)) {
     return TOKENS_MELODY;
   }
 
-  // 5. Rhythm array
+  // 5. Rhythm array: inside rhythm: [ ... ] or on rhythm: line
   if (/rhythm\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*rhythm\s*:/i.test(line)) {
     return TOKENS_RHYTHM;
   }
 
-  // 6. Harmony array
+  // 6. Harmony array: inside harmony: [ ... ] or on harmony: line
   if (/harmony\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*harmony\s*:/i.test(line)) {
     return TOKENS_HARMONY;
   }
 
-  // 7. Concat / Parents / Coil references
-  if (/(concat|parents)\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /(coil|weave)\s*:\s*[_a-zA-Z0-9]*$/i.test(beforeCursor)) {
-    const declaredIds = scanDeclaredIds(cm);
-    if (declaredIds.length > 0) {
-      return declaredIds;
-    }
+  // 7. Parents / Concat reference line
+  if (/(concat|parents|parent)\s*:\s*\[?[^\]]*$/i.test(beforeCursor)) {
+    const coilRefs = coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
+    return coilRefs.length > 0 ? coilRefs : coils.map(id => ({ text: id, displayText: id, type: 'coil' }));
   }
 
-  // General fallback
-  const declared = scanDeclaredIds(cm);
-  return Array.from(new Set([...TOKENS_MELODY, ...TOKENS_RHYTHM, ...TOKENS_HARMONY, ...declared, ...TOP_LEVEL_KEYS]));
+  // 8. Coil reference (- coil: <id>)
+  if (/-\s*coil\s*:\s*[_a-zA-Z0-9]*$/i.test(beforeCursor) || /coil\s*:\s*[_a-zA-Z0-9]*$/i.test(beforeCursor)) {
+    return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
+  }
+
+  // 9. Weave reference (- weave: <id>)
+  if (/-\s*weave\s*:\s*[_a-zA-Z0-9]*$/i.test(beforeCursor) || /weave\s*:\s*[_a-zA-Z0-9]*$/i.test(beforeCursor)) {
+    return weaves.map(id => ({ text: id, displayText: id, type: 'weave', desc: 'Weave reference' }));
+  }
+
+  // 10. Children section: suggest snippets for new child coils and references
+  let inChildren = false;
+  for (let l = cursor.line - 1; l >= Math.max(0, cursor.line - 12); l--) {
+    const prevLine = cm.getLine(l);
+    if (/^\s*children\s*:/i.test(prevLine)) {
+      inChildren = true;
+      break;
+    }
+    if (/^\s*(coils|weaves|tapestry)\s*:/i.test(prevLine)) break;
+  }
+  if (inChildren || /^\s*-\s*/.test(line)) {
+    const childSnippets = SNIPPET_TEMPLATES.filter(s => s.context.includes('children')).map(s => ({
+      text: s.label,
+      displayText: s.displayText,
+      type: s.type,
+      desc: s.desc,
+      isSnippet: true,
+      snippet: s.snippet,
+      context: s.context
+    }));
+    const coilRefs = coils.map(id => ({ text: `- coil: ${id}`, displayText: `- coil: ${id}`, type: 'coil', desc: 'Child coil' }));
+    const weaveRefs = weaves.map(id => ({ text: `- weave: ${id}`, displayText: `- weave: ${id}`, type: 'weave', desc: 'Child weave' }));
+    return [...childSnippets, ...coilRefs, ...weaveRefs];
+  }
+
+  // 11. Coils section
+  let inCoils = false;
+  for (let l = cursor.line - 1; l >= Math.max(0, cursor.line - 12); l--) {
+    const prevLine = cm.getLine(l);
+    if (/^\s*coils\s*:/i.test(prevLine)) {
+      inCoils = true;
+      break;
+    }
+    if (/^\s*(weaves|children|engraving)\s*:/i.test(prevLine)) break;
+  }
+  if (inCoils) {
+    const coilSnippets = SNIPPET_TEMPLATES.filter(s => s.context.includes('coils') || s.context.includes('coil-body')).map(s => ({
+      text: s.label,
+      displayText: s.displayText,
+      type: s.type,
+      desc: s.desc,
+      isSnippet: true,
+      snippet: s.snippet,
+      context: s.context
+    }));
+    const coilRefs = coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
+    return [...coilSnippets, ...coilRefs, ...TOP_LEVEL_KEYS];
+  }
+
+  // 12. Weaves section
+  let inWeaves = false;
+  for (let l = cursor.line - 1; l >= Math.max(0, cursor.line - 12); l--) {
+    const prevLine = cm.getLine(l);
+    if (/^\s*weaves\s*:/i.test(prevLine)) {
+      inWeaves = true;
+      break;
+    }
+    if (/^\s*(coils|engraving)\s*:/i.test(prevLine)) break;
+  }
+  if (inWeaves) {
+    const weaveSnippets = SNIPPET_TEMPLATES.filter(s => s.context.includes('weaves') || s.context.includes('weave-body')).map(s => ({
+      text: s.label,
+      displayText: s.displayText,
+      type: s.type,
+      desc: s.desc,
+      isSnippet: true,
+      snippet: s.snippet,
+      context: s.context
+    }));
+    return [...weaveSnippets, ...TOP_LEVEL_KEYS];
+  }
+
+  // 13. Engraving section
+  let inEngraving = false;
+  for (let l = cursor.line - 1; l >= Math.max(0, cursor.line - 10); l--) {
+    const prevLine = cm.getLine(l);
+    if (/^\s*engraving\s*:/i.test(prevLine)) {
+      inEngraving = true;
+      break;
+    }
+    if (/^\s*(weaves|coils|tapestry)\s*:/i.test(prevLine)) break;
+  }
+  if (inEngraving) {
+    const engravingSnippets = SNIPPET_TEMPLATES.filter(s => s.context.includes('engraving')).map(s => ({
+      text: s.label,
+      displayText: s.displayText,
+      type: s.type,
+      desc: s.desc,
+      isSnippet: true,
+      snippet: s.snippet,
+      context: s.context
+    }));
+    return [...engravingSnippets, ...ENUMS_NOTEHEAD_STYLE, ...ENUMS_CLEF, ...TOP_LEVEL_KEYS];
+  }
+
+  // General Top-Level & Fallback Suggestions
+  const allSnippets = SNIPPET_TEMPLATES.map(s => ({
+    text: s.label,
+    displayText: s.displayText,
+    type: s.type,
+    desc: s.desc,
+    isSnippet: true,
+    snippet: s.snippet,
+    context: s.context
+  }));
+  const coilItems = coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Declared coil' }));
+  const weaveItems = weaves.map(id => ({ text: id, displayText: id, type: 'weave', desc: 'Declared weave' }));
+
+  return [...allSnippets, ...coilItems, ...weaveItems, ...TOP_LEVEL_KEYS];
 }
+
 
 // Solfège Color Overlay Mode for CodeMirror
 const SOLFEGE_COLOR_MAP = {
@@ -168,25 +638,49 @@ const solfegeOverlay = {
     const line = stream.string;
     const colonIdx = line.indexOf(':');
 
+    // Skip YAML comments
+    if (stream.match(/^\s*#.*/)) {
+      return null;
+    }
+
     // If on a "key: value" line and before the colon, it's a YAML key - skip!
     if (colonIdx !== -1 && stream.pos <= colonIdx) {
       stream.next();
       return null;
     }
 
+    // Skip whitespace
+    if (stream.eatSpace()) return null;
+
     // Check if we are at the start of a word
     const rest = line.slice(stream.pos);
-    const wordMatch = rest.match(/^[A-Za-z0-9\^_]+/);
+    const wordMatch = rest.match(/^[_A-Za-z0-9\^_]+/);
     if (!wordMatch) {
       stream.next();
       return null;
     }
 
     const fullWord = wordMatch[0];
+    const cleanWord = fullWord.replace(/^["']|["']$/g, '');
 
-    // Only highlight if the word is a valid Solfège expression
+    // Ensure cache is initialized
+    if (!declaredIdsCache || declaredIdsCache.size === 0) {
+      if (typeof editor !== 'undefined' && editor) {
+        updateDeclaredIdsCache(editor);
+      }
+    }
+
+    // 1. Highlight declared structure IDs (clickable references vs definitions)
+    if (declaredIdsCache && declaredIdsCache.has(cleanWord)) {
+      const isDefinition = new RegExp(`^\\s*id\\s*:\\s*["']?${cleanWord}["']?`, 'i').test(line) ||
+                           new RegExp(`^\\s*${cleanWord}\\s*:`, 'i').test(line);
+      stream.pos += fullWord.length;
+      return isDefinition ? 'ppt-id-def' : 'ppt-id-reference';
+    }
+
+    // 2. Only highlight if the word is a valid Solfège expression
     if (!isValidSolfegeToken(fullWord)) {
-      // Advance past this entire non-solfege word
+      // Advance past this entire non-solfege, non-reference word (plain free text)
       stream.pos += fullWord.length;
       return null;
     }
@@ -205,12 +699,343 @@ const solfegeOverlay = {
   }
 };
 
+// --- Solfège Transposition & Navigation Engine ---
+// In PPT, Do is the center (0), with a lower bound of So (-5) and an upper bound of Fi (+6).
+// Moving down from Do goes through Ti (-1), Te (-2), La (-3), Le (-4), So (-5) in the base octave.
+// Octave displacement occurs when crossing the boundaries: So -> Fi_ (down) or Fi -> So^ (up).
+const SOLFEGE_CHROMATIC_UP = {
+  'So': 'Le',
+  'Si': 'La',
+  'Le': 'La',
+  'La': 'Te',
+  'Li': 'Ti',
+  'Te': 'Ti',
+  'Ti': 'Do',
+  'Do': 'Ra',
+  'Ra': 'Re',
+  'Di': 'Re',
+  'Re': 'Me',
+  'Me': 'Mi',
+  'Ri': 'Mi',
+  'Mi': 'Fa',
+  'Fa': 'Fi',
+  'Se': 'So',
+  'Fi': 'So', // Upper bound: Fi -> So^ (octave + 1)
+};
+
+const SOLFEGE_CHROMATIC_DOWN = {
+  'Fi': 'Fa',
+  'Se': 'Fa',
+  'Fa': 'Mi',
+  'Mi': 'Me',
+  'Ri': 'Re',
+  'Me': 'Re',
+  'Re': 'Ra',
+  'Di': 'Do',
+  'Ra': 'Do',
+  'Do': 'Ti', // Center down: Do -> Ti (same octave)
+  'Ti': 'Te',
+  'Li': 'La',
+  'Te': 'La',
+  'La': 'Le',
+  'Si': 'Fi',
+  'Le': 'So',
+  'So': 'Fi', // Lower bound: So -> Fi_ (octave - 1)
+};
+
+/**
+ * Extracts all Solfège sub-syllable tokens on a given line with exact character bounds.
+ */
+function getSolfegeTokensOnLine(lineText) {
+  if (!lineText) return [];
+  const colonIdx = lineText.indexOf(':');
+  const wordRegex = /\b([A-Za-z0-9\^_]+)\b/g;
+  const tokens = [];
+  let m;
+
+  while ((m = wordRegex.exec(lineText)) !== null) {
+    if (colonIdx !== -1 && m.index <= colonIdx) continue;
+    const rawWord = m[1];
+    if (!isValidSolfegeToken(rawWord)) continue;
+
+    const SYL_REGEX = /(Dox|Rax|Dix|Rex|Mex|Rix|Mix|Fax|Fix|Sex|Sox|Lex|Six|Lax|Tex|Lix|Tix|Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)([\^_]*)/gi;
+    let sm;
+    while ((sm = SYL_REGEX.exec(rawWord)) !== null) {
+      const rawSyl = sm[1];
+      const octStr = sm[2] || '';
+      const canonical = rawSyl.charAt(0).toUpperCase() + rawSyl.slice(1).toLowerCase();
+      const hasAxis = /x$/i.test(canonical);
+      const baseSyl = canonical.replace(/x$/i, '');
+      const subStart = m.index + sm.index;
+      const subEnd = subStart + sm[0].length;
+
+      tokens.push({
+        word: rawWord,
+        rawSyl,
+        canonical,
+        baseSyl,
+        hasAxis,
+        octStr,
+        fullTokenText: sm[0],
+        startCh: subStart,
+        endCh: subEnd,
+      });
+    }
+  }
+  return tokens;
+}
+
+/**
+ * Transposes a sub-syllable token up or down by 1 chromatic semitone with PPT boundary arithmetic.
+ */
+function transposeSubSyllable(subToken, direction) {
+  const { baseSyl, hasAxis, octStr } = subToken;
+  
+  let octShift = 0;
+  for (const c of octStr) {
+    if (c === '^') octShift++;
+    else if (c === '_') octShift--;
+  }
+
+  let newBaseSyl = baseSyl;
+  if (direction === 'up') {
+    if (baseSyl === 'Fi') {
+      newBaseSyl = 'So';
+      octShift += 1;
+    } else {
+      newBaseSyl = SOLFEGE_CHROMATIC_UP[baseSyl] || 'Do';
+    }
+  } else if (direction === 'down') {
+    if (baseSyl === 'So') {
+      newBaseSyl = 'Fi';
+      octShift -= 1;
+    } else {
+      newBaseSyl = SOLFEGE_CHROMATIC_DOWN[baseSyl] || 'Ti';
+    }
+  }
+
+  let result = newBaseSyl;
+  if (hasAxis) {
+    result += 'x';
+  }
+  if (octShift > 0) {
+    result += '^'.repeat(octShift);
+  } else if (octShift < 0) {
+    result += '_'.repeat(Math.abs(octShift));
+  }
+
+  return result;
+}
+
+/**
+ * Handles Ctrl+Up / Ctrl+Down Solfège transposition at cursor.
+ */
+function handleSolfegeTranspose(cm, direction) {
+  const cur = cm.getCursor();
+  const lineText = cm.getLine(cur.line) || '';
+  const tokens = getSolfegeTokensOnLine(lineText);
+
+  if (tokens.length === 0) {
+    return CodeMirror.Pass;
+  }
+
+  let target = tokens.find(t => cur.ch >= t.startCh && cur.ch <= t.endCh);
+  if (!target) {
+    let minDist = Infinity;
+    for (const t of tokens) {
+      const dist = Math.min(Math.abs(cur.ch - t.startCh), Math.abs(cur.ch - t.endCh));
+      if (dist < minDist) {
+        minDist = dist;
+        target = t;
+      }
+    }
+  }
+
+  if (!target) return CodeMirror.Pass;
+
+  const newText = transposeSubSyllable(target, direction);
+  const from = { line: cur.line, ch: target.startCh };
+  const to = { line: cur.line, ch: target.endCh };
+
+  cm.replaceRange(newText, from, to);
+
+  const newCursorCh = Math.min(cur.ch, target.startCh + newText.length);
+  cm.setCursor({ line: cur.line, ch: newCursorCh });
+
+  updateInlineSolfegeWidget();
+  updateScoreHighlights(cm);
+}
+
+/**
+ * Handles Ctrl+Left / Ctrl+Right navigation between Solfège tokens, duplicating at list end.
+ */
+function handleSolfegeNavigation(cm, direction) {
+  const cur = cm.getCursor();
+  const lineText = cm.getLine(cur.line) || '';
+  const tokens = getSolfegeTokensOnLine(lineText);
+
+  if (tokens.length === 0) {
+    return CodeMirror.Pass;
+  }
+
+  let activeIdx = tokens.findIndex(t => cur.ch >= t.startCh && cur.ch <= t.endCh);
+  if (activeIdx === -1) {
+    let minDist = Infinity;
+    tokens.forEach((t, idx) => {
+      const dist = Math.min(Math.abs(cur.ch - t.startCh), Math.abs(cur.ch - t.endCh));
+      if (dist < minDist) {
+        minDist = dist;
+        activeIdx = idx;
+      }
+    });
+  }
+
+  if (direction === 'left') {
+    if (activeIdx > 0) {
+      const prev = tokens[activeIdx - 1];
+      cm.setCursor({ line: cur.line, ch: prev.startCh });
+    } else if (activeIdx === 0) {
+      cm.setCursor({ line: cur.line, ch: tokens[0].startCh });
+    }
+  } else if (direction === 'right') {
+    if (activeIdx >= 0 && activeIdx < tokens.length - 1) {
+      const next = tokens[activeIdx + 1];
+      cm.setCursor({ line: cur.line, ch: next.startCh });
+    } else {
+      // At the end of the solfege sequence: duplicate the current syllable/token!
+      const currentToken = tokens[activeIdx >= 0 ? activeIdx : tokens.length - 1];
+      const dupText = currentToken.fullTokenText;
+
+      const closingBracketIdx = lineText.indexOf(']');
+      if (closingBracketIdx !== -1) {
+        const insertPos = { line: cur.line, ch: closingBracketIdx };
+        const insertText = `, ${dupText}`;
+        cm.replaceRange(insertText, insertPos);
+        cm.setCursor({ line: cur.line, ch: closingBracketIdx + 2 });
+      } else if (/^\s*-\s+/.test(lineText)) {
+        const indentMatch = lineText.match(/^(\s*-\s+)/);
+        const indent = indentMatch ? indentMatch[1] : '  - ';
+        const insertPos = { line: cur.line, ch: lineText.length };
+        const insertText = `\n${indent}${dupText}`;
+        cm.replaceRange(insertText, insertPos);
+        cm.setCursor({ line: cur.line + 1, ch: indent.length });
+      } else {
+        const insertPos = { line: cur.line, ch: lineText.length };
+        const insertText = ` ${dupText}`;
+        cm.replaceRange(insertText, insertPos);
+        cm.setCursor({ line: cur.line, ch: lineText.length + 1 });
+      }
+    }
+  }
+
+  updateInlineSolfegeWidget();
+  updateScoreHighlights(cm);
+}
+
+/**
+ * Searches YAML text to find the definition line & column for an ID reference.
+ */
+function findDefinitionInYaml(yamlText, targetId) {
+  if (!yamlText || !targetId) return null;
+  const lines = yamlText.split('\n');
+
+  // Priority 1: id: "<targetId>" or id: <targetId> (e.g. id: intro)
+  for (let l = 0; l < lines.length; l++) {
+    const line = lines[l];
+    const match = line.match(new RegExp(`^\\s*id\\s*:\\s*["']?${targetId}["']?(?:\\s*#.*)?$`));
+    if (match) {
+      const ch = line.indexOf(targetId);
+      return { line: l, ch: ch !== -1 ? ch : 0 };
+    }
+  }
+
+  // Priority 2: Dictionary key "<targetId>:" under coils or weaves (e.g. _verse_harm:, verse:, song:)
+  for (let l = 0; l < lines.length; l++) {
+    const line = lines[l];
+    const match = line.match(new RegExp(`^\\s*${targetId}\\s*:(?:\\s*#.*)?$`));
+    if (match) {
+      const ch = line.indexOf(targetId);
+      return { line: l, ch: ch !== -1 ? ch : 0 };
+    }
+  }
+
+  // Priority 3: Reference definition "- coil: <targetId>" or "- weave: <targetId>"
+  for (let l = 0; l < lines.length; l++) {
+    const line = lines[l];
+    const match = line.match(new RegExp(`^\\s*-\\s*(?:coil|weave)\\s*:\\s*["']?${targetId}["']?(?:\\s*#.*)?$`));
+    if (match) {
+      const ch = line.indexOf(targetId);
+      return { line: l, ch: ch !== -1 ? ch : 0 };
+    }
+  }
+
+  // Priority 4: Fallback containing id: <targetId> or <targetId>:
+  for (let l = 0; l < lines.length; l++) {
+    const line = lines[l];
+    if (line.includes(targetId) && (/^\s*id\s*:/i.test(line) || /^\s*[_a-zA-Z0-9]+\s*:/i.test(line))) {
+      return { line: l, ch: line.indexOf(targetId) };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Resolves the target structure ID and character range under the mouse cursor.
+ */
+function getTargetIdAtPos(cm, pos) {
+  const lineText = cm.getLine(pos.line) || '';
+  const wordRange = cm.findWordAt(pos);
+  let word = lineText.slice(wordRange.anchor.ch, wordRange.head.ch).trim();
+  word = word.replace(/^["']|["']$/g, '');
+
+  const declaredIds = updateDeclaredIdsCache(cm);
+
+  // 1. Direct match on a declared ID token
+  if (word && declaredIds.includes(word)) {
+    return { id: word, range: wordRange };
+  }
+
+  // 2. If hovering over "parents", "coil", "weave", or "concat" keyword, find referenced target on this line
+  if (word === 'parents' || /^\s*parents\s*:/.test(lineText.slice(0, pos.ch + 1))) {
+    const singleMatch = lineText.match(/parents\s*:\s*["']?([_a-zA-Z0-9]+)["']?/i);
+    if (singleMatch && declaredIds.includes(singleMatch[1])) {
+      const startCh = lineText.indexOf(singleMatch[1]);
+      return {
+        id: singleMatch[1],
+        range: {
+          anchor: { line: pos.line, ch: startCh },
+          head: { line: pos.line, ch: startCh + singleMatch[1].length }
+        }
+      };
+    }
+  }
+
+  if (word === 'coil' || word === 'weave' || word === 'concat') {
+    const singleMatch = lineText.match(/(?:coil|weave|concat)\s*:\s*["']?([_a-zA-Z0-9]+)["']?/i);
+    if (singleMatch && declaredIds.includes(singleMatch[1])) {
+      const startCh = lineText.indexOf(singleMatch[1]);
+      return {
+        id: singleMatch[1],
+        range: {
+          anchor: { line: pos.line, ch: startCh },
+          head: { line: pos.line, ch: startCh + singleMatch[1].length }
+        }
+      };
+    }
+  }
+
+  return null;
+}
+
 // Initialize CodeMirror Editor
 const editorContainer = document.getElementById('editor-container');
 const editor = CodeMirror(editorContainer, {
   mode: 'yaml',
   theme: 'dracula',
   lineNumbers: true,
+  foldGutter: true,
+  gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
   tabSize: 2,
   indentUnit: 2,
   lineWrapping: true,
@@ -220,11 +1045,38 @@ const editor = CodeMirror(editorContainer, {
   extraKeys: {
     'Ctrl-S': () => saveScore(),
     'Cmd-S': () => saveScore(),
+    'Ctrl-O': () => openTapestryPicker(),
+    'Cmd-O': () => openTapestryPicker(),
+    'Ctrl-N': () => createTapestry(),
+    'Cmd-N': () => createTapestry(),
     'Ctrl-Enter': () => triggerCompile(),
     'Cmd-Enter': () => triggerCompile(),
+    'Ctrl-Shift-P': (cm) => openCommandPalette(cm),
+    'Cmd-Shift-P': (cm) => openCommandPalette(cm),
+    'F1': (cm) => openCommandPalette(cm),
+    'F2': (cm) => renameSymbol(cm),
+    'F12': (cm) => triggerGoToDefinition(cm),
+    'Ctrl-Alt-P': (cm) => extractParentCoil(cm),
+    'Cmd-Alt-P': (cm) => extractParentCoil(cm),
+    'Ctrl-Alt-C': (cm) => extractInlineCoil(cm),
+    'Cmd-Alt-C': (cm) => extractInlineCoil(cm),
+    'Ctrl-Alt-W': (cm) => extractWeave(cm),
+    'Cmd-Alt-W': (cm) => extractWeave(cm),
+    'Ctrl-Alt-I': (cm) => inlineParentCoil(cm),
+    'Cmd-Alt-I': (cm) => inlineParentCoil(cm),
     'Ctrl-Space': 'autocomplete',
     'Ctrl-/': 'toggleComment',
     'Cmd-/': 'toggleComment',
+    'Ctrl-Q': (cm) => cm.foldCode(cm.getCursor()),
+    'Cmd-Q': (cm) => cm.foldCode(cm.getCursor()),
+    'Ctrl-Up': (cm) => handleSolfegeTranspose(cm, 'up'),
+    'Cmd-Up': (cm) => handleSolfegeTranspose(cm, 'up'),
+    'Ctrl-Down': (cm) => handleSolfegeTranspose(cm, 'down'),
+    'Cmd-Down': (cm) => handleSolfegeTranspose(cm, 'down'),
+    'Ctrl-Left': (cm) => handleSolfegeNavigation(cm, 'left'),
+    'Cmd-Left': (cm) => handleSolfegeNavigation(cm, 'left'),
+    'Ctrl-Right': (cm) => handleSolfegeNavigation(cm, 'right'),
+    'Cmd-Right': (cm) => handleSolfegeNavigation(cm, 'right'),
     'Tab': (cm) => {
       if (cm.somethingSelected()) {
         cm.indentSelection('add');
@@ -236,26 +1088,163 @@ const editor = CodeMirror(editorContainer, {
   },
 });
 
+// Go-To-Definition (Ctrl+Click / Cmd+Click) and Hover Underline
+let currentHoverMark = null;
+
+function clearIdHover() {
+  if (currentHoverMark) {
+    currentHoverMark.clear();
+    currentHoverMark = null;
+  }
+}
+
+editor.getWrapperElement().addEventListener('mousemove', (e) => {
+  if (!e.ctrlKey && !e.metaKey) {
+    clearIdHover();
+    return;
+  }
+
+  const pos = editor.coordsChar({ left: e.clientX, top: e.clientY });
+  const target = getTargetIdAtPos(editor, pos);
+
+  if (target) {
+    clearIdHover();
+    currentHoverMark = editor.markText(target.range.anchor, target.range.head, {
+      className: 'cm-id-reference-hover'
+    });
+    return;
+  }
+  clearIdHover();
+});
+
+editor.getWrapperElement().addEventListener('mousedown', (e) => {
+  if (!e.ctrlKey && !e.metaKey) return;
+
+  const pos = editor.coordsChar({ left: e.clientX, top: e.clientY });
+  const target = getTargetIdAtPos(editor, pos);
+
+  if (target) {
+    const def = findDefinitionInYaml(editor.getValue(), target.id);
+    if (def) {
+      e.preventDefault();
+      e.stopPropagation();
+      clearIdHover();
+
+      editor.setCursor(def);
+      editor.scrollIntoView(def, 150);
+      editor.focus();
+
+      editor.addLineClass(def.line, 'background', 'cm-point-click-flash');
+      setTimeout(() => {
+        editor.removeLineClass(def.line, 'background', 'cm-point-click-flash');
+      }, 1200);
+
+      updateInlineSolfegeWidget();
+      updateScoreHighlights(editor);
+    }
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  if (e.key === 'Control' || e.key === 'Meta') {
+    clearIdHover();
+  }
+});
+
 // Enable Solfège Overlay if preferred
 if (enableSolfegeColors) {
   editor.addOverlay(solfegeOverlay);
 }
 
-// Context-Aware Solfège Autocomplete Hinting
+function renderHintItem(element, self, data) {
+  element.classList.add('cm-hint-item');
+  const left = document.createElement('div');
+  left.className = 'cm-hint-left';
+
+  const badge = document.createElement('span');
+  const bType = (data.type || 'prop').toLowerCase();
+  badge.className = `cm-hint-badge cm-hint-badge-${bType}`;
+  badge.textContent = bType.toUpperCase();
+  left.appendChild(badge);
+
+  if (data.type === 'note' && data.solfege) {
+    const cleanSyl = data.solfege.replace(/[\^_0-9\.xX]/g, '');
+    const spec = SOLFEGE_GLYPH_SPECS[cleanSyl];
+    const color = spec ? spec.colorHex : '#E13610';
+    const pill = document.createElement('span');
+    pill.className = 'cm-hint-solfege-pill';
+    pill.style.backgroundColor = `${color}22`;
+    pill.style.color = color;
+    pill.style.border = `1px solid ${color}66`;
+    pill.textContent = data.displayText || data.text;
+    left.appendChild(pill);
+  } else {
+    const label = document.createElement('span');
+    label.className = 'cm-hint-label';
+    label.textContent = data.displayText || data.text;
+    left.appendChild(label);
+  }
+
+  element.appendChild(left);
+
+  if (data.desc) {
+    const desc = document.createElement('span');
+    desc.className = 'cm-hint-desc';
+    desc.textContent = data.desc;
+    element.appendChild(desc);
+  }
+}
+
+// Context-Aware Solfège Autocomplete & Snippets Hinting
 CodeMirror.registerHelper('hint', 'yaml', (cm) => {
   if (!enableAutocomplete) return { list: [], from: cm.getCursor(), to: cm.getCursor() };
 
   const cur = cm.getCursor();
+  const line = cm.getLine(cur.line);
   const token = cm.getTokenAt(cur);
   const start = token.start;
   const end = cur.ch;
-  const word = token.string.slice(0, end - start).replace(/^[\[\s,]+/, '').trim();
+  const word = token.string.slice(0, end - start).replace(/^[\[\s,\-]+/, '').trim();
 
   const candidates = getContextSuggestions(cm, cur);
-  const list = word ? candidates.filter(k => k.toLowerCase().startsWith(word.toLowerCase())) : candidates;
+  const filtered = word
+    ? candidates.filter(item => {
+        const text = typeof item === 'string' ? item : (item.displayText || item.text || '');
+        return text.toLowerCase().includes(word.toLowerCase());
+      })
+    : candidates;
+
+  const rawList = filtered.length > 0 ? filtered : candidates;
+
+  const list = rawList.map(item => {
+    const obj = typeof item === 'string' ? { text: item, displayText: item, type: 'prop' } : { ...item };
+    return {
+      ...obj,
+      render: renderHintItem,
+      hint: (cmInstance, data, completion) => {
+        if (completion.isSnippet) {
+          const baseIndentMatch = line.match(/^(\s*)/);
+          const baseIndent = baseIndentMatch ? baseIndentMatch[1] : '';
+          const indented = indentSnippet(completion.snippet, baseIndent);
+          const replaceFrom = completion.context && completion.context.includes('root')
+            ? CodeMirror.Pos(cur.line, 0)
+            : CodeMirror.Pos(cur.line, start);
+          const replaceTo = CodeMirror.Pos(cur.line, line.length);
+          cmInstance.replaceRange(indented, replaceFrom, replaceTo);
+        } else {
+          const insertText = completion.text;
+          const fromPos = CodeMirror.Pos(cur.line, start + (token.string.length - word.length));
+          const toPos = CodeMirror.Pos(cur.line, end);
+          cmInstance.replaceRange(insertText, fromPos, toPos);
+        }
+        updateDeclaredIdsCache(cmInstance);
+        updateScoreHighlights(cmInstance);
+      }
+    };
+  });
 
   return {
-    list: list.length > 0 ? list : candidates,
+    list: list,
     from: CodeMirror.Pos(cur.line, start + (token.string.length - word.length)),
     to: CodeMirror.Pos(cur.line, end),
   };
@@ -438,16 +1427,19 @@ function updateInlineSolfegeWidget() {
 // Editor change event
 editor.on('change', () => {
   setDirty(true);
+  updateDeclaredIdsCache(editor);
   updateInlineSolfegeWidget();
+  updateScoreHighlights(editor);
   clearTimeout(compileDebounceTimer);
   compileDebounceTimer = setTimeout(() => {
     triggerCompile();
   }, 500);
 });
 
-// Cursor activity event for real-time line context
+// Cursor activity event for real-time line context & score highlighting
 editor.on('cursorActivity', () => {
   updateInlineSolfegeWidget();
+  updateScoreHighlights(editor);
 });
 
 // DOM Elements
@@ -605,37 +1597,40 @@ function updateUrlAndStorage(filePath) {
 }
 
 // --- API Helpers ---
+let cachedScores = [];
+
 async function fetchScores(targetPath = null) {
   try {
     const res = await fetch('/api/scores');
     const data = await res.json();
     scoreSelect.innerHTML = '';
+    cachedScores = data.scores || [];
     
-    if (data.scores && data.scores.length > 0) {
-      data.scores.forEach(s => {
+    if (cachedScores.length > 0) {
+      cachedScores.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.path;
-        opt.textContent = s.name;
+        opt.textContent = s.title ? `${s.title} (${s.name})` : s.name;
         scoreSelect.appendChild(opt);
       });
 
       if (!isInitialScoreLoadDone) {
         isInitialScoreLoadDone = true;
-        const initialScore = targetPath || getScoreFromUrlOrStorage(data.scores);
+        const initialScore = targetPath || getScoreFromUrlOrStorage(cachedScores);
         currentScoreFile = initialScore;
         scoreSelect.value = initialScore;
         loadScore(initialScore);
       } else {
-        const selected = targetPath || currentScoreFile || data.scores[0].path;
+        const selected = targetPath || currentScoreFile || cachedScores[0].path;
         currentScoreFile = selected;
         scoreSelect.value = selected;
         updateUrlAndStorage(selected);
       }
     } else {
-      scoreSelect.innerHTML = '<option value="">No scores found</option>';
+      scoreSelect.innerHTML = '<option value="">No tapestries found</option>';
     }
   } catch (err) {
-    console.error('Failed to load scores list:', err);
+    console.error('Failed to load tapestries list:', err);
   }
 }
 
@@ -653,7 +1648,7 @@ async function loadScore(filePath) {
       triggerCompile();
     }
   } catch (err) {
-    console.error('Failed to load score:', err);
+    console.error('Failed to load tapestry:', err);
   }
 }
 
@@ -672,12 +1667,12 @@ async function saveScore() {
     if (data.success) {
       currentScoreFile = data.file;
       setDirty(false);
-      setStatus('ready', 'Saved');
+      setStatus('ready', 'Tapestry Saved');
       updateUrlAndStorage(data.file);
       await fetchScores(data.file); // Refresh list without reloading or recompiling editor!
     }
   } catch (err) {
-    console.error('Failed to save score:', err);
+    console.error('Failed to save tapestry:', err);
     setStatus('error', 'Save Failed');
   }
 }
@@ -754,74 +1749,155 @@ let latestSidecarMap = null;
 let latestLilypondSource = '';
 let latestOnsets = [];
 
-function findYamlTarget(yamlText, coilId, onsetIndex) {
-  if (!yamlText || !coilId) return { targetLine: -1, targetCh: 0 };
-  const lines = yamlText.split('\n');
+function findTokenInArray(lineText, onsetIndex) {
+  const colonIdx = lineText.indexOf(':');
+  if (colonIdx === -1) return 0;
 
-  let coilStartLine = -1;
+  const afterColon = lineText.slice(colonIdx + 1);
+  const arrayMatch = afterColon.match(/\[(.*?)\]/);
 
-  for (let l = 0; l < lines.length; l++) {
-    const line = lines[l];
-    // Match "id: <coilId>"
-    if (new RegExp(`^\\s*id\\s*:\\s*["']?${coilId}["']?\\s*$`).test(line)) {
-      coilStartLine = l;
-      break;
-    }
-    // Match "<coilId>:"
-    if (new RegExp(`^\\s*${coilId}\\s*:`).test(line)) {
-      coilStartLine = l;
-      break;
-    }
-    // Match "- coil: <coilId>"
-    if (new RegExp(`^\\s*-\\s*coil\\s*:\\s*["']?${coilId}["']?\\s*$`).test(line)) {
-      coilStartLine = l;
-      break;
-    }
-  }
+  if (arrayMatch) {
+    const inner = arrayMatch[1];
+    const arrayStartCh = colonIdx + 1 + lineText.slice(colonIdx + 1).indexOf('[');
+    const rawItems = inner.split(',');
+    const tokenMap = [];
+    let currentOnset = 1;
+    let runningOffset = arrayStartCh + 1;
 
-  // Substring fallback
-  if (coilStartLine === -1) {
-    for (let l = 0; l < lines.length; l++) {
-      if (lines[l].includes(coilId)) {
-        coilStartLine = l;
-        break;
+    for (let i = 0; i < rawItems.length; i++) {
+      const rawItem = rawItems[i];
+      const trimmed = rawItem.trim();
+      if (!trimmed) continue;
+      const itemStartCh = lineText.indexOf(trimmed, runningOffset);
+      if (itemStartCh !== -1) {
+        runningOffset = itemStartCh + trimmed.length;
       }
-    }
-  }
 
-  if (coilStartLine === -1) {
-    return { targetLine: -1, targetCh: 0 };
-  }
-
-  let targetLine = coilStartLine;
-  let targetCh = 0;
-  const maxLookahead = Math.min(lines.length, coilStartLine + 35);
-
-  for (let l = coilStartLine; l < maxLookahead; l++) {
-    const line = lines[l];
-    if (l > coilStartLine && (/^\s*-\s*coil\s*:/.test(line) || /^\s*[_a-zA-Z0-9]+\s*:\s*$/.test(line))) {
-      break;
-    }
-
-    if (/^\s*(melody|harmony|rhythm)\s*:\s*\[/.test(line)) {
-      targetLine = l;
-      const arrayMatch = line.match(/\[(.*?)\]/);
-      if (arrayMatch) {
-        const rawTokens = arrayMatch[1].split(',').map(s => s.trim()).filter(Boolean);
-        const tokIdx = Math.max(0, Math.min(onsetIndex - 1, rawTokens.length - 1));
-        const targetTokenStr = rawTokens[tokIdx];
-        if (targetTokenStr) {
-          const chStart = line.indexOf(targetTokenStr, line.indexOf('['));
-          if (chStart !== -1) {
-            targetCh = chStart;
+      const isNum = /^\d+$/.test(trimmed);
+      if (isNum) {
+        const repeatCount = parseInt(trimmed, 10);
+        for (let k = 0; k < repeatCount; k++) {
+          tokenMap.push({ onsetIndex: currentOnset++, startCh: itemStartCh, token: trimmed });
+        }
+      } else {
+        const subTokens = trimmed.split(/\s+/).filter(Boolean);
+        let subOffset = itemStartCh !== -1 ? itemStartCh : runningOffset;
+        for (const st of subTokens) {
+          const stStart = lineText.indexOf(st, subOffset);
+          tokenMap.push({ onsetIndex: currentOnset++, startCh: stStart !== -1 ? stStart : subOffset, token: st });
+          if (stStart !== -1) {
+            subOffset = stStart + st.length;
           }
         }
       }
-      break;
+    }
+
+    const match = tokenMap.find(t => t.onsetIndex === onsetIndex);
+    if (match) return match.startCh;
+    if (tokenMap.length > 0) return tokenMap[tokenMap.length - 1].startCh;
+    return arrayStartCh;
+  } else {
+    // Unbracketed or string: e.g. rhythm: Do Me Fi La
+    const tokens = afterColon.trim().split(/\s+/).filter(Boolean);
+    let currentOffset = colonIdx + 1;
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      const tStart = lineText.indexOf(t, currentOffset);
+      if (i + 1 === onsetIndex && tStart !== -1) {
+        return tStart;
+      }
+      if (tStart !== -1) currentOffset = tStart + t.length;
+    }
+    return colonIdx + 2;
+  }
+}
+
+function findYamlTarget(yamlText, coilId, onsetIndex, targetLayer = 'melody') {
+  if (!yamlText || !coilId) return { targetLine: -1, targetCh: 0 };
+  const lines = yamlText.split('\n');
+
+  // Find all candidate definition lines for this coilId
+  const candidates = [];
+  for (let l = 0; l < lines.length; l++) {
+    const line = lines[l];
+    if (new RegExp(`^\\s*id\\s*:\\s*["']?${coilId}["']?\\s*$`).test(line)) {
+      candidates.push({ lineIndex: l, type: 'id' });
+    } else if (new RegExp(`^\\s*${coilId}\\s*:`).test(line)) {
+      candidates.push({ lineIndex: l, type: 'dict' });
+    } else if (new RegExp(`^\\s*-\\s*coil\\s*:\\s*["']?${coilId}["']?\\s*$`).test(line)) {
+      candidates.push({ lineIndex: l, type: 'ref' });
     }
   }
 
-  return { targetLine, targetCh };
+  // Fallback: substring
+  if (candidates.length === 0) {
+    for (let l = 0; l < lines.length; l++) {
+      if (lines[l].includes(coilId)) {
+        candidates.push({ lineIndex: l, type: 'substr' });
+      }
+    }
+  }
+
+  if (candidates.length === 0) {
+    return { targetLine: -1, targetCh: 0 };
+  }
+
+  const primaryRegex = new RegExp(`^\\s*${targetLayer}\\s*:`, 'i');
+  const fallbackRegex = /^\s*(melody|harmony|rhythm)\s*:/i;
+
+  // Pass 1: Try to find candidate block containing the specific targetLayer
+  for (const cand of candidates) {
+    const startL = cand.lineIndex;
+    const maxLookahead = Math.min(lines.length, startL + 40);
+    const startIndent = (lines[startL].match(/^\s*/) || [''])[0].length;
+
+    for (let l = startL; l < maxLookahead; l++) {
+      const line = lines[l];
+      if (l > startL) {
+        const curIndent = (line.match(/^\s*/) || [''])[0].length;
+        if (/^\s*-\s*(coil|weave)\s*:/.test(line)) {
+          break;
+        }
+        if (curIndent < startIndent && line.trim().length > 0) {
+          break;
+        }
+        if (cand.type === 'dict' && curIndent <= startIndent && /^\s*[_a-zA-Z0-9]+\s*:/.test(line) && line.trim().length > 0) {
+          break;
+        }
+      }
+      if (primaryRegex.test(line)) {
+        return { targetLine: l, targetCh: findTokenInArray(line, onsetIndex) };
+      }
+    }
+  }
+
+  // Pass 2: Fallback to any music layer in the candidate blocks
+  for (const cand of candidates) {
+    const startL = cand.lineIndex;
+    const maxLookahead = Math.min(lines.length, startL + 40);
+    const startIndent = (lines[startL].match(/^\s*/) || [''])[0].length;
+
+    for (let l = startL; l < maxLookahead; l++) {
+      const line = lines[l];
+      if (l > startL) {
+        const curIndent = (line.match(/^\s*/) || [''])[0].length;
+        if (/^\s*-\s*(coil|weave)\s*:/.test(line)) {
+          break;
+        }
+        if (curIndent < startIndent && line.trim().length > 0) {
+          break;
+        }
+        if (cand.type === 'dict' && curIndent <= startIndent && /^\s*[_a-zA-Z0-9]+\s*:/.test(line) && line.trim().length > 0) {
+          break;
+        }
+      }
+      if (fallbackRegex.test(line)) {
+        return { targetLine: l, targetCh: findTokenInArray(line, onsetIndex) };
+      }
+    }
+  }
+
+  return { targetLine: candidates[0].lineIndex, targetCh: 0 };
 }
 
 function handlePointAndClick(url) {
@@ -832,57 +1908,21 @@ function handlePointAndClick(url) {
   if (!match) return;
 
   const lyLineNum = parseInt(match[1], 10);
-  if (!latestLilypondSource) return;
-
-  const lyLines = latestLilypondSource.split('\n');
-
-  // Search around lyLineNum for \tag #'ppt_...
-  let tag = null;
-  const startL = Math.max(0, lyLineNum - 6);
-  const endL = Math.min(lyLines.length - 1, lyLineNum + 5);
-
-  for (let l = Math.min(lyLines.length - 1, lyLineNum - 1); l >= startL; l--) {
-    const tm = lyLines[l].match(/\\tag\s*#'(ppt_[a-zA-Z0-9_]+)/);
-    if (tm) {
-      tag = tm[1];
-      break;
-    }
-  }
-  if (!tag) {
-    for (let l = lyLineNum; l <= endL; l++) {
-      const tm = lyLines[l].match(/\\tag\s*#'(ppt_[a-zA-Z0-9_]+)/);
-      if (tm) {
-        tag = tm[1];
-        break;
-      }
-    }
-  }
-
-  let coilId = null;
-  let onsetIndex = 1;
-
-  if (tag && latestSidecarMap && latestSidecarMap[tag]) {
-    coilId = latestSidecarMap[tag].coilId;
-    onsetIndex = latestSidecarMap[tag].onsetIndex;
-  } else if (tag) {
-    const parts = tag.replace(/^ppt_/, '').split('_');
-    onsetIndex = parseInt(parts[parts.length - 1], 10) || 1;
-    coilId = parts.length > 2 ? parts[parts.length - 2] : parts[0];
-  }
-
-  if (!coilId) return;
+  const tagInfo = resolveTagFromLyLine(lyLineNum);
+  if (!tagInfo || !tagInfo.coilId) return;
 
   const doc = editor.getDoc();
   const yamlText = doc.getValue();
-  const { targetLine, targetCh } = findYamlTarget(yamlText, coilId, onsetIndex);
+  const { targetLine, targetCh } = findYamlTarget(yamlText, tagInfo.coilId, tagInfo.sourceOnsetIndex || tagInfo.onsetIndex, tagInfo.targetLayer);
 
   if (targetLine !== -1) {
     editor.setCursor({ line: targetLine, ch: targetCh });
     editor.scrollIntoView({ line: targetLine, ch: targetCh }, 150);
     editor.focus();
 
-    // Trigger cursor update so inline preview strip updates immediately
+    // Trigger cursor update so inline preview strip and highlights update immediately
     updateInlineSolfegeWidget();
+    updateScoreHighlights(editor);
 
     // Flash animation on the target line
     editor.addLineClass(targetLine, 'background', 'cm-point-click-flash');
@@ -892,10 +1932,392 @@ function handlePointAndClick(url) {
   }
 }
 
+/**
+ * Resolves LilyPond source line number into tag and provenance metadata.
+ */
+function resolveTagFromLyLine(lyLineNum) {
+  if (!latestLilypondSource || !lyLineNum) return null;
+  const lyLines = latestLilypondSource.split('\n');
+  let rawTag = null;
+  const targetIdx = lyLineNum - 1;
+
+  if (targetIdx >= 0 && targetIdx < lyLines.length) {
+    const exactMatch = lyLines[targetIdx].match(/\\tag\s*#'(ppt_[a-zA-Z0-9_]+)/);
+    if (exactMatch) {
+      rawTag = exactMatch[1];
+    }
+  }
+
+  if (!rawTag) {
+    const startL = Math.max(0, lyLineNum - 6);
+    const endL = Math.min(lyLines.length - 1, lyLineNum + 5);
+
+    // Search backward
+    for (let l = Math.min(lyLines.length - 1, lyLineNum - 1); l >= startL; l--) {
+      const line = lyLines[l];
+      if (/Voice\s*=\s*\{/.test(line) || /\\cadenzaOff/.test(line)) break;
+      const tm = line.match(/\\tag\s*#'(ppt_[a-zA-Z0-9_]+)/);
+      if (tm) {
+        rawTag = tm[1];
+        break;
+      }
+    }
+
+    // Search forward
+    if (!rawTag) {
+      for (let l = lyLineNum; l <= endL; l++) {
+        const line = lyLines[l];
+        if (/Voice\s*=\s*\{/.test(line) || /\\cadenzaOff/.test(line)) break;
+        const tm = line.match(/\\tag\s*#'(ppt_[a-zA-Z0-9_]+)/);
+        if (tm) {
+          rawTag = tm[1];
+          break;
+        }
+      }
+    }
+  }
+
+  if (!rawTag) return null;
+
+  let targetLayer = 'melody';
+  let coilId = null;
+  let onsetIndex = 1;
+
+  const newFormatMatch = rawTag.match(/^ppt_(.+)_([a-zA-Z]+)_(\d+)$/);
+  const suffixFormatMatch = rawTag.match(/^ppt_(.+)_(\d+)_([a-zA-Z]+)$/);
+
+  if (newFormatMatch) {
+    const layerKey = newFormatMatch[2];
+    onsetIndex = parseInt(newFormatMatch[3], 10) || 1;
+    if (layerKey.startsWith('rhythm')) {
+      targetLayer = 'rhythm';
+    } else if (layerKey.startsWith('harm') || layerKey.startsWith('chord')) {
+      targetLayer = 'harmony';
+    } else {
+      targetLayer = 'melody';
+    }
+  } else if (suffixFormatMatch) {
+    const layerKey = suffixFormatMatch[3];
+    onsetIndex = parseInt(suffixFormatMatch[2], 10) || 1;
+    if (layerKey.startsWith('rhythm')) {
+      targetLayer = 'rhythm';
+    } else if (layerKey.startsWith('harm') || layerKey.startsWith('chord')) {
+      targetLayer = 'harmony';
+    } else {
+      targetLayer = 'melody';
+    }
+  }
+
+  let sidecarEntry = null;
+  if (latestSidecarMap) {
+    sidecarEntry = latestSidecarMap[rawTag];
+    if (!sidecarEntry) {
+      const strippedTag = rawTag.replace(/_(?:melody|melodyAbs|melodyInt|rhythm|harmony|harmCoil|harmStaff|chordName|mel|melAbs|melInt)/g, '');
+      sidecarEntry = latestSidecarMap[strippedTag];
+    }
+  }
+
+  let weaveId = sidecarEntry ? sidecarEntry.weaveId : '';
+  let sourceCoilId = sidecarEntry ? sidecarEntry.sourceCoilId : '';
+  let sourceOnsetIndex = sidecarEntry ? (sidecarEntry.sourceOnsetIndex || sidecarEntry.onsetIndex || onsetIndex) : onsetIndex;
+  let melodySourceCoil = sidecarEntry ? sidecarEntry.melodySourceCoil : '';
+  let rhythmSourceCoil = sidecarEntry ? sidecarEntry.rhythmSourceCoil : '';
+  let harmonySourceCoil = sidecarEntry ? sidecarEntry.harmonySourceCoil : '';
+
+  if (sidecarEntry) {
+    onsetIndex = sidecarEntry.onsetIndex || onsetIndex;
+    if (targetLayer === 'rhythm') {
+      coilId = sidecarEntry.rhythmSourceCoil || sidecarEntry.sourceCoilId || sidecarEntry.coilId;
+    } else if (targetLayer === 'harmony') {
+      coilId = sidecarEntry.harmonySourceCoil || sidecarEntry.sourceCoilId || sidecarEntry.coilId;
+    } else {
+      coilId = sidecarEntry.melodySourceCoil || sidecarEntry.sourceCoilId || sidecarEntry.coilId;
+    }
+  } else if (newFormatMatch) {
+    const parts = newFormatMatch[1].split('_');
+    coilId = parts[parts.length - 1];
+    weaveId = parts[0];
+  } else if (suffixFormatMatch) {
+    const parts = suffixFormatMatch[1].split('_');
+    coilId = parts[parts.length - 1];
+    weaveId = parts[0];
+  } else {
+    const parts = rawTag.replace(/^ppt_/, '').split('_');
+    onsetIndex = parseInt(parts[parts.length - 1], 10) || 1;
+    sourceOnsetIndex = onsetIndex;
+    coilId = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+    weaveId = parts[0];
+  }
+
+  return {
+    rawTag,
+    targetLayer,
+    coilId,
+    sourceCoilId: sourceCoilId || coilId,
+    melodySourceCoil: melodySourceCoil || coilId,
+    rhythmSourceCoil: rhythmSourceCoil || coilId,
+    harmonySourceCoil: harmonySourceCoil || coilId,
+    weaveId,
+    onsetIndex,
+    sourceOnsetIndex,
+    sidecarEntry,
+  };
+}
+
 let currentPdfDoc = null;
 let lastPdfBase64 = null;
 let pdfZoomMode = 'FitH'; // 'FitH' | 'percent'
 let isRenderingPdf = false;
+
+// --- Real-Time Line-to-Score Highlighting Engine ---
+let highlightAnimFrame = null;
+
+function updateScoreHighlights(cm) {
+  if (!cm) return;
+  if (highlightAnimFrame) {
+    cancelAnimationFrame(highlightAnimFrame);
+  }
+
+  highlightAnimFrame = requestAnimationFrame(() => {
+    const cur = cm.getCursor();
+    const doc = cm.getDoc();
+    const currentLineNum = cur.line;
+    const currentLine = cm.getLine(currentLineNum) || '';
+    const yamlText = doc.getValue();
+    const lines = yamlText.split('\n');
+
+    const previewElements = scoreSvgContainer.querySelectorAll('.pdf-point-click-link, a[data-tag]');
+    if (!previewElements || previewElements.length === 0) return;
+
+    const trimmed = currentLine.trim();
+
+    // If blank or comment, clear highlights completely
+    if (!trimmed || trimmed.startsWith('#')) {
+      previewElements.forEach(el => {
+        el.classList.remove('score-highlight-active', 'score-highlight-primary');
+      });
+      return;
+    }
+
+    // 1. Check if on a Declarative Music Layer Line (melody, harmony, rhythm)
+    let declarativeLayer = null;
+    if (/^\s*melody\s*:/i.test(currentLine)) declarativeLayer = 'melody';
+    else if (/^\s*rhythm\s*:/i.test(currentLine)) declarativeLayer = 'rhythm';
+    else if (/^\s*harmony\s*:/i.test(currentLine)) declarativeLayer = 'harmony';
+
+    // Also handle bullet list items directly under a music layer
+    if (!declarativeLayer && /^\s*-\s+/.test(currentLine)) {
+      for (let l = currentLineNum - 1; l >= Math.max(0, currentLineNum - 20); l--) {
+        const prevL = lines[l];
+        if (/^\s*melody\s*:/i.test(prevL)) { declarativeLayer = 'melody'; break; }
+        if (/^\s*rhythm\s*:/i.test(prevL)) { declarativeLayer = 'rhythm'; break; }
+        if (/^\s*harmony\s*:/i.test(prevL)) { declarativeLayer = 'harmony'; break; }
+        if (/^\s*[a-zA-Z0-9_]+\s*:/i.test(prevL) && !/^\s*-\s+/.test(prevL)) break;
+      }
+    }
+
+    if (declarativeLayer) {
+      // Find enclosing coil ID
+      let enclosingCoil = null;
+      for (let l = currentLineNum; l >= 0; l--) {
+        const lText = lines[l];
+        const idMatch = lText.match(/^\s*id\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
+        if (idMatch) { enclosingCoil = idMatch[1]; break; }
+        const coilRefMatch = lText.match(/^\s*-\s*coil\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
+        if (coilRefMatch) { enclosingCoil = coilRefMatch[1]; break; }
+        const dictMatch = lText.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
+        if (dictMatch && !['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem'].includes(dictMatch[1])) {
+          enclosingCoil = dictMatch[1];
+          break;
+        }
+      }
+
+      if (!enclosingCoil) {
+        previewElements.forEach(el => {
+          el.classList.remove('score-highlight-active', 'score-highlight-primary');
+        });
+        return;
+      }
+
+      // Find token under cursor on this declarative line
+      let targetOnsetIndex = null;
+      const tokensOnLine = [];
+      const colonIdx = currentLine.indexOf(':');
+      const wordRegex = /\b([A-Za-z0-9\^_]+)\b/g;
+      let wm;
+      while ((wm = wordRegex.exec(currentLine)) !== null) {
+        if (colonIdx !== -1 && wm.index <= colonIdx) continue;
+        tokensOnLine.push({
+          startCh: wm.index,
+          endCh: wm.index + wm[1].length,
+          word: wm[1]
+        });
+      }
+
+      tokensOnLine.forEach((tok, idx) => {
+        if (cur.ch >= tok.startCh && cur.ch <= tok.endCh) {
+          targetOnsetIndex = idx + 1; // 1-based onset index
+        }
+      });
+
+      // Highlight STRICTLY within the declarative layer for this coil
+      previewElements.forEach(el => {
+        const isCoilMatch = (
+          el.dataset.coilId === enclosingCoil ||
+          el.dataset.sourceCoilId === enclosingCoil ||
+          (declarativeLayer === 'melody' && el.dataset.melodySourceCoil === enclosingCoil) ||
+          (declarativeLayer === 'rhythm' && el.dataset.rhythmSourceCoil === enclosingCoil) ||
+          (declarativeLayer === 'harmony' && el.dataset.harmonySourceCoil === enclosingCoil)
+        );
+
+        const isLayerMatch = (el.dataset.layer === declarativeLayer);
+
+        if (isCoilMatch && isLayerMatch) {
+          const isTokenMatch = (
+            targetOnsetIndex !== null &&
+            (el.dataset.sourceOnsetIndex === String(targetOnsetIndex) || el.dataset.onsetIndex === String(targetOnsetIndex))
+          );
+
+          if (isTokenMatch) {
+            el.classList.add('score-highlight-primary', 'score-highlight-active');
+          } else {
+            el.classList.add('score-highlight-active');
+            el.classList.remove('score-highlight-primary');
+          }
+        } else {
+          el.classList.remove('score-highlight-active', 'score-highlight-primary');
+        }
+      });
+      return;
+    }
+
+    // 2. Check if on a Compositional / Structural Line
+    let targetCoils = new Set();
+    let targetWeaves = new Set();
+    let isCompositionalLine = false;
+
+    // A. Direct coil or weave reference: e.g. - coil: motif or coil: motif
+    const directCoilMatch = currentLine.match(/\bcoil\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
+    if (directCoilMatch) {
+      targetCoils.add(directCoilMatch[1]);
+      isCompositionalLine = true;
+    }
+    const directWeaveMatch = currentLine.match(/\bweave\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
+    if (directWeaveMatch) {
+      targetWeaves.add(directWeaveMatch[1]);
+      isCompositionalLine = true;
+    }
+
+    // B. Concat or parents array/list/scalar
+    if (/^\s*(concat|parents)\s*:/i.test(currentLine)) {
+      isCompositionalLine = true;
+      const idsMatch = currentLine.match(/\[(.*?)\]/);
+      if (idsMatch) {
+        idsMatch[1].split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean).forEach(id => targetCoils.add(id));
+      } else {
+        const singleMatch = currentLine.match(/(?:concat|parents)\s*:\s*["']?([_a-zA-Z0-9]+)["']?/i);
+        if (singleMatch) {
+          targetCoils.add(singleMatch[1]);
+        }
+      }
+
+      // Also add enclosing coil that owns this parents or concat declaration
+      for (let l = currentLineNum - 1; l >= 0; l--) {
+        const lText = lines[l];
+        const idMatch = lText.match(/^\s*id\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
+        if (idMatch) { targetCoils.add(idMatch[1]); break; }
+        const coilRefMatch = lText.match(/^\s*-\s*coil\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
+        if (coilRefMatch) { targetCoils.add(coilRefMatch[1]); break; }
+        const dictMatch = lText.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
+        if (dictMatch && !['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem'].includes(dictMatch[1])) {
+          targetCoils.add(dictMatch[1]);
+          break;
+        }
+      }
+    } else {
+      // Check if inside a concat or parents bullet list
+      for (let l = currentLineNum - 1; l >= Math.max(0, currentLineNum - 10); l--) {
+        const prevL = lines[l];
+        if (/^\s*(concat|parents)\s*:/i.test(prevL)) {
+          isCompositionalLine = true;
+          const bulletMatch = currentLine.match(/^\s*-\s*["']?([_a-zA-Z0-9]+)["']?/);
+          if (bulletMatch) targetCoils.add(bulletMatch[1]);
+          break;
+        }
+        if (/^\s*[a-zA-Z0-9_]+\s*:/i.test(prevL) && !/^\s*-\s+/.test(prevL)) break;
+      }
+    }
+
+    // C. Children section
+    if (/^\s*children\s*:/i.test(currentLine)) {
+      isCompositionalLine = true;
+      for (let l = currentLineNum - 1; l >= 0; l--) {
+        const prevL = lines[l];
+        const wMatch = prevL.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
+        if (wMatch && !['weaves', 'coils', 'tapestry', 'knot'].includes(wMatch[1])) {
+          targetWeaves.add(wMatch[1]);
+          break;
+        }
+      }
+    }
+
+    // D. Structure definition header: id: <name> or <name>: under coils or weaves
+    const idDefMatch = currentLine.match(/^\s*id\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
+    if (idDefMatch && declaredIdsCache && declaredIdsCache.has(idDefMatch[1])) {
+      targetCoils.add(idDefMatch[1]);
+      isCompositionalLine = true;
+    }
+    const dictHeaderMatch = currentLine.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
+    if (dictHeaderMatch && declaredIdsCache && declaredIdsCache.has(dictHeaderMatch[1])) {
+      targetCoils.add(dictHeaderMatch[1]);
+      isCompositionalLine = true;
+    }
+
+    if (!isCompositionalLine || (targetCoils.size === 0 && targetWeaves.size === 0)) {
+      // Non-declarative, non-compositional line (metadata, settings, etc.) -> CLEAR ALL
+      previewElements.forEach(el => {
+        el.classList.remove('score-highlight-active', 'score-highlight-primary');
+      });
+      return;
+    }
+
+    // Highlight all elements belonging to target compositional structures
+    previewElements.forEach(el => {
+      let isMatch = false;
+
+      if (targetCoils.size > 0) {
+        for (const c of targetCoils) {
+          if (
+            el.dataset.coilId === c ||
+            el.dataset.sourceCoilId === c ||
+            el.dataset.melodySourceCoil === c ||
+            el.dataset.rhythmSourceCoil === c ||
+            el.dataset.harmonySourceCoil === c
+          ) {
+            isMatch = true;
+            break;
+          }
+        }
+      }
+
+      if (!isMatch && targetWeaves.size > 0) {
+        for (const w of targetWeaves) {
+          if (el.dataset.weaveId === w) {
+            isMatch = true;
+            break;
+          }
+        }
+      }
+
+      if (isMatch) {
+        el.classList.add('score-highlight-active');
+        el.classList.remove('score-highlight-primary');
+      } else {
+        el.classList.remove('score-highlight-active', 'score-highlight-primary');
+      }
+    });
+  });
+}
 
 // --- Rendering Functions ---
 async function renderPdfPages() {
@@ -961,6 +2383,25 @@ async function renderPdfPages() {
             linkEl.style.pointerEvents = 'auto';
             linkEl.title = `Point & Click: Jump to source in YAML`;
 
+            // Attach decoded provenance metadata for real-time highlighting
+            const match = rawUrl.match(/:(\d+)(?::(\d+))?(?::(\d+))?$/);
+            if (match) {
+              const lyLineNum = parseInt(match[1], 10);
+              const tagInfo = resolveTagFromLyLine(lyLineNum);
+              if (tagInfo) {
+                linkEl.dataset.tag = tagInfo.rawTag || '';
+                linkEl.dataset.coilId = tagInfo.coilId || '';
+                linkEl.dataset.sourceCoilId = tagInfo.sourceCoilId || '';
+                linkEl.dataset.melodySourceCoil = tagInfo.melodySourceCoil || '';
+                linkEl.dataset.rhythmSourceCoil = tagInfo.rhythmSourceCoil || '';
+                linkEl.dataset.harmonySourceCoil = tagInfo.harmonySourceCoil || '';
+                linkEl.dataset.weaveId = tagInfo.weaveId || '';
+                linkEl.dataset.layer = tagInfo.targetLayer || '';
+                linkEl.dataset.onsetIndex = String(tagInfo.onsetIndex || '');
+                linkEl.dataset.sourceOnsetIndex = String(tagInfo.sourceOnsetIndex || '');
+              }
+            }
+
             linkEl.addEventListener('click', (e) => {
               e.stopPropagation();
               handlePointAndClick(rawUrl);
@@ -984,6 +2425,7 @@ async function renderPdfPages() {
     }
 
     zoomLevel.textContent = pdfZoomMode === 'FitH' ? 'Fit' : `${Math.round(currentZoom * 100)}%`;
+    updateScoreHighlights(editor);
   } catch (err) {
     console.error('Error rendering PDF pages:', err);
   } finally {
@@ -1014,7 +2456,34 @@ async function renderPreview(data) {
     currentPdfDoc = null;
     scorePlaceholder.style.display = 'none';
     scoreSvgContainer.innerHTML = data.svg;
+    
+    // Tag SVG <a> elements with metadata
+    const svgLinks = scoreSvgContainer.querySelectorAll('a');
+    svgLinks.forEach(link => {
+      const href = link.getAttribute('xlink:href') || link.getAttribute('href');
+      if (href && href.startsWith('textedit:')) {
+        const match = href.match(/:(\d+)(?::(\d+))?(?::(\d+))?$/);
+        if (match) {
+          const lyLineNum = parseInt(match[1], 10);
+          const tagInfo = resolveTagFromLyLine(lyLineNum);
+          if (tagInfo) {
+            link.dataset.tag = tagInfo.rawTag || '';
+            link.dataset.coilId = tagInfo.coilId || '';
+            link.dataset.sourceCoilId = tagInfo.sourceCoilId || '';
+            link.dataset.melodySourceCoil = tagInfo.melodySourceCoil || '';
+            link.dataset.rhythmSourceCoil = tagInfo.rhythmSourceCoil || '';
+            link.dataset.harmonySourceCoil = tagInfo.harmonySourceCoil || '';
+            link.dataset.weaveId = tagInfo.weaveId || '';
+            link.dataset.layer = tagInfo.targetLayer || '';
+            link.dataset.onsetIndex = String(tagInfo.onsetIndex || '');
+            link.dataset.sourceOnsetIndex = String(tagInfo.sourceOnsetIndex || '');
+          }
+        }
+      }
+    });
+
     applyZoom();
+    updateScoreHighlights(editor);
     return;
   }
 
@@ -1117,36 +2586,12 @@ window.addEventListener('popstate', () => {
 });
 
 btnNewScore.addEventListener('click', () => {
-  const name = prompt('Enter score name (e.g. "my_song"):');
-  if (name) {
-    currentScoreFile = `${name.replace(/\.ppt\.yaml$/, '')}.ppt.yaml`;
-    const template = `tapestry:
-  knot:
-    tonic: "C4"
-    engraving:
-      title: "${name}"
-      show:
-        - melody
-        - rhythmCoil
-        - harmonyCoil
-        - rhythmGrid
-  weaves:
-    song:
-      children:
-        - coil:
-            id: motif
-            melody: [Do, Re, Mi, Fa, So]
-            harmony: [Do]
-            rhythm: [Do, Fi, Do, Fi, Do]
-`;
-    editor.setValue(template);
-    saveScore();
-  }
+  createTapestry();
 });
 
 btnCompile.addEventListener('click', () => triggerCompile());
 btnSave.addEventListener('click', () => saveScore());
-btnExportPdf.addEventListener('click', () => exportPdf());
+btnExportPdf.addEventListener('click', () => exportStandalonePdf());
 
 // Tabs
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1391,7 +2836,1296 @@ if (scoreCanvas) {
   });
 }
 
-// Keyboard Shortcuts
+// --- Refactoring & YAML AST Analyzer Helpers ---
+
+function getLineIndent(line) {
+  const m = line.match(/^(\s*)/);
+  return m ? m[1].length : 0;
+}
+
+function getEnclosingCoilAtPos(cm, pos) {
+  if (!cm || !pos) return null;
+  const lineCount = cm.lineCount();
+  const curLineNo = pos.line;
+  const curLine = cm.getLine(curLineNo);
+
+  let startLine = -1;
+  let coilType = null;
+  let coilId = null;
+  let baseIndent = 0;
+
+  for (let l = curLineNo; l >= 0; l--) {
+    const line = cm.getLine(l);
+    if (/^\s*#/.test(line) || line.trim() === '') continue;
+
+    // Inline child coil: "- coil:"
+    const inlineMatch = line.match(/^(\s*)-\s*coil\s*:(.*)$/i);
+    if (inlineMatch) {
+      startLine = l;
+      coilType = 'inline';
+      baseIndent = inlineMatch[1].length;
+      break;
+    }
+
+    // Dictionary coil key inside coils:
+    const dictMatch = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)(.*)$/);
+    if (dictMatch) {
+      const key = dictMatch[2];
+      if (!['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem', 'id', 'parent'].includes(key)) {
+        let isUnderCoils = false;
+        for (let p = l - 1; p >= 0; p--) {
+          const pLine = cm.getLine(p);
+          if (/^\s*coils\s*:/i.test(pLine) && getLineIndent(pLine) < dictMatch[1].length) {
+            isUnderCoils = true;
+            break;
+          }
+          if (getLineIndent(pLine) <= dictMatch[1].length && /^\s*[a-zA-Z0-9_]+\s*:/i.test(pLine) && !/^\s*coils\s*:/i.test(pLine)) {
+            break;
+          }
+        }
+        if (isUnderCoils) {
+          startLine = l;
+          coilType = 'dict';
+          coilId = key;
+          baseIndent = dictMatch[1].length;
+          break;
+        }
+      }
+    }
+
+    if (/^\s*(weaves|tapestry|knot)\s*:/i.test(line) && getLineIndent(line) <= getLineIndent(curLine)) {
+      break;
+    }
+  }
+
+  if (startLine === -1) return null;
+
+  let endLine = startLine;
+  for (let l = startLine + 1; l < lineCount; l++) {
+    const line = cm.getLine(l);
+    if (line.trim() === '' || /^\s*#/.test(line)) {
+      endLine = l;
+      continue;
+    }
+    const indent = getLineIndent(line);
+    if (coilType === 'inline') {
+      if (indent <= baseIndent || /^\s*-\s*/.test(line)) {
+        break;
+      }
+    } else {
+      if (indent <= baseIndent) {
+        break;
+      }
+    }
+    endLine = l;
+  }
+
+  const fields = {};
+  for (let l = startLine; l <= endLine; l++) {
+    const line = cm.getLine(l);
+    const idMatch = line.match(/\bid\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
+    if (idMatch && !coilId) {
+      coilId = idMatch[1];
+      fields.id = { line: l, value: coilId, fullText: line };
+    }
+
+    const melodyMatch = line.match(/^\s*melody\s*:\s*(.+)$/);
+    if (melodyMatch) {
+      fields.melody = { line: l, value: melodyMatch[1].trim(), fullText: line };
+    }
+
+    const rhythmMatch = line.match(/^\s*rhythm\s*:\s*(.+)$/);
+    if (rhythmMatch) {
+      fields.rhythm = { line: l, value: rhythmMatch[1].trim(), fullText: line };
+    }
+
+    const harmonyMatch = line.match(/^\s*harmony\s*:\s*(.+)$/);
+    if (harmonyMatch) {
+      fields.harmony = { line: l, value: harmonyMatch[1].trim(), fullText: line };
+    }
+
+    const parentsMatch = line.match(/^\s*(?:parents|parent)\s*:\s*(.+)$/);
+    if (parentsMatch) {
+      fields.parents = { line: l, value: parentsMatch[1].trim(), fullText: line };
+    }
+
+    const concatMatch = line.match(/^\s*concat\s*:\s*(.+)$/);
+    if (concatMatch) {
+      fields.concat = { line: l, value: concatMatch[1].trim(), fullText: line };
+    }
+  }
+
+  let enclosingWeave = null;
+  for (let l = startLine - 1; l >= 0; l--) {
+    const line = cm.getLine(l);
+    const weaveMatch = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)/);
+    if (weaveMatch) {
+      const key = weaveMatch[2];
+      if (!['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'concat', 'parents', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem', 'id', 'parent'].includes(key)) {
+        for (let p = l - 1; p >= 0; p--) {
+          const pLine = cm.getLine(p);
+          if (/^\s*weaves\s*:/i.test(pLine)) {
+            enclosingWeave = key;
+            break;
+          }
+        }
+        if (enclosingWeave) break;
+      }
+    }
+  }
+
+  return {
+    type: coilType,
+    id: coilId,
+    startLine,
+    endLine,
+    baseIndent,
+    fields,
+    enclosingWeave
+  };
+}
+
+function triggerGoToDefinition(cm) {
+  const cur = cm.getCursor();
+  const target = getTargetIdAtPos(cm, cur);
+  if (target) {
+    const def = findDefinitionInYaml(cm.getValue(), target.id);
+    if (def) {
+      cm.setCursor(def);
+      cm.scrollIntoView(def, 150);
+      cm.addLineClass(def.line, 'background', 'cm-point-click-flash');
+      setTimeout(() => {
+        cm.removeLineClass(def.line, 'background', 'cm-point-click-flash');
+      }, 1200);
+      updateInlineSolfegeWidget();
+      updateScoreHighlights(cm);
+    }
+  }
+}
+
+function foldAllSections(cm) {
+  const lineCount = cm.lineCount();
+  for (let l = 0; l < lineCount; l++) {
+    cm.foldCode(CodeMirror.Pos(l, 0), null, 'fold');
+  }
+}
+
+function unfoldAllSections(cm) {
+  const lineCount = cm.lineCount();
+  for (let l = 0; l < lineCount; l++) {
+    cm.foldCode(CodeMirror.Pos(l, 0), null, 'unfold');
+  }
+}
+
+function insertSnippetById(cm, snippetId) {
+  const snip = SNIPPET_TEMPLATES.find(s => s.id === snippetId);
+  if (!snip || !cm) return;
+  const cur = cm.getCursor();
+  const line = cm.getLine(cur.line);
+  const baseIndentMatch = line.match(/^(\s*)/);
+  const baseIndent = baseIndentMatch ? baseIndentMatch[1] : '';
+  const indented = indentSnippet(snip.snippet, baseIndent);
+  cm.replaceRange(indented, CodeMirror.Pos(cur.line, 0), CodeMirror.Pos(cur.line, line.length));
+  cm.focus();
+  updateDeclaredIdsCache(cm);
+  updateScoreHighlights(cm);
+}
+
+// --- Refactoring Modal Manager ---
+let refactorPromiseResolve = null;
+
+function showRefactorDialog({ title, desc, fields, confirmText = 'Apply Refactoring' }) {
+  return new Promise((resolve) => {
+    refactorPromiseResolve = resolve;
+
+    const modal = document.getElementById('refactor-modal');
+    const titleEl = document.getElementById('refactor-title');
+    const descEl = document.getElementById('refactor-desc');
+    const fieldsEl = document.getElementById('refactor-fields');
+    const btnConfirm = document.getElementById('btn-refactor-confirm');
+
+    titleEl.textContent = title;
+    descEl.textContent = desc;
+    btnConfirm.textContent = confirmText;
+    fieldsEl.innerHTML = '';
+
+    fields.forEach((field) => {
+      const formGroup = document.createElement('div');
+      formGroup.className = 'refactor-form-group';
+
+      if (field.label) {
+        const label = document.createElement('label');
+        label.textContent = field.label;
+        if (field.id) label.htmlFor = field.id;
+        formGroup.appendChild(label);
+      }
+
+      if (field.type === 'text') {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = field.id || `field_${field.name}`;
+        input.name = field.name;
+        input.value = field.value || '';
+        input.className = 'input-text';
+        if (field.placeholder) input.placeholder = field.placeholder;
+        formGroup.appendChild(input);
+      } else if (field.type === 'checkboxes') {
+        const group = document.createElement('div');
+        group.className = 'refactor-checkbox-group';
+        field.options.forEach((opt) => {
+          const lbl = document.createElement('label');
+          lbl.className = 'refactor-checkbox-label';
+          const chk = document.createElement('input');
+          chk.type = 'checkbox';
+          chk.name = field.name;
+          chk.value = opt.id;
+          chk.checked = !!opt.checked;
+          lbl.appendChild(chk);
+          const span = document.createElement('span');
+          span.textContent = opt.label;
+          lbl.appendChild(span);
+          group.appendChild(lbl);
+        });
+        formGroup.appendChild(group);
+      } else if (field.type === 'radios') {
+        const group = document.createElement('div');
+        group.className = 'refactor-radio-group';
+        field.options.forEach((opt) => {
+          const lbl = document.createElement('label');
+          lbl.className = 'refactor-radio-label';
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = field.name;
+          radio.value = opt.id;
+          radio.checked = !!opt.checked;
+          lbl.appendChild(radio);
+          const span = document.createElement('span');
+          span.textContent = opt.label;
+          lbl.appendChild(span);
+          group.appendChild(lbl);
+        });
+        formGroup.appendChild(group);
+      }
+
+      fieldsEl.appendChild(formGroup);
+    });
+
+    modal.classList.remove('hidden');
+
+    const firstInput = fieldsEl.querySelector('input[type="text"]');
+    if (firstInput) {
+      setTimeout(() => {
+        firstInput.focus();
+        firstInput.select();
+      }, 50);
+    }
+  });
+}
+
+function closeRefactorDialog(confirmed = false) {
+  const modal = document.getElementById('refactor-modal');
+  if (modal) modal.classList.add('hidden');
+
+  if (refactorPromiseResolve) {
+    if (!confirmed) {
+      refactorPromiseResolve({ confirmed: false });
+    } else {
+      const values = {};
+      const fieldsEl = document.getElementById('refactor-fields');
+      const textInputs = fieldsEl.querySelectorAll('input[type="text"]');
+      textInputs.forEach(input => { values[input.name] = input.value.trim(); });
+
+      const checkedBoxes = {};
+      fieldsEl.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+        if (!checkedBoxes[chk.name]) checkedBoxes[chk.name] = [];
+        if (chk.checked) checkedBoxes[chk.name].push(chk.value);
+      });
+      Object.assign(values, checkedBoxes);
+
+      const checkedRadio = fieldsEl.querySelectorAll('input[type="radio"]:checked');
+      checkedRadio.forEach(r => { values[r.name] = r.value; });
+
+      refactorPromiseResolve({ confirmed: true, values });
+    }
+    refactorPromiseResolve = null;
+  }
+}
+
+// --- Refactoring Operations Engine ---
+
+async function extractParentCoil(cm) {
+  const cur = cm.getCursor();
+  const coil = getEnclosingCoilAtPos(cm, cur);
+
+  if (!coil) {
+    alert('Please place the cursor inside a coil (in coils: or children:) to extract a parent.');
+    return;
+  }
+
+  const availableLayers = [];
+  if (coil.fields.rhythm) availableLayers.push({ id: 'rhythm', label: `Rhythm (${coil.fields.rhythm.value})`, checked: true });
+  if (coil.fields.harmony) availableLayers.push({ id: 'harmony', label: `Harmony (${coil.fields.harmony.value})`, checked: true });
+  if (coil.fields.melody) availableLayers.push({ id: 'melody', label: `Melody (${coil.fields.melody.value})`, checked: !coil.fields.rhythm && !coil.fields.harmony });
+
+  if (availableLayers.length === 0) {
+    alert('The current coil does not have any extractable layers (melody, rhythm, harmony).');
+    return;
+  }
+
+  const defaultId = `_parent_${coil.id || 'base'}`;
+
+  const destinationOptions = [];
+  if (coil.enclosingWeave) {
+    destinationOptions.push({ id: 'weave', label: `Current Weave (${coil.enclosingWeave}) coils:`, checked: true });
+    destinationOptions.push({ id: 'tapestry', label: 'Top-Level tapestry.coils:', checked: false });
+  } else {
+    destinationOptions.push({ id: 'tapestry', label: 'Top-Level tapestry.coils:', checked: true });
+  }
+
+  const result = await showRefactorDialog({
+    title: 'Extract into Parent Coil',
+    desc: `Extract shared layers from '${coil.id || 'current coil'}' into a reusable parent coil definition and link via parents:`,
+    fields: [
+      { type: 'text', name: 'parentId', label: 'New Parent Coil ID:', value: defaultId, placeholder: 'e.g. _verse_base' },
+      { type: 'checkboxes', name: 'layers', label: 'Layers to Extract:', options: availableLayers },
+      { type: 'radios', name: 'destination', label: 'Target Destination:', options: destinationOptions }
+    ],
+    confirmText: 'Extract Parent Coil'
+  });
+
+  if (!result.confirmed) return;
+
+  const parentId = (result.values.parentId || '').trim();
+  const selectedLayers = result.values.layers || [];
+  const destination = result.values.destination || 'weave';
+
+  if (!parentId) {
+    alert('Parent Coil ID cannot be empty.');
+    return;
+  }
+  if (selectedLayers.length === 0) {
+    alert('Please select at least one layer to extract.');
+    return;
+  }
+
+  const parentIndent = destination === 'weave' ? '      ' : '    ';
+  const layerIndent = destination === 'weave' ? '        ' : '      ';
+  const parentLines = [`${parentIndent}${parentId}:`];
+
+  selectedLayers.forEach(layerName => {
+    if (coil.fields[layerName]) {
+      parentLines.push(`${layerIndent}${layerName}: ${coil.fields[layerName].value}`);
+    }
+  });
+  const parentYaml = parentLines.join('\n');
+
+  const docText = cm.getValue();
+  const lines = docText.split('\n');
+
+  let insertLine = -1;
+
+  if (destination === 'weave' && coil.enclosingWeave) {
+    let inTargetWeave = false;
+    for (let l = 0; l < lines.length; l++) {
+      const line = lines[l];
+      if (new RegExp(`^\\s*${coil.enclosingWeave}\\s*:`).test(line)) {
+        inTargetWeave = true;
+        continue;
+      }
+      if (inTargetWeave) {
+        if (/^\s*coils\s*:/i.test(line)) {
+          insertLine = l + 1;
+          break;
+        }
+        if (/^\s*children\s*:/i.test(line)) {
+          lines.splice(l, 0, `    coils:`, parentYaml);
+          insertLine = -2;
+          break;
+        }
+        if (/^\s*[a-zA-Z0-9_]+\s*:/i.test(line) && getLineIndent(line) <= 4) {
+          break;
+        }
+      }
+    }
+    if (insertLine === -1) {
+      for (let l = 0; l < lines.length; l++) {
+        if (new RegExp(`^\\s*${coil.enclosingWeave}\\s*:`).test(lines[l])) {
+          lines.splice(l + 1, 0, `    coils:`, parentYaml);
+          insertLine = -2;
+          break;
+        }
+      }
+    }
+  } else {
+    for (let l = 0; l < lines.length; l++) {
+      if (/^\s*coils\s*:/i.test(lines[l])) {
+        insertLine = l + 1;
+        break;
+      }
+    }
+    if (insertLine === -1) {
+      for (let l = lines.length - 1; l >= 0; l--) {
+        if (lines[l].trim() !== '') {
+          lines.splice(l + 1, 0, `  coils:`, parentYaml);
+          insertLine = -2;
+          break;
+        }
+      }
+    }
+  }
+
+  if (insertLine >= 0) {
+    lines.splice(insertLine, 0, parentYaml);
+  }
+
+  cm.setValue(lines.join('\n'));
+
+  const updatedCoil = getEnclosingCoilAtPos(cm, cm.getCursor());
+  if (updatedCoil) {
+    const linesToFilter = new Set(selectedLayers.map(l => updatedCoil.fields[l] ? updatedCoil.fields[l].line : -1));
+    const currentLines = cm.getValue().split('\n');
+    const childIndent = updatedCoil.type === 'inline' ? '        ' : '      ';
+    let parentsAdded = false;
+
+    for (let l = updatedCoil.startLine; l <= updatedCoil.endLine; l++) {
+      if (linesToFilter.has(l)) {
+        currentLines[l] = null;
+      } else if (/^\s*(?:parents|parent)\s*:/i.test(currentLines[l])) {
+        const existingVal = currentLines[l].replace(/^\s*(?:parents|parent)\s*:\s*/, '').trim();
+        if (existingVal.startsWith('[') && existingVal.endsWith(']')) {
+          const arr = existingVal.slice(1, -1).split(',').map(s => s.trim()).filter(Boolean);
+          if (!arr.includes(parentId)) arr.push(parentId);
+          currentLines[l] = `${childIndent}parents: [${arr.join(', ')}]`;
+        } else if (existingVal && existingVal !== parentId) {
+          currentLines[l] = `${childIndent}parents: [${existingVal}, ${parentId}]`;
+        } else {
+          currentLines[l] = `${childIndent}parents: ${parentId}`;
+        }
+        parentsAdded = true;
+      }
+    }
+
+    if (!parentsAdded) {
+      let targetInsertPos = updatedCoil.startLine + 1;
+      if (updatedCoil.fields.id) targetInsertPos = updatedCoil.fields.id.line + 1;
+      currentLines.splice(targetInsertPos, 0, `${childIndent}parents: ${parentId}`);
+    }
+
+    const filtered = currentLines.filter(line => line !== null);
+    cm.setValue(filtered.join('\n'));
+  }
+
+  updateDeclaredIdsCache(cm);
+  updateScoreHighlights(cm);
+  triggerCompile();
+}
+
+async function extractInlineCoil(cm) {
+  const cur = cm.getCursor();
+  const coil = getEnclosingCoilAtPos(cm, cur);
+
+  if (!coil || coil.type !== 'inline') {
+    alert('Please place cursor inside an inline child coil (- coil:) within a children block.');
+    return;
+  }
+
+  const defaultId = coil.id || 'extracted_coil';
+
+  const result = await showRefactorDialog({
+    title: 'Extract Inline Coil to Named Coil',
+    desc: 'Move this inline coil definition into the coils dictionary and replace with a named reference:',
+    fields: [
+      { type: 'text', name: 'coilId', label: 'New Coil ID:', value: defaultId, placeholder: 'e.g. verse_motif' }
+    ],
+    confirmText: 'Extract Named Coil'
+  });
+
+  if (!result.confirmed) return;
+
+  const coilId = (result.values.coilId || '').trim();
+  if (!coilId) {
+    alert('Coil ID cannot be empty.');
+    return;
+  }
+
+  const lines = cm.getValue().split('\n');
+  const targetIndent = coil.enclosingWeave ? '      ' : '    ';
+  const fieldIndent = coil.enclosingWeave ? '        ' : '      ';
+  const defLines = [`${targetIndent}${coilId}:`];
+
+  for (let l = coil.startLine; l <= coil.endLine; l++) {
+    const line = lines[l];
+    if (/^\s*-\s*coil\s*:/i.test(line) || /\bid\s*:/i.test(line)) continue;
+    const stripped = line.trim();
+    if (stripped) {
+      defLines.push(`${fieldIndent}${stripped}`);
+    }
+  }
+
+  const defYaml = defLines.join('\n');
+
+  let inserted = false;
+  if (coil.enclosingWeave) {
+    let inTargetWeave = false;
+    for (let l = 0; l < lines.length; l++) {
+      if (new RegExp(`^\\s*${coil.enclosingWeave}\\s*:`).test(lines[l])) {
+        inTargetWeave = true;
+        continue;
+      }
+      if (inTargetWeave) {
+        if (/^\s*coils\s*:/i.test(lines[l])) {
+          lines.splice(l + 1, 0, defYaml);
+          inserted = true;
+          break;
+        }
+        if (/^\s*children\s*:/i.test(lines[l])) {
+          lines.splice(l, 0, `    coils:`, defYaml);
+          inserted = true;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!inserted) {
+    for (let l = 0; l < lines.length; l++) {
+      if (/^\s*coils\s*:/i.test(lines[l])) {
+        lines.splice(l + 1, 0, defYaml);
+        inserted = true;
+        break;
+      }
+    }
+    if (!inserted) {
+      lines.push(`  coils:`, defYaml);
+    }
+  }
+
+  cm.setValue(lines.join('\n'));
+
+  const updatedCoil = getEnclosingCoilAtPos(cm, cur);
+  if (updatedCoil) {
+    const updatedLines = cm.getValue().split('\n');
+    const childIndentMatch = updatedLines[updatedCoil.startLine].match(/^(\s*)/);
+    const childIndent = childIndentMatch ? childIndentMatch[1] : '        ';
+    updatedLines.splice(updatedCoil.startLine, (updatedCoil.endLine - updatedCoil.startLine + 1), `${childIndent}- coil: ${coilId}`);
+    cm.setValue(updatedLines.join('\n'));
+  }
+
+  updateDeclaredIdsCache(cm);
+  updateScoreHighlights(cm);
+  triggerCompile();
+}
+
+async function inlineParentCoil(cm) {
+  const cur = cm.getCursor();
+  const coil = getEnclosingCoilAtPos(cm, cur);
+
+  if (!coil || !coil.fields.parents) {
+    alert('The current coil does not have a parent coil defined (parents:).');
+    return;
+  }
+
+  const parentRef = coil.fields.parents.value.replace(/[\[\]'"]/g, '').split(',')[0].trim();
+  const def = findDefinitionInYaml(cm.getValue(), parentRef);
+
+  if (!def) {
+    alert(`Could not locate parent coil definition '${parentRef}' in score.`);
+    return;
+  }
+
+  const parentCoil = getEnclosingCoilAtPos(cm, def);
+  if (!parentCoil) {
+    alert(`Could not parse parent coil '${parentRef}'.`);
+    return;
+  }
+
+  const layersToCopy = [];
+  ['melody', 'rhythm', 'harmony'].forEach(layer => {
+    if (parentCoil.fields[layer] && !coil.fields[layer]) {
+      layersToCopy.push({ layer, value: parentCoil.fields[layer].value });
+    }
+  });
+
+  const lines = cm.getValue().split('\n');
+  const childIndent = coil.type === 'inline' ? '        ' : '      ';
+
+  lines.splice(coil.fields.parents.line, 1);
+
+  layersToCopy.forEach((item, idx) => {
+    lines.splice(coil.startLine + 1 + idx, 0, `${childIndent}${item.layer}: ${item.value}`);
+  });
+
+  cm.setValue(lines.join('\n'));
+  updateDeclaredIdsCache(cm);
+  updateScoreHighlights(cm);
+  triggerCompile();
+}
+
+async function extractWeave(cm) {
+  const selectedText = cm.getSelection();
+
+  const defaultId = 'section_weave';
+
+  const result = await showRefactorDialog({
+    title: 'Group Selection into Weave',
+    desc: 'Extract selected child items into a new named weave in the weaves dictionary:',
+    fields: [
+      { type: 'text', name: 'weaveId', label: 'New Weave ID:', value: defaultId, placeholder: 'e.g. chorus_part' }
+    ],
+    confirmText: 'Create Weave'
+  });
+
+  if (!result.confirmed) return;
+
+  const weaveId = (result.values.weaveId || '').trim();
+  if (!weaveId) {
+    alert('Weave ID cannot be empty.');
+    return;
+  }
+
+  const lines = cm.getValue().split('\n');
+  const childrenContent = selectedText.trim()
+    ? selectedText.split('\n').map(l => `      ${l.trim()}`).join('\n')
+    : `      - coil: verse`;
+
+  const newWeaveYaml = `    ${weaveId}:\n      children:\n${childrenContent}`;
+
+  let insertLine = -1;
+  for (let l = 0; l < lines.length; l++) {
+    if (/^\s*weaves\s*:/i.test(lines[l])) {
+      insertLine = l + 1;
+      break;
+    }
+  }
+
+  if (insertLine !== -1) {
+    lines.splice(insertLine, 0, newWeaveYaml);
+    cm.setValue(lines.join('\n'));
+
+    if (selectedText.trim()) {
+      cm.replaceSelection(`        - weave: ${weaveId}`);
+    }
+  }
+
+  updateDeclaredIdsCache(cm);
+  updateScoreHighlights(cm);
+  triggerCompile();
+}
+
+async function renameSymbol(cm) {
+  const cur = cm.getCursor();
+  const target = getTargetIdAtPos(cm, cur);
+  const oldId = target ? target.id : null;
+
+  if (!oldId) {
+    alert('Please place cursor on a coil or weave ID to rename.');
+    return;
+  }
+
+  const result = await showRefactorDialog({
+    title: `Rename Symbol '${oldId}'`,
+    desc: `Rename '${oldId}' across its definition and all references (parents:, concat:, coil:, weave:) throughout the score:`,
+    fields: [
+      { type: 'text', name: 'newId', label: 'New ID Name:', value: oldId, placeholder: 'e.g. verse_theme' }
+    ],
+    confirmText: 'Rename All References'
+  });
+
+  if (!result.confirmed) return;
+
+  const newId = (result.values.newId || '').trim();
+  if (!newId || newId === oldId) return;
+
+  const docText = cm.getValue();
+  const lines = docText.split('\n');
+
+  for (let l = 0; l < lines.length; l++) {
+    let line = lines[l];
+    if (/^\s*#/.test(line)) continue;
+
+    line = line.replace(new RegExp(`^(\\s*)${oldId}(\\s*:)`), `$1${newId}$2`);
+    line = line.replace(new RegExp(`(\\bid\\s*:\\s*["']?)${oldId}(["']?)`), `$1${newId}$2`);
+    line = line.replace(new RegExp(`(\\b(?:parents|parent)\\s*:\\s*(?:\\[[^\\]]*\\]|["']?[_a-zA-Z0-9]+["']?))`), (match) => {
+      return match.replace(new RegExp(`\\b${oldId}\\b`, 'g'), newId);
+    });
+
+    if (/^\s*-\s*[_a-zA-Z0-9]+/.test(line)) {
+      line = line.replace(new RegExp(`^(\\s*-\\s*)${oldId}\\b`), `$1${newId}`);
+    }
+
+    line = line.replace(new RegExp(`(\\b(?:coil|weave)\\s*:\\s*["']?)${oldId}(["']?)`), `$1${newId}$2`);
+
+    lines[l] = line;
+  }
+
+  cm.setValue(lines.join('\n'));
+  updateDeclaredIdsCache(cm);
+  updateScoreHighlights(cm);
+  triggerCompile();
+}
+
+// --- Tapestry Project Management Operations ---
+
+async function createTapestry() {
+  const result = await showRefactorDialog({
+    title: 'Create New Tapestry',
+    desc: 'Create a new PPT score with geometric Solfège noteheads and starter motif structure:',
+    fields: [
+      { type: 'text', name: 'fileName', label: 'File Name (.ppt.yaml):', value: 'new_tapestry', placeholder: 'e.g. moonlight_motif' },
+      { type: 'text', name: 'title', label: 'Tapestry Title:', value: 'New Tapestry', placeholder: 'e.g. Moonlight Motif' },
+      { type: 'text', name: 'composer', label: 'Composer:', value: 'Composer', placeholder: 'e.g. Midlife Muso' },
+      { type: 'text', name: 'tonic', label: 'Tonic Root Pitch:', value: 'C4', placeholder: 'e.g. C4, A4, Eb4' }
+    ],
+    confirmText: 'Create Tapestry'
+  });
+
+  if (!result.confirmed) return;
+
+  const rawName = (result.values.fileName || 'new_tapestry').trim().replace(/\.ppt\.yaml$/, '');
+  const fileName = `${rawName}.ppt.yaml`;
+  const title = (result.values.title || rawName).trim();
+  const composer = (result.values.composer || 'Composer').trim();
+  const tonic = (result.values.tonic || 'C4').trim();
+
+  const starterTemplate = `tapestry:
+  knot:
+    tonic: "${tonic}"
+    weave: song
+    engraving:
+      title: "${title}"
+      composer: "${composer}"
+      arranger: "Midlife Muso"
+      colorNotes: true
+      omitStem: true
+      noteheadStyle: ppt
+      harmonyClef: treble_8
+      show:
+        - melody
+        - harmony
+        - melodyCoilInterval
+        - rhythmCoil
+        - rhythmGrid
+        - chordNames
+
+  weaves:
+    song:
+      children:
+        - coil: verse
+
+  coils:
+    verse:
+      melody: [Dox, Do, Me, So, Me, Do]
+      rhythm: [Do, Fi, Do, Fi, Do, 2]
+      harmony: [DoMe]
+`;
+
+  try {
+    setStatus('compiling', 'Creating...');
+    const res = await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: fileName, content: starterTemplate }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentScoreFile = data.file;
+      editor.setValue(starterTemplate);
+      setDirty(false);
+      setStatus('ready', 'Tapestry Created');
+      await fetchScores(data.file);
+      triggerCompile();
+    }
+  } catch (err) {
+    console.error('Failed to create tapestry:', err);
+    setStatus('error', 'Creation Failed');
+  }
+}
+
+async function deleteTapestry() {
+  if (!currentScoreFile) {
+    alert('No tapestry is currently loaded to delete.');
+    return;
+  }
+
+  const result = await showRefactorDialog({
+    title: `Delete Tapestry '${currentScoreFile}'`,
+    desc: `Are you sure you want to permanently delete '${currentScoreFile}' and all associated notation and PDF exports? This cannot be undone.`,
+    fields: [],
+    confirmText: 'Delete Tapestry'
+  });
+
+  if (!result.confirmed) return;
+
+  try {
+    setStatus('compiling', 'Deleting...');
+    const res = await fetch('/api/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: currentScoreFile }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentScoreFile = '';
+      isInitialScoreLoadDone = false;
+      await fetchScores();
+      setStatus('ready', 'Tapestry Deleted');
+    }
+  } catch (err) {
+    console.error('Failed to delete tapestry:', err);
+    setStatus('error', 'Delete Failed');
+  }
+}
+
+// --- Command Palette Engine ---
+const COMMANDS_LIST = [
+  {
+    id: 'project-open-tapestry',
+    title: 'Open Tapestry...',
+    category: 'Project',
+    icon: '📂',
+    shortcut: 'Ctrl+O',
+    action: () => openTapestryPicker()
+  },
+  {
+    id: 'project-create-tapestry',
+    title: 'Create Tapestry...',
+    category: 'Project',
+    icon: '✨',
+    shortcut: 'Ctrl+N',
+    action: () => createTapestry()
+  },
+  {
+    id: 'project-save-tapestry',
+    title: 'Save Tapestry',
+    category: 'Project',
+    icon: '💾',
+    shortcut: 'Ctrl+S',
+    action: () => saveScore()
+  },
+  {
+    id: 'project-delete-tapestry',
+    title: 'Delete Current Tapestry...',
+    category: 'Project',
+    icon: '🗑️',
+    action: () => deleteTapestry()
+  },
+  {
+    id: 'refactor-extract-parent',
+    title: 'Extract into Parent Coil',
+    category: 'Refactor',
+    icon: '🔄',
+    shortcut: 'Ctrl+Alt+P',
+    action: (cm) => extractParentCoil(cm)
+  },
+  {
+    id: 'refactor-extract-inline',
+    title: 'Extract Inline Coil to Named Coil',
+    category: 'Refactor',
+    icon: '📦',
+    shortcut: 'Ctrl+Alt+C',
+    action: (cm) => extractInlineCoil(cm)
+  },
+  {
+    id: 'refactor-inline-parent',
+    title: 'Inline / Flatten Parent Coil',
+    category: 'Refactor',
+    icon: '🔗',
+    shortcut: 'Ctrl+Alt+I',
+    action: (cm) => inlineParentCoil(cm)
+  },
+  {
+    id: 'refactor-extract-weave',
+    title: 'Group Selection into Weave',
+    category: 'Refactor',
+    icon: '🧶',
+    shortcut: 'Ctrl+Alt+W',
+    action: (cm) => extractWeave(cm)
+  },
+  {
+    id: 'refactor-rename-symbol',
+    title: 'Rename Symbol / ID Globally',
+    category: 'Refactor',
+    icon: '✏️',
+    shortcut: 'F2',
+    action: (cm) => renameSymbol(cm)
+  },
+  {
+    id: 'snip-full-score',
+    title: 'Insert Snippet: New Tapestry Score',
+    category: 'Snippets',
+    icon: '📄',
+    action: (cm) => insertSnippetById(cm, 'snip-tapestry-full')
+  },
+  {
+    id: 'snip-new-weave',
+    title: 'Insert Snippet: New Weave with Coils & Children',
+    category: 'Snippets',
+    icon: '🧶',
+    action: (cm) => insertSnippetById(cm, 'snip-weave-with-coils')
+  },
+  {
+    id: 'snip-new-coil',
+    title: 'Insert Snippet: New Coil Definition',
+    category: 'Snippets',
+    icon: '🎵',
+    action: (cm) => insertSnippetById(cm, 'snip-coil-full')
+  },
+  {
+    id: 'snip-new-concat',
+    title: 'Insert Snippet: Concat Coil Block',
+    category: 'Snippets',
+    icon: '🔗',
+    action: (cm) => insertSnippetById(cm, 'snip-coil-concat')
+  },
+  {
+    id: 'snip-engraving-preset',
+    title: 'Insert Snippet: Standard PPT Engraving Preset',
+    category: 'Snippets',
+    icon: '⚙️',
+    action: (cm) => insertSnippetById(cm, 'snip-engraving-preset')
+  },
+  {
+    id: 'nav-transpose-up',
+    title: 'Transpose Solfège Note Up (+1 semitone)',
+    category: 'Music',
+    icon: '⬆️',
+    shortcut: 'Ctrl+Up',
+    action: (cm) => handleSolfegeTranspose(cm, 'up')
+  },
+  {
+    id: 'nav-transpose-down',
+    title: 'Transpose Solfège Note Down (-1 semitone)',
+    category: 'Music',
+    icon: '⬇️',
+    shortcut: 'Ctrl+Down',
+    action: (cm) => handleSolfegeTranspose(cm, 'down')
+  },
+  {
+    id: 'nav-goto-def',
+    title: 'Go to Definition',
+    category: 'Navigation',
+    icon: '🔍',
+    shortcut: 'F12 / Ctrl+Click',
+    action: (cm) => triggerGoToDefinition(cm)
+  },
+  {
+    id: 'editor-autocomplete',
+    title: 'Trigger Autocomplete & Suggestions',
+    category: 'Editor',
+    icon: '💡',
+    shortcut: 'Ctrl+Space',
+    action: (cm) => cm.showHint({ hint: CodeMirror.hint.yaml, completeSingle: false })
+  },
+  {
+    id: 'editor-toggle-comment',
+    title: 'Toggle Line Comment',
+    category: 'Editor',
+    icon: '#️⃣',
+    shortcut: 'Ctrl+/',
+    action: (cm) => cm.toggleComment()
+  },
+  {
+    id: 'editor-fold-toggle',
+    title: 'Fold / Unfold Current Section',
+    category: 'Editor',
+    icon: '▾',
+    shortcut: 'Ctrl+Q',
+    action: (cm) => cm.foldCode(cm.getCursor())
+  },
+  {
+    id: 'editor-fold-all',
+    title: 'Fold All Sections',
+    category: 'Editor',
+    icon: '▸',
+    action: (cm) => foldAllSections(cm)
+  },
+  {
+    id: 'editor-unfold-all',
+    title: 'Unfold All Sections',
+    category: 'Editor',
+    icon: '▾',
+    action: (cm) => unfoldAllSections(cm)
+  },
+  {
+    id: 'score-compile',
+    title: 'Compile Sheet Music & LilyPond',
+    category: 'Score',
+    icon: '▶',
+    shortcut: 'Ctrl+Enter',
+    action: () => triggerCompile()
+  },
+  {
+    id: 'score-export-pdf',
+    title: 'Export PDF',
+    category: 'Score',
+    icon: '📑',
+    action: () => exportStandalonePdf()
+  }
+];
+
+const commandPaletteModal = document.getElementById('command-palette-modal');
+const paletteSearchInput = document.getElementById('palette-search');
+const paletteListEl = document.getElementById('palette-list');
+const paletteBackdrop = document.getElementById('palette-backdrop');
+const btnCommandPalette = document.getElementById('btn-command-palette');
+
+const refactorModal = document.getElementById('refactor-modal');
+const btnCloseRefactor = document.getElementById('btn-close-refactor');
+const btnRefactorCancel = document.getElementById('btn-refactor-cancel');
+const btnRefactorConfirm = document.getElementById('btn-refactor-confirm');
+const refactorBackdrop = document.getElementById('refactor-backdrop');
+
+let paletteActiveIndex = 0;
+let paletteFilteredCommands = [];
+let isTapestryPickerMode = false;
+
+function openTapestryPicker() {
+  if (!commandPaletteModal) return;
+  commandPaletteModal.classList.remove('hidden');
+  isTapestryPickerMode = true;
+  paletteSearchInput.value = '';
+  paletteSearchInput.placeholder = 'Search tapestries by title, composer, arranger, tonic...';
+  paletteActiveIndex = 0;
+  filterPaletteList('');
+  setTimeout(() => {
+    paletteSearchInput.focus();
+  }, 50);
+}
+
+function openCommandPalette(cm) {
+  if (!commandPaletteModal) return;
+  commandPaletteModal.classList.remove('hidden');
+  isTapestryPickerMode = false;
+  paletteSearchInput.value = '';
+  paletteSearchInput.placeholder = 'Type a command or search tapestries by title/composer...';
+  paletteActiveIndex = 0;
+  filterPaletteList('');
+  setTimeout(() => {
+    paletteSearchInput.focus();
+  }, 50);
+}
+
+function closeCommandPalette() {
+  if (commandPaletteModal) {
+    commandPaletteModal.classList.add('hidden');
+    editor.focus();
+  }
+}
+
+function filterPaletteList(query) {
+  const q = (query || '').toLowerCase().trim();
+
+  if (isTapestryPickerMode) {
+    paletteFilteredCommands = (cachedScores || []).filter(s => {
+      if (!q) return true;
+      return (
+        (s.title && s.title.toLowerCase().includes(q)) ||
+        (s.name && s.name.toLowerCase().includes(q)) ||
+        (s.composer && s.composer.toLowerCase().includes(q)) ||
+        (s.arranger && s.arranger.toLowerCase().includes(q)) ||
+        (s.tonic && s.tonic.toLowerCase().includes(q)) ||
+        (s.tempo && s.tempo.toLowerCase().includes(q))
+      );
+    }).map(s => {
+      const metaParts = [];
+      if (s.composer) metaParts.push(s.composer);
+      if (s.arranger) metaParts.push(`arr. ${s.arranger}`);
+      if (s.tonic) metaParts.push(`Tonic: ${s.tonic}`);
+      if (s.tempo) metaParts.push(`♩=${s.tempo}`);
+
+      return {
+        id: `tapestry-${s.name}`,
+        title: s.title || s.displayName || s.name,
+        category: metaParts.length > 0 ? metaParts.join(' • ') : s.name,
+        icon: '◈',
+        shortcut: s.name,
+        action: () => loadScore(s.path)
+      };
+    });
+  } else {
+    const cmdMatches = COMMANDS_LIST.filter(cmd => {
+      if (!q) return true;
+      return cmd.title.toLowerCase().includes(q) || cmd.category.toLowerCase().includes(q) || (cmd.shortcut && cmd.shortcut.toLowerCase().includes(q));
+    });
+
+    const scoreMatches = q ? (cachedScores || []).filter(s => {
+      return (
+        (s.title && s.title.toLowerCase().includes(q)) ||
+        (s.name && s.name.toLowerCase().includes(q)) ||
+        (s.composer && s.composer.toLowerCase().includes(q)) ||
+        (s.arranger && s.arranger.toLowerCase().includes(q)) ||
+        (s.tonic && s.tonic.toLowerCase().includes(q))
+      );
+    }).map(s => {
+      const metaParts = [];
+      if (s.composer) metaParts.push(s.composer);
+      if (s.tonic) metaParts.push(`Tonic: ${s.tonic}`);
+
+      return {
+        id: `open-score-${s.name}`,
+        title: `Open: ${s.title || s.name}`,
+        category: `Tapestry (${metaParts.join(' • ') || s.name})`,
+        icon: '◈',
+        action: () => loadScore(s.path)
+      };
+    }) : [];
+
+    paletteFilteredCommands = [...cmdMatches, ...scoreMatches];
+  }
+
+  paletteActiveIndex = Math.min(paletteActiveIndex, Math.max(0, paletteFilteredCommands.length - 1));
+  renderPaletteList();
+}
+
+function renderPaletteList() {
+  if (!paletteListEl) return;
+  paletteListEl.innerHTML = '';
+
+  if (paletteFilteredCommands.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'palette-item';
+    empty.style.color = 'var(--text-dim)';
+    empty.textContent = 'No matching commands or tapestries found';
+    paletteListEl.appendChild(empty);
+    return;
+  }
+
+  paletteFilteredCommands.forEach((cmd, idx) => {
+    const item = document.createElement('div');
+    item.className = `palette-item ${idx === paletteActiveIndex ? 'active' : ''}`;
+
+    const left = document.createElement('div');
+    left.className = 'palette-item-left';
+
+    const icon = document.createElement('span');
+    icon.className = 'palette-item-icon';
+    icon.textContent = cmd.icon || '⚡';
+    left.appendChild(icon);
+
+    const details = document.createElement('div');
+    details.className = 'palette-item-details';
+
+    const title = document.createElement('span');
+    title.className = 'palette-item-title';
+    title.textContent = cmd.title;
+    details.appendChild(title);
+
+    const cat = document.createElement('span');
+    cat.className = 'palette-item-category';
+    cat.textContent = cmd.category;
+    details.appendChild(cat);
+
+    left.appendChild(details);
+    item.appendChild(left);
+
+    if (cmd.shortcut) {
+      const sc = document.createElement('div');
+      sc.className = 'palette-item-shortcut';
+      cmd.shortcut.split('+').forEach(k => {
+        const kbd = document.createElement('kbd');
+        kbd.textContent = k;
+        sc.appendChild(kbd);
+      });
+      item.appendChild(sc);
+    }
+
+    item.addEventListener('mouseenter', () => {
+      paletteActiveIndex = idx;
+      renderPaletteList();
+    });
+
+    item.addEventListener('click', () => {
+      executePaletteItem(idx);
+    });
+
+    paletteListEl.appendChild(item);
+  });
+
+  const activeEl = paletteListEl.querySelector('.palette-item.active');
+  if (activeEl) {
+    activeEl.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function executePaletteItem(index) {
+  const cmd = paletteFilteredCommands[index];
+  closeCommandPalette();
+  if (cmd && typeof cmd.action === 'function') {
+    setTimeout(() => {
+      cmd.action(editor);
+    }, 50);
+  }
+}
+
+if (btnCommandPalette) {
+  btnCommandPalette.addEventListener('click', () => openCommandPalette(editor));
+}
+
+if (paletteBackdrop) {
+  paletteBackdrop.addEventListener('click', closeCommandPalette);
+}
+
+if (paletteSearchInput) {
+  paletteSearchInput.addEventListener('input', (e) => {
+    paletteActiveIndex = 0;
+    filterPaletteList(e.target.value);
+  });
+
+  paletteSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (paletteFilteredCommands.length > 0) {
+        paletteActiveIndex = (paletteActiveIndex + 1) % paletteFilteredCommands.length;
+        renderPaletteList();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (paletteFilteredCommands.length > 0) {
+        paletteActiveIndex = (paletteActiveIndex - 1 + paletteFilteredCommands.length) % paletteFilteredCommands.length;
+        renderPaletteList();
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (paletteFilteredCommands.length > 0) {
+        executePaletteItem(paletteActiveIndex);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeCommandPalette();
+    }
+  });
+}
+
+if (btnCloseRefactor) {
+  btnCloseRefactor.addEventListener('click', () => closeRefactorDialog(false));
+}
+
+if (btnRefactorCancel) {
+  btnRefactorCancel.addEventListener('click', () => closeRefactorDialog(false));
+}
+
+if (btnRefactorConfirm) {
+  btnRefactorConfirm.addEventListener('click', () => closeRefactorDialog(true));
+}
+
+if (refactorBackdrop) {
+  refactorBackdrop.addEventListener('click', () => closeRefactorDialog(false));
+}
+
+const refactorModalCard = document.querySelector('.refactor-card');
+if (refactorModalCard) {
+  refactorModalCard.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      closeRefactorDialog(true);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeRefactorDialog(false);
+    }
+  });
+}
+
+// Global Keyboard Shortcuts
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Shift') {
     isShiftHeld = true;
@@ -1400,9 +4134,25 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
     saveScore();
   }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+    e.preventDefault();
+    openTapestryPicker();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault();
+    createTapestry();
+  }
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     e.preventDefault();
     triggerCompile();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+    e.preventDefault();
+    openCommandPalette(editor);
+  }
+  if (e.key === 'F1') {
+    e.preventDefault();
+    openCommandPalette(editor);
   }
 });
 

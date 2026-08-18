@@ -410,9 +410,9 @@
 }
 
 chordNamesVoice = {
-  \tag #'ppt_verse_introMotif_1 <c' e' g'>1
+  \tag #'ppt_verse_introMotif_chordName_1 <c' e' g'>1
   \bar "|"
-  \tag #'ppt_verse_cadence_1 <g b d'>1*2/4
+  \tag #'ppt_verse_cadence_chordName_1 <g b d'>1*2/4
   \bar "|."
 }
 
@@ -421,13 +421,13 @@ melodyVoice = {
   \accidentalStyle forget
   \override NoteHead.duration-log = #2
   \cadenzaOn
-  \tag #'ppt_verse_introMotif_1 c'4
-  \tag #'ppt_verse_introMotif_2 e'4
-  \tag #'ppt_verse_introMotif_3 g'4
-  \tag #'ppt_verse_introMotif_4 c''4
+  \tag #'ppt_verse_introMotif_melody_1 c'4
+  \tag #'ppt_verse_introMotif_melody_2 e'4
+  \tag #'ppt_verse_introMotif_melody_3 g'4
+  \tag #'ppt_verse_introMotif_melody_4 c''4
   \bar "|"
-  \tag #'ppt_verse_cadence_1 b'4
-  \tag #'ppt_verse_cadence_2 c''4
+  \tag #'ppt_verse_cadence_melody_1 b'4
+  \tag #'ppt_verse_cadence_melody_2 c''4
   \bar "|."
   \cadenzaOff
 }
@@ -437,9 +437,9 @@ harmonyVoice = {
   \accidentalStyle forget
   \override NoteHead.duration-log = #2
   \cadenzaOn
-  \tag #'ppt_verse_introMotif_1 <c' e' g'>1
+  \tag #'ppt_verse_introMotif_harmonyStaff_1 <c' e' g'>1
   \bar "|"
-  \tag #'ppt_verse_cadence_1 <g b d'>1*2/4
+  \tag #'ppt_verse_cadence_harmonyStaff_1 <g b d'>1*2/4
   \bar "|."
   \cadenzaOff
 }

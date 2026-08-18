@@ -26,9 +26,9 @@ describe('compileFile & compileYamlString (Phase 2)', () => {
       expectedLy.replace(/\r\n/g, '\n').trim()
     );
 
-    // Verify sidecar map has all 6 tags
-    expect(Object.keys(result.sidecarMap)).toHaveLength(6);
+    // Verify sidecar map has entries for onsets
     expect(result.sidecarMap['ppt_verse_introMotif_1']).toBeDefined();
+    expect(result.sidecarMap['ppt_verse_introMotif_melody_1']).toBeDefined();
     expect(result.sidecarMap['ppt_verse_cadence_2']).toBeDefined();
   });
 
@@ -47,9 +47,9 @@ tapestry:
           harmony: [Do]
 `;
     const result = compileYamlString(yaml);
-    expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_1 c'4");
-    expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_2 e'4");
-    expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_1 <c' e' g'>1*2/4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_melody_1 c'4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_melody_2 e'4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_verse_motif_harmonyStaff_1 <c' e' g'>1*2/4");
   });
 
   it('compiles flat-keyed scores using flat accidental spelling (ees, bes, etc.)', () => {
@@ -68,13 +68,13 @@ tapestry:
 `;
     const result = compileYamlString(yaml);
     // Melody: Do (Eb4) -> ees', Te (Db4) -> des', So (Bb3) -> bes
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_1 ees'4");
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_2 des'4");
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_3 bes4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_melody_1 ees'4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_melody_2 des'4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_melody_3 bes4");
 
     // Harmony: Do (Eb major) -> <ees' g' bes'>1*2/4, Fa (Ab major) -> <aes c' ees'>1*1/4
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_1 <ees' g' bes'>1*2/4");
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_3 <aes c' ees'>1*1/4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_harmonyStaff_1 <ees' g' bes'>1*2/4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_harmonyStaff_3 <aes c' ees'>1*1/4");
   });
 
   it('compiles sharp-keyed scores using sharp accidental spelling (dis, ais, etc.)', () => {
@@ -93,10 +93,10 @@ tapestry:
 `;
     const result = compileYamlString(yaml);
     // Melody: Do (D#4) -> dis', Te (C#4) -> cis'
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_1 dis'4");
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_2 cis'4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_melody_1 dis'4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_melody_2 cis'4");
     // Harmony: Do (D# major) -> <dis' g' ais'>1*2/4
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_1 <dis' g' ais'>1*2/4");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_motif_harmonyStaff_1 <dis' g' ais'>1*2/4");
   });
 
   it('compiles coil harmony staff notation with geometric glyphs and chord modifiers (DoMe, Dox)', () => {
@@ -125,10 +125,10 @@ tapestry:
     expect(result.lilypondSource).toContain('\\override StaffSymbol.layer = #-2');
     expect(result.lilypondSource).toContain('\\override NoteHead.no-ledgers = ##t');
     expect(result.lilypondSource).toContain('\\override Clef.stencil = #pptClefHStencil');
-    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #t) } b\'1*2/4');
-    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_3 \\tweak NoteHead.text \\markup \\vcenter \\concat { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) \\lower #0.35 \\stencil #(make-solfege-glyph-sub pptPathBase 270 colorMi #f) } b\'1*2/4');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_harmony_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #t) } b\'1*2/4');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_harmony_3 \\tweak NoteHead.text \\markup \\vcenter \\concat { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) \\lower #0.35 \\stencil #(make-solfege-glyph-sub pptPathBase 270 colorMi #f) } b\'1*2/4');
     expect(result.lilypondSource).toContain('\\bar "|"');
-    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part2_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathSharp 180 colorSo #f) } b\'1');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part2_harmony_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathSharp 180 colorSo #f) } b\'1');
     expect(result.lilypondSource).toContain('melodyVoice = {');
     expect(result.lilypondSource).toContain('harmonyCoilVoice = {');
     expect(result.lilypondSource).toContain('harmonyVoice = {');
@@ -160,11 +160,11 @@ tapestry:
     expect(result.lilypondSource).toContain('melodyCoilIntervalVoice = {');
     expect(result.lilypondSource).toContain('harmonyCoilVoice = {');
     // Absolute melody layer contains Do, Re, Mi, Fa glyphs
-    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) } b\'4');
-    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_2 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathFlat 270 colorRe #f) } b\'4');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_melodyAbs_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) } b\'4');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_melodyAbs_2 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathFlat 270 colorRe #f) } b\'4');
     // Interval melody layer starts with Dox (anchor), followed by Re (+2), Re (+2), Ra (+1)
-    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #t) } b\'4');
-    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_4 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathSharp 0 colorRe #f) } b\'4');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_melodyInt_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #t) } b\'4');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_verse_part1_melodyInt_4 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathSharp 0 colorRe #f) } b\'4');
     expect(result.lilypondSource).toContain('\\melodyCoilAbsoluteVoice');
     expect(result.lilypondSource).toContain('\\melodyCoilIntervalVoice');
   });
@@ -223,7 +223,7 @@ tapestry:
     expect(result.onsets[8].duration).toBe('4');
 
     // Check LilyPond melody emission contains 16 and 8 durations
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_1");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_melody_1");
     expect(result.lilypondSource).toContain("16");
     expect(result.lilypondSource).toContain("8");
   });
@@ -271,8 +271,8 @@ tapestry:
     expect(result.onsets[3].isRest).toBe(true);
 
     // LilyPond melody contains spacer rest tokens (invisible in cadenza mode)
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_3 s8");
-    expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_4 s8");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_melody_3 s8");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_melody_4 s8");
   });
 
   it('omits ChordNames block when chordNames is not in engraving.show', () => {

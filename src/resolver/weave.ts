@@ -173,6 +173,11 @@ export function resolveWeave(
           rhythmToken: onset.rhythmToken,
           durationBeats: onset.durationBeats,
           duration: onset.duration,
+          sourceCoilId: onset.sourceCoilId || coilId,
+          sourceOnsetIndex: onset.sourceOnsetIndex || onsetIndex,
+          melodySourceCoil: onset.melodySourceCoil || coilId,
+          rhythmSourceCoil: onset.rhythmSourceCoil || coilId,
+          harmonySourceCoil: onset.harmonySourceCoil || coilId,
         });
       }
     } else {

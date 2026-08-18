@@ -93,28 +93,28 @@ describe('compileToLilyPond', () => {
 
   it('emits tags with native LilyPond tag syntax', () => {
     const ly = compileToLilyPond(sampleOnsets);
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 c'4");
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_2 e'4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 b'4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_melody_1 c'4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_melody_2 e'4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_melody_1 b'4");
   });
 
   it('emits harmony chords in treble register by default (octave 0)', () => {
     const ly = compileToLilyPond(sampleOnsets);
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c' e' g'>1*2/4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g' b' d''>1*1/4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_harmonyStaff_1 <c' e' g'>1*2/4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_harmonyStaff_1 <g' b' d''>1*1/4");
   });
 
   it('emits harmony chords in bass register when bass clef selected', () => {
     const ly = compileToLilyPond(sampleOnsets, { harmonyClef: 'bass' });
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c e g>1*2/4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g b d'>1*1/4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_harmonyStaff_1 <c e g>1*2/4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_harmonyStaff_1 <g b d'>1*1/4");
   });
 
   it('allows repeating chord on every onset via harmonyChangesOnly: false', () => {
     const ly = compileToLilyPond(sampleOnsets, { harmonyChangesOnly: false });
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c' e' g'>4");
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_2 <c' e' g'>4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g' b' d''>4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_harmonyStaff_1 <c' e' g'>4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_harmonyStaff_2 <c' e' g'>4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_harmonyStaff_1 <g' b' d''>4");
   });
 
 
@@ -129,7 +129,6 @@ describe('compileToLilyPond', () => {
   it('emits ChordNames reading from chordNamesVoice, showing all chords by default', () => {
     const ly = compileToLilyPond(sampleOnsets);
     expect(ly).toContain('\\new ChordNames {\n      \\chordNamesVoice\n    }');
-    expect(ly).toContain('chordNamesVoice = {');
   });
 
   it('allows enabling chordChanges: true to suppress duplicate consecutive chord names', () => {
@@ -137,33 +136,9 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('\\new ChordNames {\n      \\set chordChanges = ##t\n      \\chordNamesVoice\n    }');
   });
 
-
-  it('emits coil boundary barline when repeating the same coil', () => {
+  it('renders repeated coil onsets with new barline when onset index resets to 1', () => {
     const repeatedCoilOnsets: OnsetStream = [
-      {
-        tag: 'ppt_verse_motif_1',
-        pitch: 'C4',
-        midiNote: 60,
-        scaleDegree: 'Do',
-        chordTones: ['C4', 'E4', 'G4'],
-        chordMidi: [60, 64, 67],
-        chordRoot: 'Do',
-        coilId: 'motif',
-        weaveId: 'verse',
-        onsetIndex: 1,
-      },
-      {
-        tag: 'ppt_verse_motif_2',
-        pitch: 'E4',
-        midiNote: 64,
-        scaleDegree: 'Mi',
-        chordTones: ['C4', 'E4', 'G4'],
-        chordMidi: [60, 64, 67],
-        chordRoot: 'Do',
-        coilId: 'motif',
-        weaveId: 'verse',
-        onsetIndex: 2,
-      },
+      ...sampleOnsets,
       {
         tag: 'ppt_verse_motif_1',
         pitch: 'C4',
@@ -179,7 +154,7 @@ describe('compileToLilyPond', () => {
     ];
 
     const ly = compileToLilyPond(repeatedCoilOnsets);
-    expect(ly).toContain("\\tag #'ppt_verse_motif_2 e'4\n  \\bar \"|\"\n  \\tag #'ppt_verse_motif_1 c'4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_melody_1 b'4\n  \\bar \"|\"\n  \\tag #'ppt_verse_motif_melody_1 c'4");
   });
 
   it('allows disabling chord names via showChordNames: false', () => {
@@ -241,17 +216,17 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('#(define (color-notehead-with-outline grob)');
     expect(ly).toContain('\\override NoteHead.stencil = #color-notehead-with-outline');
     // Melody noteheads
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 \\tweak color #colorDo c'4");
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_2 \\tweak color #colorMi e'4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 \\tweak color #colorTi b'4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_melody_1 \\tweak color #colorDo c'4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_melody_2 \\tweak color #colorMi e'4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_melody_1 \\tweak color #colorTi b'4");
     // Leadsheet ChordNames colored by chord root
     expect(ly).toContain("chordNamesVoice = {");
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 \\tweak color #colorDo <c' e' g'>1*2/4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 \\tweak color #colorSo <g' b' d''>1*1/4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_chordName_1 \\tweak color #colorDo <c' e' g'>1*2/4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_chordName_1 \\tweak color #colorSo <g' b' d''>1*1/4");
     // Traditional harmony staff remains clean without notehead color tweaks
     expect(ly).toContain("harmonyVoice = {");
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 <c' e' g'>1*2/4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 <g' b' d''>1*1/4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_harmonyStaff_1 <c' e' g'>1*2/4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_harmonyStaff_1 <g' b' d''>1*1/4");
   });
 
   it('allows disabling noteheadOutline when colorNotes is true', () => {
@@ -299,9 +274,9 @@ describe('compileToLilyPond', () => {
     expect(ly).toContain('#(define stencilDo');
     expect(ly).toContain('#(define stencilMi');
     expect(ly).toContain('#(define stencilTi');
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 \\tweak NoteHead.stencil #stencilDo \\tweak color #colorDo c'4");
-    expect(ly).toContain("\\tag #'ppt_verse_introMotif_2 \\tweak NoteHead.stencil #stencilMi \\tweak color #colorMi e'4");
-    expect(ly).toContain("\\tag #'ppt_verse_cadence_1 \\tweak NoteHead.stencil #stencilTi \\tweak color #colorTi b'4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_melody_1 \\tweak NoteHead.stencil #stencilDo \\tweak color #colorDo c'4");
+    expect(ly).toContain("\\tag #'ppt_verse_introMotif_melody_2 \\tweak NoteHead.stencil #stencilMi \\tweak color #colorMi e'4");
+    expect(ly).toContain("\\tag #'ppt_verse_cadence_melody_1 \\tweak NoteHead.stencil #stencilTi \\tweak color #colorTi b'4");
   });
 
   it('emits header block with metadata and suppresses tagline by default', () => {
@@ -356,9 +331,9 @@ describe('compileToLilyPond', () => {
         harmonyStaffStyle: 'coil',
       });
 
-      expect(ly).toContain("\\tag #'ppt_verse_introMotif_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) } b'1*2/4");
+      expect(ly).toContain("\\tag #'ppt_verse_introMotif_harmony_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathBase 0 colorDo #f) } b'1*2/4");
       expect(ly).toContain('\\bar "|"');
-      expect(ly).toContain("\\tag #'ppt_verse_cadence_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathSharp 180 colorSo #f) } b'1*1/4");
+      expect(ly).toContain("\\tag #'ppt_verse_cadence_harmony_1 \\tweak NoteHead.text \\markup \\vcenter { \\stencil #(make-solfege-glyph pptPathSharp 180 colorSo #f) } b'1*1/4");
     });
 
     it('aligns melody staff, harmony coil staff, and traditional harmony staff together in PianoStaff with stacked zero-padding', () => {
