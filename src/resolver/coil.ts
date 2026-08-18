@@ -36,6 +36,8 @@ import {
   beatsToLilyPondDuration,
   type ResolvedRhythmOnset,
 } from '../solfege/rhythm.js';
+import { generateChordVoicing } from '../solfege/voicings.js';
+import { generateMelodyAugmentation, type AugmentedNote } from '../solfege/augmentation.js';
 
 /** A single resolved onset from a coil (before tagging) */
 export interface ResolvedOnset {
@@ -69,6 +71,8 @@ export interface ResolvedOnset {
   rhythmSourceCoil?: string;
   /** Provenance: coil where harmony was defined (local or inherited parent) */
   harmonySourceCoil?: string;
+  /** Optional augmented harmonic accompaniment notes generated for this melody onset */
+  melodyAugmentationNotes?: AugmentedNote[];
 }
 
 export interface CoilResolutionResult {
@@ -414,6 +418,8 @@ function resolveVoiceOnsets(
   }
 
   const melodyPitches = resolveMelody(melody, knot);
+  const activeVoicing = resolvedLayers.harmonyVoicing ?? knot.harmonyVoicing ?? 'close';
+  const activeAugmentation = resolvedLayers.melodyAugmentation ?? knot.melodyAugmentation ?? 'none';
 
   const harmonyChords = resolveHarmony(
     normalizedHarmony.chords,
@@ -422,6 +428,7 @@ function resolveVoiceOnsets(
     normalizedHarmony.harmonyOctave ?? 0,
     normalizedHarmony.rhythm,
     resolvedRhythmOnsets,
+    activeVoicing,
   );
 
   const voiceOnsets: ResolvedOnset[] = [];
@@ -439,6 +446,10 @@ function resolveVoiceOnsets(
         melodyIndex++;
       }
       const chord = harmonyChords[k] ?? harmonyChords[harmonyChords.length - 1];
+      const augmentationNotes = (!isRest && mp && activeAugmentation !== 'none')
+        ? generateMelodyAugmentation(mp.midi, chord.root, knot.doMidi, activeAugmentation)
+        : undefined;
+
       voiceOnsets.push({
         melodyMidi: mp ? mp.midi : 0,
         scaleDegree: mp ? mp.scaleDegree : '',
@@ -455,18 +466,24 @@ function resolveVoiceOnsets(
         melodySourceCoil: resolvedLayers.melodySourceCoil || coilId,
         rhythmSourceCoil: resolvedLayers.rhythmSourceCoil || coilId,
         harmonySourceCoil: resolvedLayers.harmonySourceCoil || coilId,
+        melodyAugmentationNotes: augmentationNotes,
       });
     }
   } else {
     for (let i = 0; i < totalOnsets; i++) {
       const mp = melodyPitches[i];
       const isRest = i >= melodyPitches.length;
+      const chord = harmonyChords[i];
+      const augmentationNotes = (!isRest && mp && activeAugmentation !== 'none')
+        ? generateMelodyAugmentation(mp.midi, chord.root, knot.doMidi, activeAugmentation)
+        : undefined;
+
       voiceOnsets.push({
         melodyMidi: mp ? mp.midi : 0,
         scaleDegree: mp ? mp.scaleDegree : '',
         isRest,
-        chordMidi: harmonyChords[i].triad,
-        chordRoot: harmonyChords[i].root,
+        chordMidi: chord.triad,
+        chordRoot: chord.root,
         voiceIndex,
         rhythmToken: undefined,
         startBeat: i,
@@ -477,6 +494,7 @@ function resolveVoiceOnsets(
         melodySourceCoil: resolvedLayers.melodySourceCoil || coilId,
         rhythmSourceCoil: resolvedLayers.rhythmSourceCoil || coilId,
         harmonySourceCoil: resolvedLayers.harmonySourceCoil || coilId,
+        melodyAugmentationNotes: augmentationNotes,
       });
     }
   }
@@ -549,6 +567,10 @@ interface ResolvedLayers {
   rhythm?: RhythmLabelType | (string | number)[];
   meter?: RhythmLabelType;
   harmonyOctave?: number;
+  harmonyVoicing?: 'close' | 'rootless' | 'rootFifth' | 'shell' | 'open' | 'smoothLead' | 'bassOnly' | 'walkingBass' | 'octaves';
+  melodyAugmentation?: 'none' | 'thirdsBelow' | 'sixthsBelow' | 'triadClose' | 'drop2' | 'guideToneDyad' | 'octaves';
+  melodyAugmentationDisplay?: 'ghosted' | 'dimmed' | 'smallColored' | 'smallMuted' | 'parenthesized' | 'diamond' | 'normal';
+  projection?: 'default' | 'chordMelody' | 'leadSheet' | 'jazzComping' | 'acousticFolk' | 'bassAndLead';
   melodySourceCoil?: string;
   harmonySourceCoil?: string;
   rhythmSourceCoil?: string;
@@ -586,6 +608,10 @@ function resolveParentChain(
     direct.rhythmSourceCoil = parent.id ?? parentId;
   }
   if (parent.harmonyOctave !== undefined) direct.harmonyOctave = parent.harmonyOctave;
+  if (parent.harmonyVoicing !== undefined) direct.harmonyVoicing = parent.harmonyVoicing;
+  if (parent.melodyAugmentation !== undefined) direct.melodyAugmentation = parent.melodyAugmentation;
+  if (parent.melodyAugmentationDisplay !== undefined) direct.melodyAugmentationDisplay = parent.melodyAugmentationDisplay;
+  if (parent.projection !== undefined) direct.projection = parent.projection;
 
   // Check parent's parents
   const ancestorIds: string[] = [];
@@ -611,6 +637,18 @@ function resolveParentChain(
     }
     if (direct.harmonyOctave === undefined && ancLayers.harmonyOctave !== undefined) {
       direct.harmonyOctave = ancLayers.harmonyOctave;
+    }
+    if (direct.harmonyVoicing === undefined && ancLayers.harmonyVoicing !== undefined) {
+      direct.harmonyVoicing = ancLayers.harmonyVoicing;
+    }
+    if (direct.melodyAugmentation === undefined && ancLayers.melodyAugmentation !== undefined) {
+      direct.melodyAugmentation = ancLayers.melodyAugmentation;
+    }
+    if (direct.melodyAugmentationDisplay === undefined && ancLayers.melodyAugmentationDisplay !== undefined) {
+      direct.melodyAugmentationDisplay = ancLayers.melodyAugmentationDisplay;
+    }
+    if (direct.projection === undefined && ancLayers.projection !== undefined) {
+      direct.projection = ancLayers.projection;
     }
   }
 
@@ -642,6 +680,10 @@ function inheritCoilLayers(
     result.rhythmSourceCoil = coil.id;
   }
   if (coil.harmonyOctave !== undefined) result.harmonyOctave = coil.harmonyOctave;
+  if (coil.harmonyVoicing !== undefined) result.harmonyVoicing = coil.harmonyVoicing;
+  if (coil.melodyAugmentation !== undefined) result.melodyAugmentation = coil.melodyAugmentation;
+  if (coil.melodyAugmentationDisplay !== undefined) result.melodyAugmentationDisplay = coil.melodyAugmentationDisplay;
+  if (coil.projection !== undefined) result.projection = coil.projection;
   
   // 2. Parents in priority order
   const parentIds: string[] = [];
@@ -674,6 +716,18 @@ function inheritCoilLayers(
       if (result.harmonyOctave === undefined && parentLayers.harmonyOctave !== undefined) {
         result.harmonyOctave = parentLayers.harmonyOctave;
       }
+      if (result.harmonyVoicing === undefined && parentLayers.harmonyVoicing !== undefined) {
+        result.harmonyVoicing = parentLayers.harmonyVoicing;
+      }
+      if (result.melodyAugmentation === undefined && parentLayers.melodyAugmentation !== undefined) {
+        result.melodyAugmentation = parentLayers.melodyAugmentation;
+      }
+      if (result.melodyAugmentationDisplay === undefined && parentLayers.melodyAugmentationDisplay !== undefined) {
+        result.melodyAugmentationDisplay = parentLayers.melodyAugmentationDisplay;
+      }
+      if (result.projection === undefined && parentLayers.projection !== undefined) {
+        result.projection = parentLayers.projection;
+      }
     }
   }
   
@@ -693,6 +747,18 @@ function inheritCoilLayers(
     }
     if (result.harmonyOctave === undefined && defaultCoil.harmonyOctave !== undefined) {
       result.harmonyOctave = defaultCoil.harmonyOctave;
+    }
+    if (result.harmonyVoicing === undefined && defaultCoil.harmonyVoicing !== undefined) {
+      result.harmonyVoicing = defaultCoil.harmonyVoicing;
+    }
+    if (result.melodyAugmentation === undefined && defaultCoil.melodyAugmentation !== undefined) {
+      result.melodyAugmentation = defaultCoil.melodyAugmentation;
+    }
+    if (result.melodyAugmentationDisplay === undefined && defaultCoil.melodyAugmentationDisplay !== undefined) {
+      result.melodyAugmentationDisplay = defaultCoil.melodyAugmentationDisplay;
+    }
+    if (result.projection === undefined && defaultCoil.projection !== undefined) {
+      result.projection = defaultCoil.projection;
     }
   }
   
@@ -871,15 +937,20 @@ function resolveHarmony(
   harmonyOctave: number = 0,
   harmonyRhythm?: RhythmLabelType | (string | number)[],
   melodyRhythmOnsets?: ResolvedRhythmOnset[] | null,
+  harmonyVoicing?: 'close' | 'rootless' | 'rootFifth' | 'shell' | 'open' | 'smoothLead' | 'bassOnly' | 'walkingBass' | 'octaves',
 ): HarmonyChord[] {
   const { expanded, hasExplicitCounts } = expandHarmonyArray(harmony);
+  const activeVoicing = harmonyVoicing ?? knot.harmonyVoicing ?? 'close';
 
   const getChordForToken = (token: string): HarmonyChord => {
     const parsed = parseHarmonyChord(token);
     const semitone = solfegeToHarmonyRootOffset(parsed.rootSyllable);
     const rootMidi = knot.doMidi + semitone + (harmonyOctave * 12);
     return {
-      triad: buildChordFromToken(rootMidi, token, knot.doMidi + (harmonyOctave * 12)),
+      triad: generateChordVoicing(rootMidi, token, {
+        voicing: activeVoicing,
+        knotDoMidi: knot.doMidi + (harmonyOctave * 12),
+      }),
       root: token,
     };
   };

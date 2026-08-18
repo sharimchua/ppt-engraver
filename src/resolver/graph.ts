@@ -132,8 +132,46 @@ export function resolveTapestry(tapestry: Tapestry): ResolutionResult {
     weaveLibrary,
   );
   allWarnings.push(...weaveWarnings);
+
+  // 6. If smooth voice leading is enabled, run seamless cross-boundary smoothing
+  if (knot.harmonyVoicing === 'smoothLead') {
+    applySmoothVoiceLeadingPass(onsets, knot);
+  }
   
   return { onsets, warnings: allWarnings, knot };
+}
+
+import { generateSmoothVoiceLeading, getChordIntervals } from '../solfege/voicings.js';
+import { parseHarmonyChord, solfegeToHarmonyRootOffset, midiToPitchName } from '../solfege/pitch.js';
+
+/**
+ * Optimizes chord inversions sequentially across all onsets and boundaries to minimize voice movement.
+ */
+function applySmoothVoiceLeadingPass(onsets: OnsetStream, knot: ResolvedKnot) {
+  if (onsets.length === 0) return;
+  let prevVoicing: number[] = [];
+  let lastChordToken: string | null = null;
+
+  for (let i = 0; i < onsets.length; i++) {
+    const onset = onsets[i];
+    const chordToken = onset.chordRoot;
+
+    if (chordToken !== lastChordToken) {
+      const parsed = parseHarmonyChord(chordToken);
+      const semitone = solfegeToHarmonyRootOffset(parsed.rootSyllable);
+      const rootMidi = knot.doMidi + semitone + ((knot.harmonyOctave ?? 0) * 12);
+      const intervals = getChordIntervals(parsed.quality);
+      const candidatePcs = intervals.map(inter => rootMidi + inter);
+
+      const voiced = generateSmoothVoiceLeading(candidatePcs, prevVoicing, 60);
+      prevVoicing = voiced;
+      lastChordToken = chordToken;
+    }
+
+    onset.chordMidi = [...prevVoicing];
+    onset.projectedChordMidi = [...prevVoicing];
+    onset.chordTones = prevVoicing.map(m => midiToPitchName(m, knot.accidentalMode));
+  }
 }
 
 

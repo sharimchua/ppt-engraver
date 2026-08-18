@@ -105,6 +105,21 @@ export interface CompileOptions {
   indent?: number;
   /** Whether to draw light vertical grid lines indicating onset alignment */
   showRhythmGrid?: boolean;
+  /** Harmony chord voicing projection style */
+  harmonyVoicing?: string;
+  /** Melody harmonic augmentation style */
+  melodyAugmentation?: string;
+  /** Visual presentation style for inferred melody augmentation notes */
+  melodyAugmentationDisplay?:
+    | "ghosted"
+    | "dimmed"
+    | "smallColored"
+    | "smallMuted"
+    | "parenthesized"
+    | "diamond"
+    | "normal";
+  /** High-level arrangement / projection preset */
+  projection?: string;
 }
 
 /**
@@ -754,6 +769,77 @@ export function compileToLilyPond(
     coilGroups.push(currentGroup);
   }
 
+  const augDisplay = options.melodyAugmentationDisplay ?? "ghosted";
+
+  function formatMelodyNote(onset: Onset): string {
+    const onsetDur = onset.duration ?? dur;
+    if (onset.isRest) {
+      return `s${onsetDur}`;
+    }
+
+    const primaryPitch = midiToLilyPondPitch(
+      onset.midiNote,
+      accMode,
+      forceAccidentals,
+    );
+    const primaryStencil =
+      noteheadStyle === "ppt"
+        ? `\\tweak NoteHead.stencil #${SOLFEGE_TO_PPT_STENCIL[onset.scaleDegree] ?? "stencilDo"} `
+        : "";
+    const primaryColor = colorNotes
+      ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[onset.scaleDegree] ?? "colorDo"} `
+      : "";
+
+    const augNotes = onset.melodyAugmentationNotes;
+    if (!augNotes || augNotes.length === 0) {
+      return `${primaryStencil}${primaryColor}${primaryPitch}${onsetDur}`;
+    }
+
+    // Composite chord for melody + inferred companion notes
+    const noteTokens: string[] = [];
+    noteTokens.push(`${primaryStencil}${primaryColor}${primaryPitch}`);
+
+    for (const aug of augNotes) {
+      const augPitch = midiToLilyPondPitch(aug.midiNote, accMode, forceAccidentals);
+      let tweakPrefix = "";
+
+      if (augDisplay === "parenthesized") {
+        tweakPrefix += "\\parenthesize ";
+      } else if (augDisplay === "diamond") {
+        tweakPrefix += "\\tweak NoteHead.style #'diamond ";
+      }
+
+      if (augDisplay === "ghosted" || augDisplay === "dimmed") {
+        // Dimmed / translucent notehead with Solfège stencil and muted gray color
+        tweakPrefix += "\\tweak font-size #-2 \\tweak color #(x11-color 'gray60) ";
+        if (noteheadStyle === "ppt") {
+          tweakPrefix += `\\tweak NoteHead.stencil #${SOLFEGE_TO_PPT_STENCIL[aug.scaleDegree] ?? "stencilDo"} `;
+        }
+      } else if (augDisplay === "smallColored") {
+        tweakPrefix += "\\tweak font-size #-3 ";
+        if (noteheadStyle === "ppt") {
+          tweakPrefix += `\\tweak NoteHead.stencil #${SOLFEGE_TO_PPT_STENCIL[aug.scaleDegree] ?? "stencilDo"} `;
+        }
+        if (colorNotes) {
+          tweakPrefix += `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[aug.scaleDegree] ?? "colorDo"} `;
+        }
+      } else if (augDisplay === "smallMuted") {
+        tweakPrefix += "\\tweak font-size #-3 \\tweak color #(x11-color 'gray60) ";
+      } else if (augDisplay === "normal") {
+        if (noteheadStyle === "ppt") {
+          tweakPrefix += `\\tweak NoteHead.stencil #${SOLFEGE_TO_PPT_STENCIL[aug.scaleDegree] ?? "stencilDo"} `;
+        }
+        if (colorNotes) {
+          tweakPrefix += `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[aug.scaleDegree] ?? "colorDo"} `;
+        }
+      }
+
+      noteTokens.push(`${tweakPrefix}${augPitch}`);
+    }
+
+    return `<${noteTokens.join(" ")}>${onsetDur}`;
+  }
+
   if (isMultiVoice) {
     melodyLines.push("  <<");
     const voiceCommands = ["\\voiceOne", "\\voiceTwo", "\\voiceThree", "\\voiceFour"];
@@ -779,28 +865,10 @@ export function compileToLilyPond(
         const vOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === vNum);
         if (vOnsets.length > 0) {
           for (const onset of vOnsets) {
-            const onsetDur = onset.duration ?? dur;
-            if (onset.isRest) {
-              melodyLines.push(
-                `      \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_v${vNum}_${onset.onsetIndex} s${onsetDur}`,
-              );
-            } else {
-              const melPitch = midiToLilyPondPitch(
-                onset.midiNote,
-                accMode,
-                forceAccidentals,
-              );
-              const stencilTweak =
-                noteheadStyle === "ppt"
-                  ? `\\tweak NoteHead.stencil #${SOLFEGE_TO_PPT_STENCIL[onset.scaleDegree] ?? "stencilDo"} `
-                  : "";
-              const colorTweak = colorNotes
-                ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[onset.scaleDegree] ?? "colorDo"} `
-                : "";
-              melodyLines.push(
-                `      \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_v${vNum}_${onset.onsetIndex} ${stencilTweak}${colorTweak}${melPitch}${onsetDur}`,
-              );
-            }
+            const formatted = formatMelodyNote(onset);
+            melodyLines.push(
+              `      \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_v${vNum}_${onset.onsetIndex} ${formatted}`,
+            );
           }
         } else {
           // Coil has no notes for this voice: fill with skips matching primary voice onsets
@@ -837,27 +905,10 @@ export function compileToLilyPond(
       lastMelodyCoilId = onset.coilId;
       lastMelodyWeaveId = onset.weaveId;
 
-      const onsetDur = onset.duration ?? dur;
-      if (onset.isRest) {
-        melodyLines.push(`  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} s${onsetDur}`);
-      } else {
-        // Melody: \tag #'ppt_weave_coil_melody_index pitch4
-        const melPitch = midiToLilyPondPitch(
-          onset.midiNote,
-          accMode,
-          forceAccidentals,
-        );
-        const stencilTweak =
-          noteheadStyle === "ppt"
-            ? `\\tweak NoteHead.stencil #${SOLFEGE_TO_PPT_STENCIL[onset.scaleDegree] ?? "stencilDo"} `
-            : "";
-        const colorTweak = colorNotes
-          ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[onset.scaleDegree] ?? "colorDo"} `
-          : "";
-        melodyLines.push(
-          `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} ${stencilTweak}${colorTweak}${melPitch}${onsetDur}`,
-        );
-      }
+      const formatted = formatMelodyNote(onset);
+      melodyLines.push(
+        `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_melody_${onset.onsetIndex} ${formatted}`,
+      );
     }
 
     if (onsets.length > 0) {

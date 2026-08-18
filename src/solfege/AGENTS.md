@@ -64,3 +64,23 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
   - `DoxDo`: C major triad with C in the bass (**C/C**).
 - **Visual Coil Representation**: In the visual Harmony Coil row, the Axis Bass syllable is rendered with its full geometric glyph and horizontal axis diacritic line preceding the root glyph.
 - **Score Notation & Chord Names**: Emits slash chord notation (`<g c' e' g'>`) and LilyPond chord symbols (`c4/g`).
+
+---
+
+## Arrangement Projections: Voicings & Augmentation
+
+- **`src/solfege/voicings.ts` (`generateChordVoicing`)**:
+  - `close`: Default compact tertian chord (major/minor triad, 7th, slash bass).
+  - `rootless`: 3rd + 7th + 5th/9th without root (jazz comping).
+  - `rootFifth`: Root + 5th power dyad.
+  - `shell`: Root + 3rd + 7th or Root + 7th.
+  - `open`: 1-5-10 or 1-5-7-10 open spread voicings.
+  - `smoothLead`: Parsimonious voice leading minimizing voice distance across chord changes and boundaries.
+  - `bassOnly` / `walkingBass`: Bass line projections.
+- **`src/solfege/augmentation.ts` (`generateMelodyAugmentation`)**:
+  - `none`: Author's original single melody line.
+  - `thirdsBelow` / `sixthsBelow`: Harmonizes in 3rds or 6ths below matching active chord.
+  - `triadClose`: 3-part close block chord under melody.
+  - `drop2`: 4-part jazz chord melody with 2nd voice dropped an octave.
+  - `guideToneDyad`: Accompanies melody note with active 3rd/7th guide tone.
+  - `octaves`: Doubles melody an octave below.

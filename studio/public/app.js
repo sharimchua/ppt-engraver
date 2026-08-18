@@ -47,25 +47,82 @@ const ENUMS_NOTEHEAD_STYLE = [
   { text: 'default', displayText: 'default', type: 'enum', desc: 'Standard oval noteheads' }
 ];
 
+const ENUMS_HARMONY_VOICING = [
+  { text: 'close', displayText: 'close', type: 'enum', desc: 'Compact tertian chords' },
+  { text: 'rootless', displayText: 'rootless', type: 'enum', desc: 'Rootless (3rd, 5th, 7th, 9th)' },
+  { text: 'rootFifth', displayText: 'rootFifth', type: 'enum', desc: 'Root + 5th power dyads' },
+  { text: 'shell', displayText: 'shell', type: 'enum', desc: 'Shell (Root + 3rd + 7th)' },
+  { text: 'open', displayText: 'open', type: 'enum', desc: 'Open spread (1-5-10)' },
+  { text: 'smoothLead', displayText: 'smoothLead', type: 'enum', desc: 'Smooth voice leading' },
+  { text: 'bassOnly', displayText: 'bassOnly', type: 'enum', desc: 'Bass root notes' },
+  { text: 'walkingBass', displayText: 'walkingBass', type: 'enum', desc: 'Walking bassline' },
+  { text: 'octaves', displayText: 'octaves', type: 'enum', desc: 'Bass in octaves' }
+];
+
+const ENUMS_MELODY_AUGMENTATION = [
+  { text: 'none', displayText: 'none', type: 'enum', desc: 'Single melody line' },
+  { text: 'thirdsBelow', displayText: 'thirdsBelow', type: 'enum', desc: 'Harmonize 3rds below' },
+  { text: 'sixthsBelow', displayText: 'sixthsBelow', type: 'enum', desc: 'Harmonize 6ths below' },
+  { text: 'triadClose', displayText: 'triadClose', type: 'enum', desc: '3-note close block chord' },
+  { text: 'drop2', displayText: 'drop2', type: 'enum', desc: '4-note drop-2 jazz chord melody' },
+  { text: 'guideToneDyad', displayText: 'guideToneDyad', type: 'enum', desc: '3rd/7th guide tone dyad' },
+  { text: 'octaves', displayText: 'octaves', type: 'enum', desc: 'Octave below' }
+];
+
+const ENUMS_MELODY_AUGMENTATION_DISPLAY = [
+  { text: 'ghosted', displayText: 'ghosted', type: 'enum', desc: 'Translucent gray notehead' },
+  { text: 'dimmed', displayText: 'dimmed', type: 'enum', desc: 'Dimmed Solfège notehead' },
+  { text: 'smallColored', displayText: 'smallColored', type: 'enum', desc: 'Small chromatic notehead' },
+  { text: 'smallMuted', displayText: 'smallMuted', type: 'enum', desc: 'Small muted gray notehead' },
+  { text: 'parenthesized', displayText: 'parenthesized', type: 'enum', desc: 'Parenthesized notehead' },
+  { text: 'diamond', displayText: 'diamond', type: 'enum', desc: 'Diamond notehead style' },
+  { text: 'normal', displayText: 'normal', type: 'enum', desc: 'Standard notehead' }
+];
+
+const ENUMS_PROJECTION = [
+  { text: 'chordMelody', displayText: 'chordMelody', type: 'enum', desc: 'Drop-2 jazz chord melody' },
+  { text: 'leadSheet', displayText: 'leadSheet', type: 'enum', desc: 'Lead sheet (chords + melody)' },
+  { text: 'jazzComping', displayText: 'jazzComping', type: 'enum', desc: 'Rootless rhythm comping' },
+  { text: 'acousticFolk', displayText: 'acousticFolk', type: 'enum', desc: 'Root-5th & thirds below' },
+  { text: 'bassAndLead', displayText: 'bassAndLead', type: 'enum', desc: 'Walking bass + melody' },
+  { text: 'default', displayText: 'default', type: 'enum', desc: 'Standard PPT arrangement' }
+];
+
+const ENUMS_HARMONY_STAFF_STYLE = [
+  { text: 'standard', displayText: 'standard', type: 'enum', desc: 'Traditional music staff only' },
+  { text: 'coil', displayText: 'coil', type: 'enum', desc: 'PPT Harmony Coil only' },
+  { text: 'both', displayText: 'both', type: 'enum', desc: 'Both staff and Harmony Coil' }
+];
+
 const TOKENS_MELODY = [
   { text: 'Do', displayText: 'Do', type: 'note', solfege: 'Do', desc: '0 semitones (Red)' },
   { text: 'Dox', displayText: 'Dox', type: 'note', solfege: 'Dox', desc: '0 semitones (Axis Root)' },
   { text: 'Ra', displayText: 'Ra', type: 'note', solfege: 'Ra', desc: '1 semitone (Orange)' },
   { text: 'Di', displayText: 'Di', type: 'note', solfege: 'Di', desc: '1 semitone (Orange)' },
   { text: 'Re', displayText: 'Re', type: 'note', solfege: 'Re', desc: '2 semitones (Orange)' },
+  { text: 'Rex', displayText: 'Rex', type: 'note', solfege: 'Rex', desc: '2 semitones (Axis)' },
   { text: 'Me', displayText: 'Me', type: 'note', solfege: 'Me', desc: '3 semitones (Yellow)' },
+  { text: 'Mex', displayText: 'Mex', type: 'note', solfege: 'Mex', desc: '3 semitones (Axis)' },
   { text: 'Ri', displayText: 'Ri', type: 'note', solfege: 'Ri', desc: '3 semitones (Yellow)' },
   { text: 'Mi', displayText: 'Mi', type: 'note', solfege: 'Mi', desc: '4 semitones (Yellow)' },
+  { text: 'Miex', displayText: 'Miex', type: 'note', solfege: 'Miex', desc: '4 semitones (Axis)' },
   { text: 'Fa', displayText: 'Fa', type: 'note', solfege: 'Fa', desc: '5 semitones (Green)' },
+  { text: 'Fax', displayText: 'Fax', type: 'note', solfege: 'Fax', desc: '5 semitones (Axis)' },
   { text: 'Fi', displayText: 'Fi', type: 'note', solfege: 'Fi', desc: '6 semitones (Slate/Dark)' },
+  { text: 'Fix', displayText: 'Fix', type: 'note', solfege: 'Fix', desc: '6 semitones (Axis)' },
   { text: 'Se', displayText: 'Se', type: 'note', solfege: 'Se', desc: '5 semitones (Green)' },
   { text: 'So', displayText: 'So', type: 'note', solfege: 'So', desc: '7 semitones (Blue)' },
+  { text: 'Sox', displayText: 'Sox', type: 'note', solfege: 'Sox', desc: '7 semitones (Axis)' },
   { text: 'Le', displayText: 'Le', type: 'note', solfege: 'Le', desc: '8 semitones (Purple)' },
+  { text: 'Lex', displayText: 'Lex', type: 'note', solfege: 'Lex', desc: '8 semitones (Axis)' },
   { text: 'Si', displayText: 'Si', type: 'note', solfege: 'Si', desc: '7 semitones (Blue)' },
   { text: 'La', displayText: 'La', type: 'note', solfege: 'La', desc: '9 semitones (Indigo)' },
+  { text: 'Lax', displayText: 'Lax', type: 'note', solfege: 'Lax', desc: '9 semitones (Axis)' },
   { text: 'Te', displayText: 'Te', type: 'note', solfege: 'Te', desc: '10 semitones (Pink)' },
+  { text: 'Tex', displayText: 'Tex', type: 'note', solfege: 'Tex', desc: '10 semitones (Axis)' },
   { text: 'Li', displayText: 'Li', type: 'note', solfege: 'Li', desc: '9 semitones (Indigo)' },
   { text: 'Ti', displayText: 'Ti', type: 'note', solfege: 'Ti', desc: '11 semitones (Pink)' },
+  { text: 'Tix', displayText: 'Tix', type: 'note', solfege: 'Tix', desc: '11 semitones (Axis)' },
   { text: 'Do^', displayText: 'Do^', type: 'note', solfege: 'Do', desc: 'High octave (+12)' },
   { text: 'Re^', displayText: 'Re^', type: 'note', solfege: 'Re', desc: 'High octave' },
   { text: 'Me^', displayText: 'Me^', type: 'note', solfege: 'Me', desc: 'High octave' },
@@ -114,10 +171,15 @@ const TOKENS_HARMONY = [
   { text: 'DoMeSo', displayText: 'DoMeSo', type: 'note', solfege: 'Do', desc: 'Minor triad' },
   { text: 'DoMiSo', displayText: 'DoMiSo', type: 'note', solfege: 'Do', desc: 'Major triad' },
   { text: 'DoMeTe', displayText: 'DoMeTe', type: 'note', solfege: 'Do', desc: 'Minor 7th chord' },
+  { text: 'DoMiTe', displayText: 'DoMiTe', type: 'note', solfege: 'Do', desc: 'Dominant 7th chord' },
   { text: 'DoLa', displayText: 'DoLa', type: 'note', solfege: 'Do', desc: 'Major 6th dyad' },
   { text: 'DoRe', displayText: 'DoRe', type: 'note', solfege: 'Do', desc: 'Suspended 2nd dyad' },
   { text: 'DoSi', displayText: 'DoSi', type: 'note', solfege: 'Do', desc: 'Major 7th dyad' },
   { text: 'DoFi', displayText: 'DoFi', type: 'note', solfege: 'Do', desc: 'Diminished / Tritone dyad' },
+  { text: 'SoxDo', displayText: 'SoxDo', type: 'note', solfege: 'Sox', desc: 'C/G (2nd inversion / slash bass)' },
+  { text: 'MixDo', displayText: 'MixDo', type: 'note', solfege: 'Mix', desc: 'C/E (1st inversion / slash bass)' },
+  { text: 'MexDoMe', displayText: 'MexDoMe', type: 'note', solfege: 'Mex', desc: 'Cm/Eb (1st inversion / slash bass)' },
+  { text: 'RexSo', displayText: 'RexSo', type: 'note', solfege: 'Rex', desc: 'G/D (2nd inversion / slash bass)' },
   { text: '1', displayText: '1', type: 'enum', desc: '1 beat hold' },
   { text: '2', displayText: '2', type: 'enum', desc: '2 beat hold' },
   { text: '3', displayText: '3', type: 'enum', desc: '3 beat hold' },
@@ -125,25 +187,88 @@ const TOKENS_HARMONY = [
   { text: '8', displayText: '8', type: 'enum', desc: '8 beat hold' }
 ];
 
-const TOP_LEVEL_KEYS = [
+const ROOT_KEYS = [
   { text: 'tapestry:', displayText: 'tapestry:', type: 'prop', desc: 'Score root block' },
   { text: 'knot:', displayText: 'knot:', type: 'prop', desc: 'Score metadata & settings' },
-  { text: 'tonic:', displayText: 'tonic: "C4"', type: 'prop', desc: 'Root pitch reference' },
+  { text: 'coils:', displayText: 'coils:', type: 'prop', desc: 'Coil definitions dictionary' },
+  { text: 'weaves:', displayText: 'weaves:', type: 'prop', desc: 'Hierarchical weave dictionary' },
+  { text: 'weave:', displayText: 'weave: ...', type: 'prop', desc: 'Root weave reference' }
+];
+
+const KNOT_KEYS = [
+  { text: 'tonic:', displayText: 'tonic: "C4"', type: 'prop', desc: 'Root tonic reference' },
+  { text: 'tempo:', displayText: 'tempo: 120', type: 'prop', desc: 'Score tempo in BPM' },
+  { text: 'weave:', displayText: 'weave: ...', type: 'prop', desc: 'Root weave reference' },
   { text: 'engraving:', displayText: 'engraving:', type: 'prop', desc: 'Visual engraving toggles' },
+  { text: 'projection:', displayText: 'projection: ...', type: 'prop', desc: 'Arrangement preset' },
+  { text: 'harmonyVoicing:', displayText: 'harmonyVoicing: ...', type: 'prop', desc: 'Chord voicing style' },
+  { text: 'melodyAugmentation:', displayText: 'melodyAugmentation: ...', type: 'prop', desc: 'Melody augmentation' },
+  { text: 'melodyAugmentationDisplay:', displayText: 'melodyAugmentationDisplay: ...', type: 'prop', desc: 'Augmentation display style' },
   { text: 'title:', displayText: 'title: "..."', type: 'prop', desc: 'Score title' },
+  { text: 'subtitle:', displayText: 'subtitle: "..."', type: 'prop', desc: 'Score subtitle' },
   { text: 'composer:', displayText: 'composer: "..."', type: 'prop', desc: 'Composer name' },
   { text: 'arranger:', displayText: 'arranger: "..."', type: 'prop', desc: 'Arranger name' },
-  { text: 'tempo:', displayText: 'tempo: 120', type: 'prop', desc: 'Score tempo in BPM' },
-  { text: 'weaves:', displayText: 'weaves:', type: 'prop', desc: 'Hierarchical weave dictionary' },
-  { text: 'coils:', displayText: 'coils:', type: 'prop', desc: 'Coil definitions dictionary' },
-  { text: 'children:', displayText: 'children:', type: 'prop', desc: 'Sequence of child coils/weaves' },
-  { text: 'melody:', displayText: 'melody: [ ... ]', type: 'prop', desc: 'Solfège pitch degree array' },
-  { text: 'rhythm:', displayText: 'rhythm: [ ... ]', type: 'prop', desc: 'Duration token array' },
-  { text: 'harmony:', displayText: 'harmony: [ ... ]', type: 'prop', desc: 'Chord roots & dyads array' },
-  { text: 'parents:', displayText: 'parents: ...', type: 'prop', desc: 'Parent coil inheritance' },
-  { text: 'concat:', displayText: 'concat:', type: 'prop', desc: 'Sub-coil concatenation list' },
-  { text: 'id:', displayText: 'id: ...', type: 'prop', desc: 'Coil or weave identifier' }
+  { text: 'poet:', displayText: 'poet: "..."', type: 'prop', desc: 'Poet / lyricist' },
+  { text: 'copyright:', displayText: 'copyright: "..."', type: 'prop', desc: 'Copyright statement' },
+  { text: 'tagline:', displayText: 'tagline: "..."', type: 'prop', desc: 'LilyPond bottom tagline' }
 ];
+
+const ENGRAVING_KEYS = [
+  { text: 'projection:', displayText: 'projection: ...', type: 'prop', desc: 'Arrangement preset' },
+  { text: 'harmonyVoicing:', displayText: 'harmonyVoicing: ...', type: 'prop', desc: 'Chord voicing style' },
+  { text: 'melodyAugmentation:', displayText: 'melodyAugmentation: ...', type: 'prop', desc: 'Melody augmentation' },
+  { text: 'melodyAugmentationDisplay:', displayText: 'melodyAugmentationDisplay: ...', type: 'prop', desc: 'Augmentation display style' },
+  { text: 'noteheadStyle:', displayText: 'noteheadStyle: ...', type: 'prop', desc: 'Notehead shape system' },
+  { text: 'colorNotes:', displayText: 'colorNotes: true', type: 'prop', desc: 'PPT chromatic notehead colors' },
+  { text: 'noteheadOutline:', displayText: 'noteheadOutline: true', type: 'prop', desc: 'Dark outline on noteheads' },
+  { text: 'omitStem:', displayText: 'omitStem: true', type: 'prop', desc: 'Hide stems & flags' },
+  { text: 'melodyClef:', displayText: 'melodyClef: ...', type: 'prop', desc: 'Melody staff clef' },
+  { text: 'harmonyClef:', displayText: 'harmonyClef: ...', type: 'prop', desc: 'Harmony staff clef' },
+  { text: 'harmonyOctave:', displayText: 'harmonyOctave: 0', type: 'prop', desc: 'Harmony octave shift' },
+  { text: 'harmonyStaffStyle:', displayText: 'harmonyStaffStyle: ...', type: 'prop', desc: 'Standard staff vs Coil' },
+  { text: 'harmonyChangesOnly:', displayText: 'harmonyChangesOnly: true', type: 'prop', desc: 'Whole notes on chord changes' },
+  { text: 'chordChanges:', displayText: 'chordChanges: true', type: 'prop', desc: 'Chord symbols on changes only' },
+  { text: 'zoom:', displayText: 'zoom: 1.0', type: 'prop', desc: 'Staff scaling factor' },
+  { text: 'indent:', displayText: 'indent: 0', type: 'prop', desc: 'First line indent in mm' },
+  { text: 'showRhythmGrid:', displayText: 'showRhythmGrid: true', type: 'prop', desc: 'Vertical beat gridlines' },
+  { text: 'showMelody:', displayText: 'showMelody: true', type: 'prop', desc: 'Show melody staff' },
+  { text: 'showHarmonyCoil:', displayText: 'showHarmonyCoil: true', type: 'prop', desc: 'Show harmony coil staff' },
+  { text: 'showTraditionalHarmony:', displayText: 'showTraditionalHarmony: true', type: 'prop', desc: 'Show traditional harmony staff' },
+  { text: 'showMelodyCoilAbsolute:', displayText: 'showMelodyCoilAbsolute: true', type: 'prop', desc: 'Show absolute melody coil' },
+  { text: 'showMelodyCoilInterval:', displayText: 'showMelodyCoilInterval: true', type: 'prop', desc: 'Show interval melody coil' },
+  { text: 'showRhythmCoil:', displayText: 'showRhythmCoil: true', type: 'prop', desc: 'Show rhythm coil staff' },
+  { text: 'show:', displayText: 'show:', type: 'prop', desc: 'Visible score layers list' }
+];
+
+const COIL_KEYS = [
+  { text: 'melody:', displayText: 'melody: [ ... ]', type: 'prop', desc: 'Solfège melody array' },
+  { text: 'rhythm:', displayText: 'rhythm: [ ... ]', type: 'prop', desc: 'Rhythm token array' },
+  { text: 'harmony:', displayText: 'harmony: [ ... ]', type: 'prop', desc: 'Harmony chords array' },
+  { text: 'meter:', displayText: 'meter: ...', type: 'prop', desc: 'Metric pattern / length' },
+  { text: 'parents:', displayText: 'parents: ...', type: 'prop', desc: 'Parent coil inheritance' },
+  { text: 'parent:', displayText: 'parent: ...', type: 'prop', desc: 'Single parent inheritance' },
+  { text: 'concat:', displayText: 'concat:', type: 'prop', desc: 'Concatenation of sub-coils' },
+  { text: 'id:', displayText: 'id: ...', type: 'prop', desc: 'Coil identifier' },
+  { text: 'harmonyOctave:', displayText: 'harmonyOctave: 0', type: 'prop', desc: 'Coil harmony octave shift' },
+  { text: 'harmonyVoicing:', displayText: 'harmonyVoicing: ...', type: 'prop', desc: 'Coil-level voicing override' },
+  { text: 'melodyAugmentation:', displayText: 'melodyAugmentation: ...', type: 'prop', desc: 'Coil-level augmentation' },
+  { text: 'melodyAugmentationDisplay:', displayText: 'melodyAugmentationDisplay: ...', type: 'prop', desc: 'Coil-level augmentation display' },
+  { text: 'projection:', displayText: 'projection: ...', type: 'prop', desc: 'Coil-level projection preset' }
+];
+
+const WEAVE_KEYS = [
+  { text: 'id:', displayText: 'id: ...', type: 'prop', desc: 'Weave identifier' },
+  { text: 'layout:', displayText: 'layout: concatenate', type: 'prop', desc: 'Child sequencing layout' },
+  { text: 'defaultCoil:', displayText: 'defaultCoil: ...', type: 'prop', desc: 'Default fallback coil' },
+  { text: 'coils:', displayText: 'coils:', type: 'prop', desc: 'In-place coils map' },
+  { text: 'children:', displayText: 'children:', type: 'prop', desc: 'List of child coils & weaves' },
+  { text: 'harmonyVoicing:', displayText: 'harmonyVoicing: ...', type: 'prop', desc: 'Weave-level voicing override' },
+  { text: 'melodyAugmentation:', displayText: 'melodyAugmentation: ...', type: 'prop', desc: 'Weave-level augmentation' },
+  { text: 'melodyAugmentationDisplay:', displayText: 'melodyAugmentationDisplay: ...', type: 'prop', desc: 'Weave-level augmentation display' },
+  { text: 'projection:', displayText: 'projection: ...', type: 'prop', desc: 'Weave-level projection preset' }
+];
+
+const TOP_LEVEL_KEYS = ROOT_KEYS;
 
 // --- Contextual YAML Snippets Library ---
 const DEFAULT_SNIPPET_TEMPLATES = [
@@ -476,78 +601,232 @@ function scanDeclaredIds(cm) {
 }
 
 /**
+ * Determines parent YAML section based on indentation hierarchy.
+ */
+function findParentSection(cm, lineNum) {
+  const targetLine = cm.getLine(lineNum) || '';
+  const targetIndent = (targetLine.match(/^(\s*)/) || [''])[0].length;
+
+  for (let l = lineNum - 1; l >= 0; l--) {
+    const prevLine = cm.getLine(l);
+    if (!prevLine || /^\s*#/.test(prevLine) || !prevLine.trim()) continue;
+
+    const prevIndent = (prevLine.match(/^(\s*)/) || [''])[0].length;
+    if (prevIndent < targetIndent || targetIndent === 0) {
+      const match = prevLine.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
+      if (match) {
+        const key = match[1].toLowerCase();
+        if (key === 'engraving') return 'engraving';
+        if (key === 'knot') return 'knot';
+        if (key === 'show') return 'show';
+        if (key === 'coils') return 'coils';
+        if (key === 'weaves') return 'weaves';
+        if (key === 'children') return 'children';
+        if (key === 'concat') return 'concat';
+        if (key === 'parents' || key === 'parent') return 'parents';
+
+        const grandParent = findParentSection(cm, l);
+        if (grandParent === 'coils' || grandParent === 'coil-body') return 'coil-body';
+        if (grandParent === 'weaves' || grandParent === 'weave-body') return 'weave-body';
+        return key;
+      }
+    }
+  }
+  return 'root';
+}
+
+/**
  * Determines autocomplete context and suggestions based on cursor position and surrounding lines.
  */
 function getContextSuggestions(cm, cursor) {
-  const line = cm.getLine(cursor.line);
+  const line = cm.getLine(cursor.line) || '';
   const beforeCursor = line.slice(0, cursor.ch);
-  const { coils, weaves, all } = scanDeclaredCoilsAndWeaves(cm);
+  const { coils, weaves } = scanDeclaredCoilsAndWeaves(cm);
 
-  // 1. Show layers: show: [ ... ] or under show:
-  if (/show\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*-\s*(melody|harmony|rhythm|chord)/i.test(line)) {
-    return ENUMS_SHOW;
+  // 0. Check if cursor is inside bracket array [...] on current line
+  const openBracketIdx = beforeCursor.lastIndexOf('[');
+  const closeBracketIdx = beforeCursor.lastIndexOf(']');
+  const insideBrackets = openBracketIdx !== -1 && openBracketIdx > closeBracketIdx;
+
+  if (insideBrackets) {
+    if (/melody|pitches/i.test(beforeCursor)) return TOKENS_MELODY;
+    if (/rhythm/i.test(beforeCursor)) return TOKENS_RHYTHM;
+    if (/harmony|chords/i.test(beforeCursor)) return TOKENS_HARMONY;
+    if (/show/i.test(beforeCursor)) return ENUMS_SHOW;
+    if (/concat|parents|parent/i.test(beforeCursor)) {
+      return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
+    }
   }
-  for (let l = cursor.line - 1; l >= Math.max(0, cursor.line - 8); l--) {
-    const prevLine = cm.getLine(l);
-    if (/^\s*show\s*:/i.test(prevLine)) {
+
+  // 1. Property Value Contexts (cursor is after propertyName:)
+  const propMatch = beforeCursor.match(/^\s*([_a-zA-Z0-9]+)\s*:\s*([^#]*)$/);
+  if (propMatch) {
+    const propName = propMatch[1];
+    const afterColon = propMatch[2];
+
+    if (/^harmonyVoicing$/i.test(propName)) return ENUMS_HARMONY_VOICING;
+    if (/^melodyAugmentation$/i.test(propName)) return ENUMS_MELODY_AUGMENTATION;
+    if (/^melodyAugmentationDisplay$/i.test(propName)) return ENUMS_MELODY_AUGMENTATION_DISPLAY;
+    if (/^projection$/i.test(propName)) return ENUMS_PROJECTION;
+    if (/^(melodyClef|harmonyClef|clef)$/i.test(propName)) return ENUMS_CLEF;
+    if (/^noteheadStyle$/i.test(propName)) return ENUMS_NOTEHEAD_STYLE;
+    if (/^harmonyStaffStyle$/i.test(propName)) return ENUMS_HARMONY_STAFF_STYLE;
+    if (/^layout$/i.test(propName)) return [{ text: 'concatenate', displayText: 'concatenate', type: 'enum', desc: 'Sequential concatenation' }];
+    if (/^(colorNotes|omitStem|noteheadOutline|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil)$/i.test(propName)) {
+      return [
+        { text: 'true', displayText: 'true', type: 'enum', desc: 'Enable' },
+        { text: 'false', displayText: 'false', type: 'enum', desc: 'Disable' },
+      ];
+    }
+    if (/^(tonic|do)$/i.test(propName)) {
+      return [
+        { text: '"C4"', displayText: 'C4 (Default Middle C)', type: 'enum' },
+        { text: '"D4"', displayText: 'D4', type: 'enum' },
+        { text: '"Eb4"', displayText: 'Eb4', type: 'enum' },
+        { text: '"F4"', displayText: 'F4', type: 'enum' },
+        { text: '"F#3"', displayText: 'F#3', type: 'enum' },
+        { text: '"G4"', displayText: 'G4', type: 'enum' },
+        { text: '"A4"', displayText: 'A4', type: 'enum' },
+        { text: '"Bb4"', displayText: 'Bb4', type: 'enum' },
+      ];
+    }
+    if (/^(parent|parents)$/i.test(propName)) {
+      return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Parent coil ID' }));
+    }
+    if (/^concat$/i.test(propName)) {
+      return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Sub-coil ID' }));
+    }
+    if (/^weave$/i.test(propName)) {
+      return weaves.map(id => ({ text: id, displayText: id, type: 'weave', desc: 'Weave ID' }));
+    }
+    if (/^defaultCoil$/i.test(propName)) {
+      return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Default coil fallback' }));
+    }
+    if (/^meter$/i.test(propName)) {
+      return [
+        { text: 'DoLa', displayText: 'DoLa (4-beat Common Time)', type: 'enum' },
+        { text: 'DoSo', displayText: 'DoSo (8-beat Time)', type: 'enum' },
+        { text: 'DoFi', displayText: 'DoFi (2-beat Half Time)', type: 'enum' },
+        { text: 'DoMe', displayText: 'DoMe (3-beat Triple Meter)', type: 'enum' },
+        { text: 'DoLe', displayText: 'DoLe (6-beat Compound)', type: 'enum' },
+      ];
+    }
+    if (/^rhythm$/i.test(propName)) {
+      if (afterColon.includes('[')) return TOKENS_RHYTHM;
+      return [
+        { text: '[Do, Do, Do, Do]', displayText: '[Do, Do, Do, Do] (4 quarter notes)', type: 'snip' },
+        { text: '[DoxDo, Fi, DoxDo, Fi]', displayText: '[DoxDo, Fi, ...] (Eighth notes)', type: 'snip' },
+        { text: 'DoLa', displayText: 'DoLa (4-beat Macro Block)', type: 'enum' },
+        { text: 'DoSo', displayText: 'DoSo (8-beat Macro Block)', type: 'enum' },
+        ...TOKENS_RHYTHM,
+      ];
+    }
+    if (/^(melody|pitches)$/i.test(propName)) {
+      if (afterColon.includes('[')) return TOKENS_MELODY;
+      return [
+        { text: '[Dox, Do, Re, Mi, Fa, So]', displayText: '[Dox, Do, Re, ...] (Scale phrase)', type: 'snip' },
+        { text: '[Dox, 1, So, 2]', displayText: '[Dox, 1, So, 2] (Padded phrase)', type: 'snip' },
+        ...TOKENS_MELODY,
+      ];
+    }
+    if (/^(harmony|chords)$/i.test(propName)) {
+      if (afterColon.includes('[')) return TOKENS_HARMONY;
+      return [
+        { text: '[Do, Fa, So, Do]', displayText: '[Do, Fa, So, Do] (I-IV-V-I progression)', type: 'snip' },
+        { text: '[Do, 2, Fa, 2, So, 2, Do, 2]', displayText: '[Do, 2, Fa, 2, ...] (Held chords)', type: 'snip' },
+        ...TOKENS_HARMONY,
+      ];
+    }
+    if (/^show$/i.test(propName)) {
       return ENUMS_SHOW;
     }
-    if (/^\s*[a-zA-Z0-9_]+\s*:/i.test(prevLine) && !/^\s*-\s*/.test(prevLine)) break;
   }
 
-  // 2. Clef settings
-  if (/(melodyClef|harmonyClef)\s*:\s*/i.test(beforeCursor)) {
-    return ENUMS_CLEF;
-  }
-
-  // 3. Notehead style
-  if (/noteheadStyle\s*:\s*/i.test(beforeCursor)) {
-    return ENUMS_NOTEHEAD_STYLE;
-  }
-
-  // 4. Melody array: inside melody: [ ... ] or on melody: line
-  if (/melody\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*melody\s*:/i.test(line)) {
-    return TOKENS_MELODY;
-  }
-
-  // 5. Rhythm array: inside rhythm: [ ... ] or on rhythm: line
-  if (/rhythm\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*rhythm\s*:/i.test(line)) {
-    return TOKENS_RHYTHM;
-  }
-
-  // 6. Harmony array: inside harmony: [ ... ] or on harmony: line
-  if (/harmony\s*:\s*\[?[^\]]*$/i.test(beforeCursor) || /^\s*harmony\s*:/i.test(line)) {
-    return TOKENS_HARMONY;
-  }
-
-  // 7. Parents / Concat reference line
-  if (/(concat|parents|parent)\s*:\s*\[?[^\]]*$/i.test(beforeCursor)) {
-    const coilRefs = coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
-    return coilRefs.length > 0 ? coilRefs : coils.map(id => ({ text: id, displayText: id, type: 'coil' }));
-  }
-
-  // 8. Coil reference (- coil: <id>)
-  if (/-\s*coil\s*:\s*[_a-zA-Z0-9]*$/i.test(beforeCursor) || /coil\s*:\s*[_a-zA-Z0-9]*$/i.test(beforeCursor)) {
-    return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
-  }
-
-  // 9. Weave reference (- weave: <id>)
-  if (/-\s*weave\s*:\s*[_a-zA-Z0-9]*$/i.test(beforeCursor) || /weave\s*:\s*[_a-zA-Z0-9]*$/i.test(beforeCursor)) {
-    return weaves.map(id => ({ text: id, displayText: id, type: 'weave', desc: 'Weave reference' }));
-  }
-
-  // 10. Children section: suggest snippets for new child coils and references
-  let inChildren = false;
-  for (let l = cursor.line - 1; l >= Math.max(0, cursor.line - 12); l--) {
-    const prevLine = cm.getLine(l);
-    if (/^\s*children\s*:/i.test(prevLine)) {
-      inChildren = true;
-      break;
+  // 2. Bullet / List Item Contexts
+  if (/^\s*-\s*/.test(line)) {
+    const parentSection = findParentSection(cm, cursor.line);
+    if (parentSection === 'show') return ENUMS_SHOW;
+    if (parentSection === 'concat' || parentSection === 'parents') {
+      return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
     }
-    if (/^\s*(coils|weaves|tapestry)\s*:/i.test(prevLine)) break;
+    if (parentSection === 'children') {
+      const childSnippets = SNIPPET_TEMPLATES.filter(s => s.context && s.context.includes('children')).map(s => ({
+        text: s.label,
+        displayText: s.displayText,
+        type: s.type,
+        desc: s.desc,
+        isSnippet: true,
+        snippet: s.snippet,
+        context: s.context
+      }));
+      const coilRefs = coils.map(id => ({ text: `coil: ${id}`, displayText: `coil: ${id}`, type: 'coil', desc: 'Child coil' }));
+      const weaveRefs = weaves.map(id => ({ text: `weave: ${id}`, displayText: `weave: ${id}`, type: 'weave', desc: 'Child weave' }));
+      return [...childSnippets, ...coilRefs, ...weaveRefs];
+    }
   }
-  if (inChildren || /^\s*-\s*/.test(line)) {
-    const childSnippets = SNIPPET_TEMPLATES.filter(s => s.context.includes('children')).map(s => ({
+
+  // 3. Block Key Position (typing a key name at start of line / indentation)
+  const currentIndent = (line.match(/^(\s*)/) || [''])[0].length;
+  const parentSection = findParentSection(cm, cursor.line);
+
+  if (currentIndent === 0) {
+    const rootSnippets = SNIPPET_TEMPLATES.filter(s => s.context && s.context.includes('root')).map(s => ({
+      text: s.label,
+      displayText: s.displayText,
+      type: s.type,
+      desc: s.desc,
+      isSnippet: true,
+      snippet: s.snippet,
+      context: s.context
+    }));
+    return [...rootSnippets, ...ROOT_KEYS];
+  }
+
+  if (parentSection === 'engraving') {
+    const engSnippets = SNIPPET_TEMPLATES.filter(s => s.context && s.context.includes('engraving')).map(s => ({
+      text: s.label,
+      displayText: s.displayText,
+      type: s.type,
+      desc: s.desc,
+      isSnippet: true,
+      snippet: s.snippet,
+      context: s.context
+    }));
+    return [...engSnippets, ...ENGRAVING_KEYS];
+  }
+
+  if (parentSection === 'knot') {
+    return [...KNOT_KEYS];
+  }
+
+  if (parentSection === 'coils' || parentSection === 'coil-body') {
+    const coilSnippets = SNIPPET_TEMPLATES.filter(s => s.context && (s.context.includes('coils') || s.context.includes('coil-body'))).map(s => ({
+      text: s.label,
+      displayText: s.displayText,
+      type: s.type,
+      desc: s.desc,
+      isSnippet: true,
+      snippet: s.snippet,
+      context: s.context
+    }));
+    return [...coilSnippets, ...COIL_KEYS];
+  }
+
+  if (parentSection === 'weaves' || parentSection === 'weave-body') {
+    const weaveSnippets = SNIPPET_TEMPLATES.filter(s => s.context && (s.context.includes('weaves') || s.context.includes('weave-body'))).map(s => ({
+      text: s.label,
+      displayText: s.displayText,
+      type: s.type,
+      desc: s.desc,
+      isSnippet: true,
+      snippet: s.snippet,
+      context: s.context
+    }));
+    return [...weaveSnippets, ...WEAVE_KEYS];
+  }
+
+  if (parentSection === 'children') {
+    const childSnippets = SNIPPET_TEMPLATES.filter(s => s.context && s.context.includes('children')).map(s => ({
       text: s.label,
       displayText: s.displayText,
       type: s.type,
@@ -561,77 +840,7 @@ function getContextSuggestions(cm, cursor) {
     return [...childSnippets, ...coilRefs, ...weaveRefs];
   }
 
-  // 11. Coils section
-  let inCoils = false;
-  for (let l = cursor.line - 1; l >= Math.max(0, cursor.line - 12); l--) {
-    const prevLine = cm.getLine(l);
-    if (/^\s*coils\s*:/i.test(prevLine)) {
-      inCoils = true;
-      break;
-    }
-    if (/^\s*(weaves|children|engraving)\s*:/i.test(prevLine)) break;
-  }
-  if (inCoils) {
-    const coilSnippets = SNIPPET_TEMPLATES.filter(s => s.context.includes('coils') || s.context.includes('coil-body')).map(s => ({
-      text: s.label,
-      displayText: s.displayText,
-      type: s.type,
-      desc: s.desc,
-      isSnippet: true,
-      snippet: s.snippet,
-      context: s.context
-    }));
-    const coilRefs = coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
-    return [...coilSnippets, ...coilRefs, ...TOP_LEVEL_KEYS];
-  }
-
-  // 12. Weaves section
-  let inWeaves = false;
-  for (let l = cursor.line - 1; l >= Math.max(0, cursor.line - 12); l--) {
-    const prevLine = cm.getLine(l);
-    if (/^\s*weaves\s*:/i.test(prevLine)) {
-      inWeaves = true;
-      break;
-    }
-    if (/^\s*(coils|engraving)\s*:/i.test(prevLine)) break;
-  }
-  if (inWeaves) {
-    const weaveSnippets = SNIPPET_TEMPLATES.filter(s => s.context.includes('weaves') || s.context.includes('weave-body')).map(s => ({
-      text: s.label,
-      displayText: s.displayText,
-      type: s.type,
-      desc: s.desc,
-      isSnippet: true,
-      snippet: s.snippet,
-      context: s.context
-    }));
-    return [...weaveSnippets, ...TOP_LEVEL_KEYS];
-  }
-
-  // 13. Engraving section
-  let inEngraving = false;
-  for (let l = cursor.line - 1; l >= Math.max(0, cursor.line - 10); l--) {
-    const prevLine = cm.getLine(l);
-    if (/^\s*engraving\s*:/i.test(prevLine)) {
-      inEngraving = true;
-      break;
-    }
-    if (/^\s*(weaves|coils|tapestry)\s*:/i.test(prevLine)) break;
-  }
-  if (inEngraving) {
-    const engravingSnippets = SNIPPET_TEMPLATES.filter(s => s.context.includes('engraving')).map(s => ({
-      text: s.label,
-      displayText: s.displayText,
-      type: s.type,
-      desc: s.desc,
-      isSnippet: true,
-      snippet: s.snippet,
-      context: s.context
-    }));
-    return [...engravingSnippets, ...ENUMS_NOTEHEAD_STYLE, ...ENUMS_CLEF, ...TOP_LEVEL_KEYS];
-  }
-
-  // General Top-Level & Fallback Suggestions
+  // General fallback
   const allSnippets = SNIPPET_TEMPLATES.map(s => ({
     text: s.label,
     displayText: s.displayText,
@@ -641,10 +850,7 @@ function getContextSuggestions(cm, cursor) {
     snippet: s.snippet,
     context: s.context
   }));
-  const coilItems = coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Declared coil' }));
-  const weaveItems = weaves.map(id => ({ text: id, displayText: id, type: 'weave', desc: 'Declared weave' }));
-
-  return [...allSnippets, ...coilItems, ...weaveItems, ...TOP_LEVEL_KEYS];
+  return [...allSnippets, ...COIL_KEYS, ...ENGRAVING_KEYS, ...ROOT_KEYS];
 }
 
 
@@ -1250,23 +1456,66 @@ CodeMirror.registerHelper('hint', 'yaml', (cm) => {
   if (!enableAutocomplete) return { list: [], from: cm.getCursor(), to: cm.getCursor() };
 
   const cur = cm.getCursor();
-  const line = cm.getLine(cur.line);
-  const token = cm.getTokenAt(cur);
-  const start = token.start;
-  const end = cur.ch;
-  const word = token.string.slice(0, end - start).replace(/^[\[\s,\-]+/, '').trim();
+  const line = cm.getLine(cur.line) || '';
+  const beforeCursor = line.slice(0, cur.ch);
+
+  // Check if typing after a colon, e.g. "harmonyVoicing: sm" or "harmonyVoicing:sm" or "harmonyVoicing: "
+  let word = '';
+  let fromCh = cur.ch;
+  const toCh = cur.ch;
+
+  const colonIdx = beforeCursor.lastIndexOf(':');
+  const openBracketIdx = beforeCursor.lastIndexOf('[');
+  const commaIdx = beforeCursor.lastIndexOf(',');
+
+  if (openBracketIdx !== -1 && openBracketIdx > beforeCursor.lastIndexOf(']')) {
+    // Inside bracket array: word is whatever is typed after last comma or bracket
+    const delimiterIdx = Math.max(openBracketIdx, commaIdx);
+    const tokenPart = beforeCursor.slice(delimiterIdx + 1);
+    const match = tokenPart.match(/^(\s*)([^\s,\]]*)$/);
+    if (match) {
+      word = match[2];
+      fromCh = delimiterIdx + 1 + match[1].length;
+    }
+  } else if (colonIdx !== -1 && colonIdx > beforeCursor.lastIndexOf('\n')) {
+    // After colon on current line
+    const afterColon = beforeCursor.slice(colonIdx + 1);
+    const match = afterColon.match(/^(\s*)([^\s]*)$/);
+    if (match) {
+      word = match[2];
+      fromCh = colonIdx + 1 + match[1].length;
+    }
+  } else if (/^\s*-\s*/.test(beforeCursor)) {
+    // In bullet list
+    const dashIdx = beforeCursor.lastIndexOf('-');
+    const afterDash = beforeCursor.slice(dashIdx + 1);
+    const match = afterDash.match(/^(\s*)([^\s]*)$/);
+    if (match) {
+      word = match[2];
+      fromCh = dashIdx + 1 + match[1].length;
+    }
+  } else {
+    // Standalone key / word
+    const match = beforeCursor.match(/([a-zA-Z0-9_\^~'#\-:]+)$/);
+    if (match) {
+      word = match[1];
+      fromCh = cur.ch - word.length;
+    }
+  }
 
   const candidates = getContextSuggestions(cm, cur);
+
+  // Filter candidates by word prefix / substring
   const filtered = word
     ? candidates.filter(item => {
-        const text = typeof item === 'string' ? item : (item.displayText || item.text || '');
-        return text.toLowerCase().includes(word.toLowerCase());
+        const text = typeof item === 'string' ? item : (item.text || item.displayText || '');
+        const cleanText = text.replace(/:\s*$/, '').replace(/^-\s*/, '');
+        const cleanWord = word.replace(/:\s*$/, '').replace(/^-\s*/, '');
+        return cleanText.toLowerCase().includes(cleanWord.toLowerCase());
       })
     : candidates;
 
-  const rawList = filtered.length > 0 ? filtered : candidates;
-
-  const list = rawList.map(item => {
+  const list = filtered.map(item => {
     const obj = typeof item === 'string' ? { text: item, displayText: item, type: 'prop' } : { ...item };
     return {
       ...obj,
@@ -1278,13 +1527,27 @@ CodeMirror.registerHelper('hint', 'yaml', (cm) => {
           const indented = indentSnippet(completion.snippet, baseIndent);
           const replaceFrom = completion.context && completion.context.includes('root')
             ? CodeMirror.Pos(cur.line, 0)
-            : CodeMirror.Pos(cur.line, start);
+            : CodeMirror.Pos(cur.line, fromCh);
           const replaceTo = CodeMirror.Pos(cur.line, line.length);
           cmInstance.replaceRange(indented, replaceFrom, replaceTo);
         } else {
-          const insertText = completion.text;
-          const fromPos = CodeMirror.Pos(cur.line, start + (token.string.length - word.length));
-          const toPos = CodeMirror.Pos(cur.line, end);
+          let insertText = completion.text;
+
+          // Check if completion is inserted after a property colon without a space
+          if (colonIdx !== -1 && openBracketIdx === -1) {
+            const hasSpaceAfterColon = /:\s+/.test(line.slice(0, fromCh));
+            if (!hasSpaceAfterColon && !insertText.startsWith(' ') && !insertText.endsWith(':')) {
+              insertText = ' ' + insertText;
+            }
+          }
+
+          // If inserting a property key, append space after colon if not already present
+          if (insertText.endsWith(':') && !insertText.endsWith(': ')) {
+            insertText = insertText + ' ';
+          }
+
+          const fromPos = CodeMirror.Pos(cur.line, fromCh);
+          const toPos = CodeMirror.Pos(cur.line, toCh);
           cmInstance.replaceRange(insertText, fromPos, toPos);
         }
         updateDeclaredIdsCache(cmInstance);
@@ -1295,8 +1558,8 @@ CodeMirror.registerHelper('hint', 'yaml', (cm) => {
 
   return {
     list: list,
-    from: CodeMirror.Pos(cur.line, start + (token.string.length - word.length)),
-    to: CodeMirror.Pos(cur.line, end),
+    from: CodeMirror.Pos(cur.line, fromCh),
+    to: CodeMirror.Pos(cur.line, toCh),
   };
 });
 
@@ -2206,7 +2469,9 @@ function updateScoreHighlights(cm) {
       'tempo', 'tonic', 'colorNotes', 'omitStem', 'octave', 'meter',
       'duration', 'harmonyOctave', 'harmonyClef', 'melodyClef',
       'voice', 'voices', 'harmonyStaffStyle', 'showHarmonyCoil',
-      'showTraditionalHarmony', 'harmonyChangesOnly', 'color'
+      'showTraditionalHarmony', 'harmonyChangesOnly', 'color',
+      'harmonyVoicing', 'melodyAugmentation', 'melodyAugmentationDisplay',
+      'projection'
     ]);
 
     // 1. Check if on a Declarative Music Layer Line (melody, harmony, rhythm, chords, pitches)

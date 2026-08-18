@@ -107,6 +107,67 @@ export const EngravingElementSchema = z.enum([
 export type EngravingElement = z.infer<typeof EngravingElementSchema>;
 
 /**
+ * Voicing styles for projecting abstract harmony chords onto concrete staves and MIDI.
+ */
+export const HarmonyVoicingEnum = z.enum([
+  'close',          // Default standard compact tertian chords
+  'rootless',       // 3rd + 7th (+ 5th/9th) without root
+  'rootFifth',      // Root + 5th (power dyads)
+  'shell',          // Root + 3rd + 7th / Root + 7th
+  'open',           // Spread voicing (1-5-10 or drop-2)
+  'smoothLead',     // Parsimonious voice leading (minimized semitone movement across chords)
+  'bassOnly',       // Root bass note only
+  'walkingBass',    // Walking bass / scalar approach notes
+  'octaves',        // Root in octaves
+]);
+
+export type HarmonyVoicing = z.infer<typeof HarmonyVoicingEnum>;
+
+/**
+ * Augmentation styles for inferring accompanying harmony notes underneath melody notes.
+ */
+export const MelodyAugmentationEnum = z.enum([
+  'none',           // No augmentation (original single melody)
+  'thirdsBelow',    // Harmonize in 3rds below (chord/scale aware)
+  'sixthsBelow',    // Harmonize in 6ths below
+  'triadClose',     // 3-note close block chord under melody
+  'drop2',          // 4-way close with second note dropped an octave
+  'guideToneDyad',  // Melody note + closest active guide tone (3rd or 7th)
+  'octaves',        // Melody doubled in octaves below
+]);
+
+export type MelodyAugmentation = z.infer<typeof MelodyAugmentationEnum>;
+
+/**
+ * Visual display styles for distinguishing inferred/augmented melody notes from authored melody notes.
+ */
+export const MelodyAugmentationDisplayEnum = z.enum([
+  'ghosted',        // Dimmed / semi-transparent notehead color (Recommended)
+  'dimmed',         // Alias for ghosted
+  'smallColored',   // Reduced notehead with Solfège stencil and chromatic color
+  'smallMuted',     // Reduced notehead in dimmed / grayscale color
+  'parenthesized',  // Standard notehead with parentheses
+  'diamond',        // Diamond notehead style
+  'normal',         // Same appearance as primary melody notes
+]);
+
+export type MelodyAugmentationDisplay = z.infer<typeof MelodyAugmentationDisplayEnum>;
+
+/**
+ * High-level projection presets that bundle recommended voicing, augmentation, and staff visibility.
+ */
+export const ProjectionPresetEnum = z.enum([
+  'default',        // Standard PPT full score
+  'chordMelody',    // Melody with triadClose / drop2 augmentation, minimal harmony staff
+  'leadSheet',      // Melody, chord names above, rhythm coil, no bulky harmony staff
+  'jazzComping',    // Rootless / shell voicings on harmony staff
+  'acousticFolk',   // Root+5th harmony, thirdsBelow melody augmentation
+  'bassAndLead',    // Walking bass / bassOnly harmony, clean melody
+]);
+
+export type ProjectionPreset = z.infer<typeof ProjectionPresetEnum>;
+
+/**
  * Engraving configuration schema: document metadata, visual styling, staves, and layout.
  */
 export const EngravingSchema = z.object({
@@ -150,6 +211,14 @@ export const EngravingSchema = z.object({
   harmonyStaffStyle: z.enum(['standard', 'coil', 'both']).optional(),
   /** Whether to show harmony chords only when changed and at bar starts with whole noteheads (default: true) */
   harmonyChangesOnly: z.boolean().optional(),
+  /** Harmony chord voicing projection style */
+  harmonyVoicing: HarmonyVoicingEnum.optional(),
+  /** Melody harmonic augmentation style (inferring accompanying notes under melody) */
+  melodyAugmentation: MelodyAugmentationEnum.optional(),
+  /** Visual presentation style for inferred melody augmentation notes */
+  melodyAugmentationDisplay: MelodyAugmentationDisplayEnum.optional(),
+  /** High-level arrangement / projection preset */
+  projection: ProjectionPresetEnum.optional(),
   /** Whether to only display chord names when the chord changes */
   chordChanges: z.boolean().optional(),
   /** Global zoom / staff size scaling factor (e.g. 1.2 for +20%, 0.8 for -20%) or absolute pt size (e.g. 24) */
@@ -213,6 +282,10 @@ export const KnotSchema = z.object({
   harmonyClef: z.string().optional(),
   noteheadStyle: z.enum(['ppt', 'sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default']).optional(),
   harmonyChangesOnly: z.boolean().optional(),
+  harmonyVoicing: HarmonyVoicingEnum.optional(),
+  melodyAugmentation: MelodyAugmentationEnum.optional(),
+  melodyAugmentationDisplay: MelodyAugmentationDisplayEnum.optional(),
+  projection: ProjectionPresetEnum.optional(),
   omitStem: z.boolean().optional(),
   colorNotes: z.boolean().optional(),
   noteheadOutline: z.boolean().optional(),
@@ -285,6 +358,8 @@ export const HarmonyObjectSchema = z.object({
   meter: RhythmLabel.optional(),
   /** Optional octave shift for this harmony layer */
   harmonyOctave: z.number().int().optional(),
+  /** Optional harmony voicing style for this layer */
+  harmonyVoicing: HarmonyVoicingEnum.optional(),
 });
 
 export type HarmonyObject = z.infer<typeof HarmonyObjectSchema>;
@@ -323,6 +398,14 @@ export interface Coil {
   harmony?: HarmonyLayer;
   /** Optional octave shift for this coil's harmony layer (e.g. 0, -1, 1) */
   harmonyOctave?: number;
+  /** Optional harmony voicing style override for this coil */
+  harmonyVoicing?: HarmonyVoicing;
+  /** Optional melody harmonic augmentation style override for this coil */
+  melodyAugmentation?: MelodyAugmentation;
+  /** Optional melody augmentation display override for this coil */
+  melodyAugmentationDisplay?: MelodyAugmentationDisplay;
+  /** Optional projection preset override for this coil */
+  projection?: ProjectionPreset;
 }
 
 /**
@@ -349,6 +432,14 @@ export const CoilSchema: z.ZodType<Coil> = z.lazy(() =>
     harmony: HarmonyLayerSchema.optional(),
     /** Optional octave shift for this coil's harmony layer (e.g. 0, -1, 1) */
     harmonyOctave: z.number().int().optional(),
+    /** Optional harmony voicing style override for this coil */
+    harmonyVoicing: HarmonyVoicingEnum.optional(),
+    /** Optional melody harmonic augmentation style override for this coil */
+    melodyAugmentation: MelodyAugmentationEnum.optional(),
+    /** Optional melody augmentation display override for this coil */
+    melodyAugmentationDisplay: MelodyAugmentationDisplayEnum.optional(),
+    /** Optional projection preset override for this coil */
+    projection: ProjectionPresetEnum.optional(),
   })
 );
 
@@ -366,6 +457,14 @@ export interface Weave {
   defaultCoil?: string | Coil;
   /** Ordered list of child coils and/or child weaves */
   children: WeaveChild[];
+  /** Optional harmony voicing style override for this weave */
+  harmonyVoicing?: HarmonyVoicing;
+  /** Optional melody harmonic augmentation style override for this weave */
+  melodyAugmentation?: MelodyAugmentation;
+  /** Optional melody augmentation display override for this weave */
+  melodyAugmentationDisplay?: MelodyAugmentationDisplay;
+  /** Optional projection preset override for this weave */
+  projection?: ProjectionPreset;
 }
 
 /**
@@ -405,6 +504,14 @@ export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
     defaultCoil: z.string().or(CoilSchema).optional(),
     /** Ordered list of child coils and/or child weaves */
     children: z.array(WeaveChildSchema).min(1),
+    /** Optional harmony voicing style override for this weave */
+    harmonyVoicing: HarmonyVoicingEnum.optional(),
+    /** Optional melody harmonic augmentation style override for this weave */
+    melodyAugmentation: MelodyAugmentationEnum.optional(),
+    /** Optional melody augmentation display override for this weave */
+    melodyAugmentationDisplay: MelodyAugmentationDisplayEnum.optional(),
+    /** Optional projection preset override for this weave */
+    projection: ProjectionPresetEnum.optional(),
   })
 );
 

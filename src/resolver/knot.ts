@@ -88,7 +88,7 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
   const harmonyClef = eng.harmonyClef ?? knotDef.harmonyClef;
   const harmonyOctave = eng.harmonyOctave ?? knotDef.harmonyOctave;
   const noteheadStyle = eng.noteheadStyle ?? knotDef.noteheadStyle;
-  const harmonyChangesOnly = eng.harmonyChangesOnly ?? knotDef.harmonyChangesOnly;
+  let harmonyChangesOnly = eng.harmonyChangesOnly ?? knotDef.harmonyChangesOnly;
   const omitStem = eng.omitStem ?? knotDef.omitStem;
   const colorNotes = eng.colorNotes ?? knotDef.colorNotes;
   const noteheadOutline = eng.noteheadOutline ?? knotDef.noteheadOutline;
@@ -96,6 +96,35 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
   const zoom = eng.zoom ?? knotDef.zoom;
   const indent = eng.indent ?? knotDef.indent;
   const chordChanges = eng.chordChanges ?? knotDef.chordChanges;
+  const projection = eng.projection ?? knotDef.projection;
+  let harmonyVoicing = eng.harmonyVoicing ?? knotDef.harmonyVoicing;
+  let melodyAugmentation = eng.melodyAugmentation ?? knotDef.melodyAugmentation;
+  let melodyAugmentationDisplay = eng.melodyAugmentationDisplay ?? knotDef.melodyAugmentationDisplay;
+
+  // Apply Projection Presets defaults if not explicitly configured
+  if (projection === 'chordMelody') {
+    if (!melodyAugmentation) melodyAugmentation = 'drop2';
+    if (showTraditionalHarmony === undefined) showTraditionalHarmony = false;
+  } else if (projection === 'leadSheet') {
+    if (!melodyAugmentation) melodyAugmentation = 'none';
+    if (showChordNames === undefined) showChordNames = true;
+    if (showHarmonyCoil === undefined) showHarmonyCoil = true;
+    if (showTraditionalHarmony === undefined) showTraditionalHarmony = false;
+  } else if (projection === 'jazzComping') {
+    if (!harmonyVoicing) harmonyVoicing = 'rootless';
+    if (harmonyChangesOnly === undefined) harmonyChangesOnly = true;
+  } else if (projection === 'acousticFolk') {
+    if (!harmonyVoicing) harmonyVoicing = 'rootFifth';
+    if (!melodyAugmentation) melodyAugmentation = 'thirdsBelow';
+  } else if (projection === 'bassAndLead') {
+    if (!harmonyVoicing) harmonyVoicing = 'walkingBass';
+    if (!melodyAugmentation) melodyAugmentation = 'none';
+  }
+
+  // Default display for inferred notes is 'ghosted' (dimmed)
+  if (!melodyAugmentationDisplay) {
+    melodyAugmentationDisplay = 'ghosted';
+  }
 
   return {
     knot: {
@@ -118,6 +147,10 @@ export function resolveKnot(tapestry: Tapestry): KnotResolutionResult {
       accidentalMode,
       noteheadStyle,
       harmonyChangesOnly,
+      harmonyVoicing,
+      melodyAugmentation,
+      melodyAugmentationDisplay,
+      projection,
       omitStem,
       colorNotes,
       noteheadOutline,

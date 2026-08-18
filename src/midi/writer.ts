@@ -110,10 +110,19 @@ export function createMidiBuffer(
 
     if (!onset.isRest) {
       const pitch = onset.midiNote;
+      const augNotes = onset.melodyAugmentationNotes ?? [];
+
       // Note On: Delta pendingMelodyDelta, 90 (channel 0), pitch, velocity 90
       track1Events.push(...toVariableLength(pendingMelodyDelta), 0x90, pitch, 0x5a);
+      for (const aug of augNotes) {
+        track1Events.push(0x00, 0x90, aug.midiNote, 0x48);
+      }
+
       // Note Off: Delta onsetDurationTicks, 80 (channel 0), pitch, velocity 0
       track1Events.push(...toVariableLength(onsetDurationTicks), 0x80, pitch, 0x00);
+      for (const aug of augNotes) {
+        track1Events.push(0x00, 0x80, aug.midiNote, 0x00);
+      }
       pendingMelodyDelta = 0;
     } else {
       pendingMelodyDelta += onsetDurationTicks;
@@ -122,7 +131,7 @@ export function createMidiBuffer(
   // End of Track
   track1Events.push(...toVariableLength(pendingMelodyDelta), 0xff, 0x2f, 0x00);
 
-  // === Track 2: Harmony Triads (Channel 1) ===
+  // === Track 2: Harmony Triads / Voicings (Channel 1) ===
   const track2Events: number[] = [];
   // Track Name: "Harmony"
   const harmonyName = Buffer.from('Harmony');
@@ -132,17 +141,23 @@ export function createMidiBuffer(
     const onsetDurationTicks = onset.durationBeats !== undefined
       ? Math.round(onset.durationBeats * ppq)
       : durationTicks;
-    const triad = onset.chordMidi; // [root, 3rd, 5th]
-    
-    // Note On for all 3 chord tones at delta 0
-    track2Events.push(0x00, 0x91, triad[0], 0x48);
-    track2Events.push(0x00, 0x91, triad[1], 0x48);
-    track2Events.push(0x00, 0x91, triad[2], 0x48);
-    
-    // Note Off for all 3 chord tones after durationTicks
-    track2Events.push(...toVariableLength(onsetDurationTicks), 0x81, triad[0], 0x00);
-    track2Events.push(0x00, 0x81, triad[1], 0x00);
-    track2Events.push(0x00, 0x81, triad[2], 0x00);
+    const chord = onset.chordMidi; // [root, 3rd, 5th, ...]
+
+    if (chord.length > 0) {
+      // Note On for all chord tones at delta 0
+      for (const note of chord) {
+        track2Events.push(0x00, 0x91, note, 0x48);
+      }
+
+      // Note Off after durationTicks
+      track2Events.push(...toVariableLength(onsetDurationTicks), 0x81, chord[0], 0x00);
+      for (let c = 1; c < chord.length; c++) {
+        track2Events.push(0x00, 0x81, chord[c], 0x00);
+      }
+    } else {
+      // Empty chord rest
+      track2Events.push(...toVariableLength(onsetDurationTicks), 0x91, 0x00, 0x00);
+    }
   }
   // End of Track
   track2Events.push(0x00, 0xff, 0x2f, 0x00);

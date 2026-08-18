@@ -1,0 +1,18 @@
+id: snip-engraving-projections
+label: Arrangement Projections Preset
+displayText: Arrangement Projections Preset
+desc: Harmony voicings & melody augmentation projection settings
+category: Snippets
+icon: 🎼
+context:
+  - engraving
+snippet: |
+  # Arrangement Projections:
+  # harmonyVoicing: close | rootless | rootFifth | shell | open | smoothLead | bassOnly | walkingBass | octaves
+  harmonyVoicing: smoothLead
+  # melodyAugmentation: none | thirdsBelow | sixthsBelow | triadClose | drop2 | guideToneDyad | octaves
+  melodyAugmentation: thirdsBelow
+  # melodyAugmentationDisplay: ghosted | dimmed | smallColored | smallMuted | parenthesized | diamond
+  melodyAugmentationDisplay: ghosted
+  # projection preset: chordMelody | leadSheet | jazzComping | acousticFolk | bassAndLead
+  # projection: chordMelody

@@ -218,6 +218,14 @@ export interface ResolvedKnot {
   tonicName?: string;
   /** Global octave shift for harmony layer */
   harmonyOctave?: number;
+  /** Harmony chord voicing projection style */
+  harmonyVoicing?: 'close' | 'rootless' | 'rootFifth' | 'shell' | 'open' | 'smoothLead' | 'bassOnly' | 'walkingBass' | 'octaves';
+  /** Melody harmonic augmentation style */
+  melodyAugmentation?: 'none' | 'thirdsBelow' | 'sixthsBelow' | 'triadClose' | 'drop2' | 'guideToneDyad' | 'octaves';
+  /** Visual presentation style for inferred melody augmentation notes */
+  melodyAugmentationDisplay?: 'ghosted' | 'dimmed' | 'smallColored' | 'smallMuted' | 'parenthesized' | 'diamond' | 'normal';
+  /** High-level arrangement / projection preset */
+  projection?: 'default' | 'chordMelody' | 'leadSheet' | 'jazzComping' | 'acousticFolk' | 'bassAndLead';
 }
 
 

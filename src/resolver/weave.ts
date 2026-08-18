@@ -143,59 +143,75 @@ export function resolveWeave(
         }
       }
 
-      const { onsets, warnings } = resolveCoil(
-        coil,
-        knot,
-        coilLibrary,
-        effectiveDefaultCoil,
-      );
-      allWarnings.push(...warnings);
+        // Cascade weave-level projection overrides to child coil if not set on coil
+        if (coil.harmonyVoicing === undefined && weave.harmonyVoicing !== undefined) {
+          coil.harmonyVoicing = weave.harmonyVoicing;
+        }
+        if (coil.melodyAugmentation === undefined && weave.melodyAugmentation !== undefined) {
+          coil.melodyAugmentation = weave.melodyAugmentation;
+        }
+        if (coil.melodyAugmentationDisplay === undefined && weave.melodyAugmentationDisplay !== undefined) {
+          coil.melodyAugmentationDisplay = weave.melodyAugmentationDisplay;
+        }
+        if (coil.projection === undefined && weave.projection !== undefined) {
+          coil.projection = weave.projection;
+        }
 
-      // Map resolved onsets to tagged Onset objects
-      const coilId = coil.id ?? `coil_${anonymousCoilCounter}`;
-      const isMultiVoiceCoil = onsets.some(o => (o.voiceIndex ?? 1) > 1);
-      const voiceOnsetCounters = new Map<number, number>();
+        const { onsets, warnings } = resolveCoil(
+          coil,
+          knot,
+          coilLibrary,
+          effectiveDefaultCoil,
+        );
+        allWarnings.push(...warnings);
 
-      for (let i = 0; i < onsets.length; i++) {
-        const onset = onsets[i];
-        const voiceIndex = onset.voiceIndex ?? 1;
-        const currentVoiceCount = (voiceOnsetCounters.get(voiceIndex) ?? 0) + 1;
-        voiceOnsetCounters.set(voiceIndex, currentVoiceCount);
-        const onsetIndex = currentVoiceCount;
+        // Map resolved onsets to tagged Onset objects
+        const coilId = coil.id ?? `coil_${anonymousCoilCounter}`;
+        const isMultiVoiceCoil = onsets.some(o => (o.voiceIndex ?? 1) > 1);
+        const voiceOnsetCounters = new Map<number, number>();
 
-        const tag = isMultiVoiceCoil
-          ? `ppt_${effectiveWeaveId}_${coilId}_v${voiceIndex}_${onsetIndex}`
-          : `ppt_${effectiveWeaveId}_${coilId}_${onsetIndex}`;
+        for (let i = 0; i < onsets.length; i++) {
+          const onset = onsets[i];
+          const voiceIndex = onset.voiceIndex ?? 1;
+          const currentVoiceCount = (voiceOnsetCounters.get(voiceIndex) ?? 0) + 1;
+          voiceOnsetCounters.set(voiceIndex, currentVoiceCount);
+          const onsetIndex = currentVoiceCount;
 
-        allOnsets.push({
-          tag,
-          pitch: onset.isRest ? 'r' : midiToPitchName(onset.melodyMidi, knot.accidentalMode),
-          midiNote: onset.melodyMidi,
-          scaleDegree: onset.scaleDegree,
-          isRest: onset.isRest,
-          chordTones: onset.chordMidi.map(m => midiToPitchName(m, knot.accidentalMode)),
-          chordMidi: [...onset.chordMidi],
-          chordRoot: onset.chordRoot,
-          coilId: coilId,
-          weaveId: effectiveWeaveId,
-          onsetIndex,
-          voiceIndex,
-          rhythmToken: onset.rhythmToken,
-          startBeat: onset.startBeat,
-          durationBeats: onset.durationBeats,
-          duration: onset.duration,
-          sourceCoilId: onset.sourceCoilId || coilId,
-          sourceOnsetIndex: onset.sourceOnsetIndex || onsetIndex,
-          melodySourceCoil: onset.melodySourceCoil || coilId,
-          rhythmSourceCoil: onset.rhythmSourceCoil || coilId,
-          harmonySourceCoil: onset.harmonySourceCoil || coilId,
-        });
+          const tag = isMultiVoiceCoil
+            ? `ppt_${effectiveWeaveId}_${coilId}_v${voiceIndex}_${onsetIndex}`
+            : `ppt_${effectiveWeaveId}_${coilId}_${onsetIndex}`;
+
+          allOnsets.push({
+            tag,
+            pitch: onset.isRest ? 'r' : midiToPitchName(onset.melodyMidi, knot.accidentalMode),
+            midiNote: onset.melodyMidi,
+            scaleDegree: onset.scaleDegree,
+            isRest: onset.isRest,
+            chordTones: onset.chordMidi.map(m => midiToPitchName(m, knot.accidentalMode)),
+            chordMidi: [...onset.chordMidi],
+            projectedChordMidi: [...onset.chordMidi],
+            chordRoot: onset.chordRoot,
+            coilId: coilId,
+            weaveId: effectiveWeaveId,
+            onsetIndex,
+            voiceIndex,
+            rhythmToken: onset.rhythmToken,
+            startBeat: onset.startBeat,
+            durationBeats: onset.durationBeats,
+            duration: onset.duration,
+            sourceCoilId: onset.sourceCoilId || coilId,
+            sourceOnsetIndex: onset.sourceOnsetIndex || onsetIndex,
+            melodySourceCoil: onset.melodySourceCoil || coilId,
+            rhythmSourceCoil: onset.rhythmSourceCoil || coilId,
+            harmonySourceCoil: onset.harmonySourceCoil || coilId,
+            melodyAugmentationNotes: onset.melodyAugmentationNotes ? [...onset.melodyAugmentationNotes] : undefined,
+          });
+        }
+      } else {
+        throw new Error(`Invalid Weave child in weave "${effectiveWeaveId}"`);
       }
-    } else {
-      throw new Error(`Invalid Weave child in weave "${effectiveWeaveId}"`);
     }
-  }
 
-  return { onsets: allOnsets, warnings: allWarnings };
-}
+    return { onsets: allOnsets, warnings: allWarnings };
+  }
 

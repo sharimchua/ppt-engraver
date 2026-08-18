@@ -54,6 +54,16 @@ export const OnsetSchema = z.object({
   rhythmSourceCoil: z.string().optional(),
   /** Provenance: coil where harmony was defined (local or inherited parent) */
   harmonySourceCoil: z.string().optional(),
+  /** Optional augmented harmonic accompaniment notes generated for this melody onset */
+  melodyAugmentationNotes: z.array(
+    z.object({
+      midiNote: z.number().int(),
+      scaleDegree: z.string(),
+      isInferred: z.boolean().optional(),
+    })
+  ).optional(),
+  /** Optional projected chord MIDI notes according to the active harmonyVoicing */
+  projectedChordMidi: z.array(z.number().int()).optional(),
 });
 
 /**
