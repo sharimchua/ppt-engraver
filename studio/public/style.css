@@ -322,32 +322,31 @@ body.resizing-panels iframe {
 .cm-ppt-le, .cm-ppt-la, .cm-ppt-li { color: #c084fc !important; font-weight: 600; }
 .cm-ppt-te, .cm-ppt-ti { color: #f472b6 !important; font-weight: 600; }
 
-/* Live Contextual Solfège Strip */
-.solfege-context-bar {
-  background-color: #181a20;
-  border-top: 1px solid var(--border-color);
-  padding: 8px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-  overflow-x: auto;
+/* CodeMirror Inline Melody Coil Preview Widget */
+.cm-inline-solfege-widget {
+  background: #1e222b;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-left: 3px solid var(--primary);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 4px 12px 6px 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   font-family: var(--font-mono);
   font-size: 11px;
+  user-select: none;
 }
 
-.solfege-context-bar.hidden {
-  display: none !important;
-}
-
-.context-bar-header {
+.cm-inline-solfege-widget .widget-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.context-coil-title {
+.cm-inline-solfege-widget .widget-title {
+  font-size: 11px;
   font-weight: 600;
   color: var(--primary);
   display: flex;
@@ -355,61 +354,88 @@ body.resizing-panels iframe {
   gap: 6px;
 }
 
-.context-key-badge {
+.cm-inline-solfege-widget .widget-coil-badge {
   background: var(--bg-surface);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--text-muted);
+  color: var(--text-dim);
   font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
   border: 1px solid var(--border-color);
 }
 
-.context-tokens-grid {
+.cm-inline-solfege-widget .widget-row {
   display: flex;
-  gap: 5px;
-  overflow-x: auto;
-  padding-bottom: 2px;
+  align-items: center;
+  margin-bottom: 5px;
+  gap: 8px;
 }
 
-.context-token-col {
+.cm-inline-solfege-widget .widget-row:last-child {
+  margin-bottom: 0;
+}
+
+.cm-inline-solfege-widget .widget-row-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  width: 105px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cm-inline-solfege-widget .widget-cells {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  align-items: center;
+}
+
+.cm-inline-solfege-widget .widget-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 38px;
-  padding: 4px 6px;
+  justify-content: center;
+  min-width: 32px;
+  padding: 2px 4px;
   background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  gap: 2px;
-  text-align: center;
   transition: all 0.15s ease;
-  user-select: none;
 }
 
-.context-token-col.active-token {
-  background: rgba(59, 130, 246, 0.2);
+.cm-inline-solfege-widget .widget-cell.active-token {
+  background: rgba(59, 130, 246, 0.22);
   border-color: var(--primary);
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.45);
 }
 
-.context-token-col .col-src {
-  font-weight: 700;
-  font-size: 11px;
+.cm-inline-solfege-widget .glyph-wrapper {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.context-token-col .col-abs {
-  font-size: 10px;
+.cm-inline-solfege-widget .cell-sub {
+  font-size: 9px;
   font-weight: 600;
-}
-
-.context-token-col .col-int {
-  font-size: 9px;
-  color: var(--text-dim);
-}
-
-.context-token-col .col-note {
-  font-size: 9px;
   color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.cm-inline-solfege-widget .widget-cell.active-token .cell-sub {
+  color: #ffffff;
+}
+
+.cm-inline-solfege-widget .rest-cell {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Error Banner */

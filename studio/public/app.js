@@ -223,38 +223,152 @@ CodeMirror.registerHelper('hint', 'yaml', (cm) => {
   };
 });
 
-// Pitch Semitone Map & Scale Information
-const SEMITONE_MAP = {
-  do: 0, dox: null, ra: 1, di: 1, re: 2, me: 3, ri: 3, mi: 4, fa: 5, fi: 6, se: 6, so: 7, si: 7, le: 8, la: 9, li: 9, te: 10, ti: 11
+// --- Solfège SVG Glyph Definitions (PPT Geometric Rotations & Palettes) ---
+const SOLFEGE_GLYPH_SPECS = {
+  Do: { glyphType: 'base', rotation: 0, colorHex: '#E13610' },
+  Ra: { glyphType: 'sharp', rotation: 0, colorHex: '#F98016' },
+  Di: { glyphType: 'sharp', rotation: 0, colorHex: '#F98016' },
+  Re: { glyphType: 'flat', rotation: 270, colorHex: '#F98016' },
+  Me: { glyphType: 'base', rotation: 270, colorHex: '#F5D432' },
+  Ri: { glyphType: 'base', rotation: 270, colorHex: '#F5D432' },
+  Mi: { glyphType: 'sharp', rotation: 270, colorHex: '#F5D432' },
+  Fa: { glyphType: 'flat', rotation: 180, colorHex: '#43A440' },
+  Fi: { glyphType: 'base', rotation: 180, colorHex: '#141414' },
+  Se: { glyphType: 'base', rotation: 180, colorHex: '#141414' },
+  So: { glyphType: 'sharp', rotation: 180, colorHex: '#0032A4' },
+  Le: { glyphType: 'flat', rotation: 90, colorHex: '#5300A4' },
+  Si: { glyphType: 'flat', rotation: 90, colorHex: '#5300A4' },
+  La: { glyphType: 'base', rotation: 90, colorHex: '#5300A4' },
+  Te: { glyphType: 'sharp', rotation: 90, colorHex: '#F158A4' },
+  Li: { glyphType: 'sharp', rotation: 90, colorHex: '#F158A4' },
+  Ti: { glyphType: 'flat', rotation: 0, colorHex: '#F158A4' },
 };
 
-const INTERVAL_NAMES = ['P1', 'm2', 'M2', 'm3', 'M3', 'P4', 'TT', 'P5', 'm6', 'M6', 'm7', 'M7'];
-const CHROMATIC_SCALE = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+const SYLLABLE_SEMITONES = {
+  do: 0, ra: 1, di: 1, re: 2, me: 3, ri: 3, mi: 4, fa: 5, fi: 6, se: 6, so: 7, si: 7, le: 8, la: 9, li: 9, te: 10, ti: 11
+};
 
-function getTonicOffset(tonicStr) {
-  if (!tonicStr) return 9; // default A
-  const t = tonicStr.trim();
-  const noteOffsets = { 'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11 };
-  return noteOffsets[t] !== undefined ? noteOffsets[t] : 9;
+const NEAREST_ADDRESS = [0, 1, 2, 3, 4, 5, 6, -5, -4, -3, -2, -1];
+const INTERVAL_MAP = {
+  0: 'Do',
+  1: 'Ra',
+  2: 'Re',
+  3: 'Me',
+  4: 'Mi',
+  5: 'Fa',
+  6: 'Fi',
+  [-1]: 'Ti',
+  [-2]: 'Te',
+  [-3]: 'La',
+  [-4]: 'Le',
+  [-5]: 'So',
+};
+
+function semitoneIntervalToSolfege(semitones) {
+  if (INTERVAL_MAP[semitones] !== undefined) {
+    return INTERVAL_MAP[semitones];
+  }
+  const mod = ((semitones % 12) + 12) % 12;
+  const nearest = NEAREST_ADDRESS[mod];
+  const oct = Math.round((semitones - nearest) / 12);
+  const baseSyllable = INTERVAL_MAP[nearest] || 'Do';
+  if (oct > 0) return baseSyllable + '^'.repeat(oct);
+  if (oct < 0) return baseSyllable + '_'.repeat(-oct);
+  return baseSyllable;
 }
 
-function updateSolfegeContextStrip() {
-  if (!enableSolfegeContext || !solfegeContextBar) {
-    if (solfegeContextBar) solfegeContextBar.classList.add('hidden');
+function createSolfegeGlyphSvg(syllable, hasAxis = false, size = 20) {
+  const cleanSyl = syllable.replace(/[\^_0-9\.]/g, '');
+  const spec = SOLFEGE_GLYPH_SPECS[cleanSyl] || SOLFEGE_GLYPH_SPECS['Do'];
+
+  const color = spec ? spec.colorHex : '#E13610';
+  const rot = spec ? spec.rotation : 0;
+  const glyphType = spec ? spec.glyphType : 'base';
+
+  let pathD = '';
+  if (glyphType === 'base') {
+    pathD = 'M 0,-8 L 6.5,-1.5 L 4.5,7 L -4.5,7 L -6.5,-1.5 Z';
+  } else if (glyphType === 'sharp') {
+    pathD = 'M 0,-8.5 L 7.5,6 L -7.5,6 Z';
+  } else {
+    pathD = 'M 0,-8 C 5,-8 7,-2 7,3.5 L -7,3.5 C -7,-2 -5,-8 0,-8 Z';
+  }
+
+  const axisSvg = hasAxis
+    ? `<line x1="-10" y1="0" x2="10" y2="0" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`
+    : '';
+
+  return `
+    <svg viewBox="-12 -12 24 24" width="${size}" height="${size}" style="display:block; overflow:visible;">
+      <g transform="rotate(${rot})">
+        <path d="${pathD}" fill="${color}" stroke="#1e2127" stroke-width="1.8" stroke-linejoin="round" />
+        ${axisSvg}
+      </g>
+    </svg>
+  `;
+}
+
+function parseMelodyToken(tokStr) {
+  const s = tokStr.trim();
+  if (!s || s.toLowerCase() === 'dox') {
+    return { isRest: true, raw: s, syllable: 'Dox', octStr: '', semitones: 0, totalMidi: 60 };
+  }
+  const match = s.match(/^([A-Za-z]+)([\^_]*)/);
+  if (!match) return { isRest: true, raw: s, syllable: 'Dox', octStr: '', semitones: 0, totalMidi: 60 };
+
+  const syl = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+  const octStr = match[2] || '';
+  const octUp = (octStr.match(/\^/g) || []).length;
+  const octDown = (octStr.match(/_/g) || []).length;
+  const octShift = octUp - octDown;
+
+  const baseSemi = SYLLABLE_SEMITONES[syl.toLowerCase()] ?? 0;
+  const totalMidi = 60 + baseSemi + octShift * 12;
+
+  return { isRest: false, raw: s, syllable: syl, octStr, semitones: baseSemi, totalMidi };
+}
+
+// Inline Line Widget State
+let currentInlineWidget = null;
+let currentInlineWidgetLine = -1;
+
+function clearInlineWidget() {
+  if (currentInlineWidget) {
+    currentInlineWidget.clear();
+    currentInlineWidget = null;
+    currentInlineWidgetLine = -1;
+  }
+}
+
+function updateInlineSolfegeWidget() {
+  if (!enableSolfegeContext) {
+    clearInlineWidget();
     return;
   }
 
   const cur = editor.getCursor();
-  const docText = editor.getValue();
   const currentLine = editor.getLine(cur.line) || '';
 
-  // Extract tonic from document
-  const tonicMatch = docText.match(/^\s*tonic\s*:\s*([A-Ga-g][#b]?)/m);
-  const tonicNote = tonicMatch ? tonicMatch[1].toUpperCase() : 'A';
-  const tonicOffset = getTonicOffset(tonicNote);
+  // Check if current line contains a melody array
+  if (!/melody\s*:\s*\[/.test(currentLine)) {
+    clearInlineWidget();
+    return;
+  }
 
-  // Detect current coil/weave ID by looking backward
-  let coilId = 'Root';
+  const arrayMatch = currentLine.match(/melody\s*:\s*\[(.*?)\]/);
+  if (!arrayMatch) {
+    clearInlineWidget();
+    return;
+  }
+
+  const rawTokens = arrayMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+  if (rawTokens.length === 0) {
+    clearInlineWidget();
+    return;
+  }
+
+  // Detect active coil ID
+  let coilId = 'Coil';
   for (let l = cur.line; l >= 0; l--) {
     const lineText = editor.getLine(l);
     const m = lineText.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
@@ -264,121 +378,157 @@ function updateSolfegeContextStrip() {
     }
   }
 
-  // Find melody array: either on current line, or search within coil block
-  let melodyLine = '';
-  let isCurrentLineMelody = false;
-  if (/melody\s*:\s*\[/.test(currentLine)) {
-    melodyLine = currentLine;
-    isCurrentLineMelody = true;
-  } else {
-    // Search nearby lines in same block
-    for (let l = cur.line - 1; l >= Math.max(0, cur.line - 12); l--) {
-      const lineText = editor.getLine(l);
-      if (/melody\s*:\s*\[/.test(lineText)) {
-        melodyLine = lineText;
+  // Find token index under cursor
+  let activeTokenIndex = -1;
+  const arrayStartCh = currentLine.indexOf('[');
+  let searchPos = arrayStartCh + 1;
+  for (let i = 0; i < rawTokens.length; i++) {
+    const tokStr = rawTokens[i];
+    const tokIdx = currentLine.indexOf(tokStr, searchPos);
+    if (tokIdx !== -1) {
+      const tokEnd = tokIdx + tokStr.length;
+      if (cur.ch >= tokIdx && cur.ch <= tokEnd) {
+        activeTokenIndex = i;
         break;
       }
-      if (/^\s*[a-zA-Z0-9_]+\s*:/i.test(lineText) && !/^\s*-\s*/.test(lineText)) break;
+      searchPos = tokEnd;
     }
   }
 
-  if (!melodyLine) {
-    solfegeContextBar.classList.add('hidden');
-    return;
-  }
+  // Compute Melody Absolute and Melody Interval token sequences
+  const parsedItems = rawTokens.map(parseMelodyToken);
+  const intervalTokens = [];
+  const absoluteTokens = [];
 
-  // Parse tokens from melody array
-  const arrayMatch = melodyLine.match(/melody\s*:\s*\[(.*?)\]/);
-  if (!arrayMatch) {
-    solfegeContextBar.classList.add('hidden');
-    return;
-  }
+  let firstNonRestFound = false;
+  let prevMidi = 60;
 
-  const rawTokens = arrayMatch[1].split(',').map(s => s.trim()).filter(Boolean);
-  if (rawTokens.length === 0) {
-    solfegeContextBar.classList.add('hidden');
-    return;
-  }
+  for (let i = 0; i < parsedItems.length; i++) {
+    const item = parsedItems[i];
+    if (item.isRest) {
+      intervalTokens.push({ isRest: true, label: 'Dox' });
+      absoluteTokens.push({ isRest: true, label: 'Dox' });
+    } else {
+      // 1. Melody Absolute: absolute scale degree
+      absoluteTokens.push({
+        isRest: false,
+        syllable: item.syllable,
+        octStr: item.octStr,
+        label: item.syllable + item.octStr,
+      });
 
-  // Find token index under cursor if on melody line
-  let activeTokenIndex = -1;
-  if (isCurrentLineMelody) {
-    const arrayStartCh = melodyLine.indexOf('[');
-    let searchPos = arrayStartCh + 1;
-    for (let i = 0; i < rawTokens.length; i++) {
-      const tokStr = rawTokens[i];
-      const tokIdx = melodyLine.indexOf(tokStr, searchPos);
-      if (tokIdx !== -1) {
-        const tokEnd = tokIdx + tokStr.length;
-        if (cur.ch >= tokIdx && cur.ch <= tokEnd) {
-          activeTokenIndex = i;
-          break;
-        }
-        searchPos = tokEnd;
+      // 2. Melody Interval
+      if (!firstNonRestFound) {
+        firstNonRestFound = true;
+        prevMidi = item.totalMidi;
+        intervalTokens.push({
+          isRest: false,
+          syllable: item.syllable,
+          octStr: item.octStr,
+          hasAxis: true,
+          label: `${item.syllable}${item.octStr}x`,
+        });
+      } else {
+        const diff = item.totalMidi - prevMidi;
+        prevMidi = item.totalMidi;
+        const intSyl = semitoneIntervalToSolfege(diff);
+        const intClean = intSyl.replace(/[\^_]/g, '');
+        intervalTokens.push({
+          isRest: false,
+          syllable: intClean,
+          octStr: intSyl.slice(intClean.length),
+          hasAxis: false,
+          label: intSyl,
+        });
       }
     }
   }
 
-  // Render tokens
-  solfegeContextBar.classList.remove('hidden');
-  contextCoilTitle.textContent = `🎵 Coil: ${coilId} (Melody Tokens)`;
-  contextKeyBadge.textContent = `Key: ${tonicNote} (Do = ${tonicNote})`;
+  // Construct Widget DOM
+  const widgetNode = document.createElement('div');
+  widgetNode.className = 'cm-inline-solfege-widget';
 
-  contextTokensGrid.innerHTML = '';
-  rawTokens.forEach((tok, idx) => {
-    const col = document.createElement('div');
-    col.className = 'context-token-col';
-    if (idx === activeTokenIndex) col.classList.add('active-token');
+  const header = document.createElement('div');
+  header.className = 'widget-header';
+  header.innerHTML = `
+    <span class="widget-title">🎼 Melody Coil Preview: <code>${coilId}</code></span>
+    <span class="widget-coil-badge">Line ${cur.line + 1}</span>
+  `;
+  widgetNode.appendChild(header);
 
-    const baseSyl = tok.replace(/[\^_0-9\.]/g, '').toLowerCase();
-    const isRest = baseSyl === 'dox';
-    const semitones = SEMITONE_MAP[baseSyl];
+  const rowsContainer = document.createElement('div');
+  rowsContainer.className = 'widget-rows-container';
 
-    // Source token with color class
-    const srcSpan = document.createElement('span');
-    srcSpan.className = `col-src cm-${SOLFEGE_COLOR_MAP[baseSyl] || 'ppt-do'}`;
-    srcSpan.textContent = tok;
+  // Row 1: Melody Interval
+  const rowInterval = document.createElement('div');
+  rowInterval.className = 'widget-row';
+  const lblInt = document.createElement('span');
+  lblInt.className = 'widget-row-label';
+  lblInt.textContent = 'Melody Interval:';
+  rowInterval.appendChild(lblInt);
 
-    // Absolute Solfège degree
-    const absSpan = document.createElement('span');
-    absSpan.className = `col-abs cm-${SOLFEGE_COLOR_MAP[baseSyl] || 'ppt-do'}`;
-    absSpan.textContent = isRest ? '(rest)' : (baseSyl.charAt(0).toUpperCase() + baseSyl.slice(1));
-
-    // Interval name / offset
-    const intSpan = document.createElement('span');
-    intSpan.className = 'col-int';
-    if (isRest || semitones === null || semitones === undefined) {
-      intSpan.textContent = '-';
+  const cellsInt = document.createElement('div');
+  cellsInt.className = 'widget-cells';
+  intervalTokens.forEach((tok, idx) => {
+    const cell = document.createElement('div');
+    cell.className = `widget-cell ${idx === activeTokenIndex ? 'active-token' : ''}`;
+    if (tok.isRest) {
+      cell.innerHTML = `
+        <div class="glyph-wrapper rest-cell">𝄽</div>
+        <span class="cell-sub">Dox</span>
+      `;
     } else {
-      const intName = INTERVAL_NAMES[semitones % 12];
-      intSpan.textContent = `${intName} (+${semitones})`;
+      cell.innerHTML = `
+        <div class="glyph-wrapper">${createSolfegeGlyphSvg(tok.syllable, tok.hasAxis, 20)}</div>
+        <span class="cell-sub">${tok.label}</span>
+      `;
     }
-
-    // Absolute Note Name (e.g. A4, C5)
-    const noteSpan = document.createElement('span');
-    noteSpan.className = 'col-note';
-    if (isRest || semitones === null || semitones === undefined) {
-      noteSpan.textContent = '—';
-    } else {
-      const noteIdx = (tonicOffset + semitones) % 12;
-      const noteName = CHROMATIC_SCALE[noteIdx];
-      const octOffset = (tok.match(/\^/g) || []).length - (tok.match(/_/g) || []).length;
-      const octave = 4 + octOffset + Math.floor((tonicOffset + semitones) / 12);
-      noteSpan.textContent = `${noteName}${octave}`;
-    }
-
-    col.appendChild(srcSpan);
-    col.appendChild(absSpan);
-    col.appendChild(intSpan);
-    col.appendChild(noteSpan);
-    contextTokensGrid.appendChild(col);
+    cellsInt.appendChild(cell);
   });
+  rowInterval.appendChild(cellsInt);
+  rowsContainer.appendChild(rowInterval);
+
+  // Row 2: Melody Absolute
+  const rowAbsolute = document.createElement('div');
+  rowAbsolute.className = 'widget-row';
+  const lblAbs = document.createElement('span');
+  lblAbs.className = 'widget-row-label';
+  lblAbs.textContent = 'Melody Absolute:';
+  rowAbsolute.appendChild(lblAbs);
+
+  const cellsAbs = document.createElement('div');
+  cellsAbs.className = 'widget-cells';
+  absoluteTokens.forEach((tok, idx) => {
+    const cell = document.createElement('div');
+    cell.className = `widget-cell ${idx === activeTokenIndex ? 'active-token' : ''}`;
+    if (tok.isRest) {
+      cell.innerHTML = `
+        <div class="glyph-wrapper rest-cell">𝄽</div>
+        <span class="cell-sub">Dox</span>
+      `;
+    } else {
+      cell.innerHTML = `
+        <div class="glyph-wrapper">${createSolfegeGlyphSvg(tok.syllable, false, 20)}</div>
+        <span class="cell-sub">${tok.label}</span>
+      `;
+    }
+    cellsAbs.appendChild(cell);
+  });
+  rowAbsolute.appendChild(cellsAbs);
+  rowsContainer.appendChild(rowAbsolute);
+
+  widgetNode.appendChild(rowsContainer);
+
+  // Clear previous and add above current line
+  clearInlineWidget();
+  currentInlineWidget = editor.addLineWidget(cur.line, widgetNode, { above: true, coverGutter: false, noHScroll: true });
+  currentInlineWidgetLine = cur.line;
 }
 
 // Editor change event
 editor.on('change', () => {
   setDirty(true);
-  updateSolfegeContextStrip();
+  updateInlineSolfegeWidget();
   clearTimeout(compileDebounceTimer);
   compileDebounceTimer = setTimeout(() => {
     triggerCompile();
@@ -387,7 +537,7 @@ editor.on('change', () => {
 
 // Cursor activity event for real-time line context
 editor.on('cursorActivity', () => {
-  updateSolfegeContextStrip();
+  updateInlineSolfegeWidget();
 });
 
 // DOM Elements
@@ -405,10 +555,6 @@ const errorContent = document.getElementById('error-content');
 const scoreCanvas = document.getElementById('score-canvas');
 const scoreSvgContainer = document.getElementById('score-svg-container');
 const scorePlaceholder = document.getElementById('score-placeholder');
-const solfegeContextBar = document.getElementById('solfege-context-bar');
-const contextCoilTitle = document.getElementById('context-coil-title');
-const contextKeyBadge = document.getElementById('context-key-badge');
-const contextTokensGrid = document.getElementById('context-tokens-grid');
 const lilypondCode = document.getElementById('lilypond-code');
 const btnCopyLy = document.getElementById('btn-copy-ly');
 const onsetsTbody = document.getElementById('onsets-tbody');
@@ -969,7 +1115,7 @@ btnSaveSettings.addEventListener('click', async () => {
   if (settingEnableSolfegeContext) {
     enableSolfegeContext = settingEnableSolfegeContext.checked;
     localStorage.setItem('ppt_enable_solfege_context', String(enableSolfegeContext));
-    updateSolfegeContextStrip();
+    updateInlineSolfegeWidget();
   }
 
   try {
