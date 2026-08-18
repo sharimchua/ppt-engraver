@@ -315,6 +315,9 @@ function createSolfegeGlyphSvg(syllable, hasAxis = false, size = 18) {
 }
 
 function splitSyllables(word) {
+  if (!isValidSolfegeToken(word)) {
+    return [];
+  }
   const SYL_REGEX = /(Dox|Rax|Dix|Rex|Mex|Rix|Mix|Fax|Fix|Sex|Sox|Lex|Six|Lax|Tex|Lix|Tix|Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)([\^_]*)/gi;
   const parts = [];
   let m;
@@ -354,11 +357,26 @@ function updateInlineSolfegeWidget() {
   const cur = editor.getCursor();
   const currentLine = editor.getLine(cur.line) || '';
 
-  // Extract all words on this line
+  // Strictly scope preview to melody, harmony, and rhythm lines
+  const isMusicLine = /^\s*(melody|harmony|rhythm)\s*:\s*\[/i.test(currentLine) ||
+                      /^\s*(melody|harmony|rhythm)\s*:/i.test(currentLine) ||
+                      /^\s*-\s+(?:Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti)/i.test(currentLine);
+
+  if (!isMusicLine) {
+    clearInlineWidget();
+    return;
+  }
+
+  const colonIdx = currentLine.indexOf(':');
+
+  // Extract all words on this line (only after key colon if present)
   const wordRegex = /\b([A-Za-z0-9\^_]+)\b/g;
   const matches = [];
   let m;
   while ((m = wordRegex.exec(currentLine)) !== null) {
+    if (colonIdx !== -1 && m.index <= colonIdx) {
+      continue; // Skip the property name key (e.g. "melody", "harmony", "rhythm")
+    }
     const rawWord = m[1];
     const parts = splitSyllables(rawWord);
     if (parts.length > 0) {
