@@ -50,3 +50,4 @@ src/
 - **Pure Functional Core**: Keep AST resolution and Solfège mapping free from side effects and file I/O where possible.
 - **Never Break Interval Geometry**: Ensure `semitoneIntervalToSolfege` always follows the PPT chromatic wheel (Do=0, Ra=1, Re=2, Me=3, Mi=4, Fa=5, Fi=6, So=7, Le=8, La=9, Te=10, Ti=11).
 - **Maintain Test Suite**: When adding new musical attributes or schema properties, update corresponding unit tests in `test/`.
+- **Synchronize README & DOX**: When extending or modifying syntax (e.g. Solfège pitch tokens, rhythm subdivisions/suffixes, harmony inversions/voicings, arrangement projections) or compiler schema options, ensure `README.md` and local `AGENTS.md` docs are updated to document the new user-facing capabilities.

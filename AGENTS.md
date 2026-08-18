@@ -11,6 +11,7 @@
   4. Use the nearest `AGENTS.md` as the local contract and parent docs for repository-wide rules.
 - **Update After Editing**:
   - Every meaningful change requires a DOX pass to keep docs aligned with implementation.
+  - Whenever new musical features, grammar rules, schema properties, or CLI/Studio capabilities are added or changed, keep the root `README.md` synchronized alongside the relevant DOX (`AGENTS.md`) files.
   - Keep docs concise, clear, and up-to-date. Remove stale information immediately.
 
 ---
@@ -95,4 +96,5 @@ npm run compile -- scores/strive.ppt.yaml
 1. **Test-Driven Integrity**: Always run `npm test` after modifying core engine or resolver logic. All tests must pass before completing a task.
 2. **Grammar & Lexer Boundaries**: Solfège syntax coloring and preview strips must validate whole tokens (`isValidSolfegeToken`) and protect YAML keys from accidental coloring.
 3. **LilyPond Execution**: Ensure LilyPond commands pass `-dpoint-and-click` so PDF and SVG point-and-click links remain active for studio navigation.
-4. **Git Branching**: The default and active branch is `main`.
+4. **README & Documentation Synchronization**: When introducing or modifying grammar, syntax (rhythm, pitch, harmony, bass/inversions, arrangement projections), schema properties, or studio features, update `README.md` and the associated DOX (`AGENTS.md`) files in the same changeset.
+5. **Git Branching**: The default and active branch is `main`.

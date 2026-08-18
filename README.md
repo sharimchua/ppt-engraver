@@ -8,12 +8,13 @@ Compiles [Prime Period Theory](https://ppt.midlifemuso.com/) Tapestry source fil
 
 ## Features
 
-- 🎼 **Live Web Studio**: Real-time side-by-side YAML editor with instant vector SVG sheet music preview (`npm run studio`).
+- 🎼 **Live Web Studio**: Real-time side-by-side YAML editor with instant vector SVG and high-resolution PDF preview (`npm run studio`), Frescobaldi-style Point-and-Click source navigation, Solfège preview strips, and Command Palette (`Ctrl+K` / `Cmd+K`).
 - 🎨 **PPT Solfège Geometry & Colors**: Standard 12-chromatic Solfège noteheads, vector SVG glyphs, custom clefs (`H`, `Do`, `Rhythm`), and tailored HSL color palette.
-- 🧬 **Multi-Layer Coils**: Melody, Harmony, Rhythm, and metric block layers with priority-fill inheritance.
+- 🧬 **Multi-Layer Coils**: Melody, Harmony, Rhythm, and metric block layers with priority-fill inheritance and polyphonic multi-voice support.
 - 🔗 **Coil Concatenation & In-Place Maps**: Compose complex phrases using `concat: [...]` with automatic downbeat rhythm boundary collapsing.
-- 📐 **Rhythmic Grammar**: Sub-beat subdivisions (`Fi` = 8th, `Me`/`La` = 16ths, `Mi`/`Le` = triplets), beat skips (`Dox`), and downbeat grid alignment.
-- 📄 **LilyPond Engine**: Compiles to `.notation.ly`, vector `.svg`, `.pdf`, and `.ppt-map.json` provenance sidecars.
+- 📐 **Solfège Rhythmic Grammar**: Full sub-beat subdivisions via 12 chromatic degrees (`Fi` = 8th note, `Me`/`La` = 16th notes, `Mi`/`Le` = triplets, `Re`/`Te` = sextuplets), recursive compound suffixes (`LeFi`, `MeFi`), downbeat skips/rests (`Dox`, `DoxDo`, `DoxFi`), and repeat lookback windows (`X.Y`).
+- 🎹 **Harmonic Grammar, Inversions & Slash Chords**: 12-chromatic Solfège chord qualities, explicit bass notes and inversions via Axis Bass prefix (`${Bass}x${Root}${Quality}`, e.g., `SoxDo` = C/G, `MiexDo` = C/E, `MexDoMe` = Cm/Eb, `FaxDo` = C/F), chord voicing styles (`close`, `rootless`, `shell`, `open`, `smoothLead`, `bassOnly`, `walkingBass`), and melody harmonic augmentations (`thirdsBelow`, `drop2`, `triadClose`).
+- 📄 **LilyPond Engine**: Compiles to `.notation.ly`, vector `.svg`, `.pdf`, and `.ppt-map.json` provenance sidecars with standard MIDI export.
 
 ---
 
@@ -25,7 +26,7 @@ Compiles [Prime Period Theory](https://ppt.midlifemuso.com/) Tapestry source fil
 npm install
 npm run studio
 ```
-Opens the interactive Web Studio in your browser at `http://localhost:3333` with live vector score preview, schema validation, and diagnostics.
+Opens the interactive Web Studio in your browser at `http://localhost:3333` with live vector score preview, schema validation, diagnostics, and interactive point-and-click source navigation.
 
 ### 2. Command-Line Compilation
 
@@ -33,7 +34,7 @@ Opens the interactive Web Studio in your browser at `http://localhost:3333` with
 # Build the distribution CLI
 npm run build
 
-# Run unit test suite (192 tests)
+# Run unit test suite (240 tests)
 npm test
 
 # Compile YAML score to LilyPond notation (.notation.ly) & sidecar map (.ppt-map.json)
@@ -69,11 +70,13 @@ tapestry:
       composer: "Christopher Larkin"
       arranger: "Kieran + Midlife Muso"
       harmonyClef: treble_8
+      harmonyVoicing: close
       colorNotes: true
       omitStem: true
       show:
         - melody
         - harmony
+        - melodyCoilAbsolute
         - harmonyCoil
         - rhythmCoil
         - rhythmGrid
@@ -89,12 +92,15 @@ tapestry:
         _v1:
           melody: [Dox, Do, Me, La, Me]
           rhythm: [Do, Fi, Do, Fi, Do, Do]
+          harmony: [DoMe, 2, SoxDo, 2]
         _v2:
           melody: [Dox, Me, Re]
           rhythm: [DoxMe, Fi, La]
+          harmony: [MexDoMe, 2]
         _v3:
           melody: [Sox^, Te, Re, Te, Te, Re]
           rhythm: [Do, Fi, Le, Te, Do, Fi]
+          harmony: [FaMe, 3, SoxDo, 3]
 
         verse1:
           concat: [_v1, _v2, _v3]
@@ -111,7 +117,7 @@ The `knot` establishes the concrete pitch anchor, score headers, staff clefs, an
 
 | Attribute | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `do` | `string` | `"C4"` | Absolute pitch anchor for $Do$ (e.g. `"Eb4"`, `"C4"`, `"F#3"`). |
+| `tonic` / `do` | `string` | `"C4"` | Absolute pitch anchor for $Do$ (e.g. `"Eb4"`, `"C4"`, `"F#3"`). |
 | `tempo` | `number` | `120` | Playback tempo in BPM. |
 | `title` | `string` | — | Piece title engraved in score header. |
 | `subtitle` | `string` | — | Subtitle or secondary description. |
@@ -123,11 +129,21 @@ The `knot` establishes the concrete pitch anchor, score headers, staff clefs, an
 | `melodyClef` | `string` | `"treble"` | Melody staff clef (`"treble"`, `"treble_8"`, `"treble^8"`, `"bass"`). |
 | `harmonyClef` | `string` | `"treble"` | Harmony staff clef (`"treble"`, `"bass"`, `"bass_8"`, `"bass_15"`). |
 | `harmonyOctave` | `number` | Auto | Global octave transposition shift for harmony chords (e.g. `0`, `-1`, `-2`). |
+| `harmonyVoicing` | `enum` | `'close'` | Harmony chord voicing projection: `'close'`, `'rootless'`, `'rootFifth'`, `'shell'`, `'open'`, `'smoothLead'`, `'bassOnly'`, `'walkingBass'`, `'octaves'`. |
+| `melodyAugmentation` | `enum` | `'none'` | Melodic harmonic augmentation: `'none'`, `'thirdsBelow'`, `'sixthsBelow'`, `'triadClose'`, `'drop2'`, `'guideToneDyad'`, `'octaves'`. |
+| `melodyAugmentationDisplay` | `enum` | `'ghosted'` | Visual styling for inferred melody augmentation notes: `'ghosted'`, `'dimmed'`, `'smallColored'`, `'smallMuted'`, `'parenthesized'`, `'diamond'`, `'normal'`. |
+| `projection` | `enum` | `'default'` | High-level arrangement preset: `'default'`, `'chordMelody'`, `'leadSheet'`, `'jazzComping'`, `'acousticFolk'`, `'bassAndLead'`. |
 | `noteheadStyle` | `enum` | `'default'` | Notehead styling: `'ppt'`, `'sacredHarp'`, `'aiken'`, `'funk'`, `'walker'`, `'diamond'`, `'default'`. |
-| `omitStem` | `boolean` | `false` | Omit note stems for unmetered cadenza display. |
+| `omitStem` | `boolean` | `false` | Omit note stems for unmetered / cadenza display. |
+| `traditionalRhythms` | `boolean` | `false` | Use traditional notation formatting (dotted notes, open noteheads for half/whole, rests). |
 | `colorNotes` | `boolean` | `false` | Colorize melody noteheads according to the PPT Solfège palette. |
 | `noteheadOutline` | `boolean` | `true` | Apply high-contrast black outline mask around colored noteheads. |
-| `harmonyChangesOnly`| `boolean` | `true` | Display harmony chords as whole noteheads only when changed and at bar starts. |
+| `harmonyChangesOnly`| `boolean` | `true` | Display harmony chords only when changed and at bar starts. |
+| `chordChanges` | `boolean` | `false` | Display chord symbol names only when changed. |
+| `showChordNames` | `boolean` | `false` | Display chord symbol names above harmony staff. |
+| `zoom` | `number` | `1.0` | Global staff scaling factor (e.g. `1.2` for +20%) or absolute pt size. |
+| `indent` | `number` | `0` | First-line score indentation in mm (`0` for flush alignment). |
+| `show` | `string[]` | `['melody']` | Visible score layers: `melody`, `harmony`, `melodyCoilAbsolute`, `melodyCoilInterval`, `harmonyCoil`, `rhythmCoil`, `rhythmGrid`, `chordNames`. |
 
 ---
 
@@ -154,7 +170,7 @@ PPT uses **Uniform Solfège** with 12 distinct chromatic syllables mapped to sta
 
 ## Melodic Layer (`coil.melody`)
 
-Melody arrays support two distinct resolution modes:
+Melody arrays support two distinct resolution modes, octave displacements, and repetition syntax:
 
 ### 1. Absolute Mode (Default)
 Each syllable directly represents its scale degree from $Do$:
@@ -166,15 +182,79 @@ melody: [Do, Me, Re, La, Te, Re, Te]
 Prefixing the first note with `x` activates interval mode. The first note anchors the starting pitch; all subsequent notes are resolved as relative steps from the preceding note using nearest-address circular topology:
 ```yaml
 melody: [Dox, Me, Re, La, Te, Re, Te]
-# Dox -> Starts on Do
-# Me  -> Moves by minor 3rd from previous note
-# Re  -> Moves by major 2nd from previous note
+# Dox -> Starts on Do (anchor)
+# Me  -> Moves by minor 3rd (+3) from previous note
+# Re  -> Moves by major 2nd (+2) from previous note
 ```
 
 ### Octave Modifiers & Multi-Token Syntax
 - **`^` / `^^`**: Shift pitch up by 1 or 2 octaves (`"Do^"`, `"Sox^"`).
 - **`_` / `__`**: Shift pitch down by 1 or 2 octaves (`"So_"`, `"Me__"`).
 - **Inline Spacing**: Tokens can be written space-separated in a single string (e.g. `melody: ["Do Mi", "So Do^"]`).
+
+### Melody Repetitions & Lookback Notation
+- **Integer Repeat (`X`)**: Repeats the preceding token $X$ times:
+  ```yaml
+  melody: [Do, 3, Mi, So] # Expands to: [Do, Do, Do, Do, Mi, So]
+  ```
+- **Window Lookback Repeat (`X.Y`)**: Repeats the preceding $Y$ tokens $X$ times:
+  ```yaml
+  melody: [Do, Re, Mi, 2.3] # Repeats last 3 tokens twice -> [Do, Re, Mi, Do, Re, Mi, Do, Re, Mi]
+  ```
+
+### Polyphonic & Multi-Voice Melody Coils
+Coils support polyphonic voices either as arrays of voice arrays or voice objects:
+```yaml
+melody:
+  - [Do, Mi, So]     # Voice 1 (Primary)
+  - [So_, Do, Mi]    # Voice 2 (Counter-melody)
+```
+
+---
+
+## Rhythmic Grammar Layer (`coil.rhythm`)
+
+PPT features a **cyclic Solfège rhythmic grammar** that subdivides beats (where 1 beat = quarter note = 1.0) into 12 equal chromatic sub-beat divisions and fractional micro-rhythms:
+
+### 1. Sub-Beat Chromatic Divisions
+
+| Syllable | Fractional Offset | Decimal | Metric / Subdivision Role |
+| :--- | :--- | :--- | :--- |
+| **`Do`** | $0 / 12$ | $0.0$ | **Downbeat** / on the beat |
+| **`Ra`** / `Di` | $1 / 12$ | $\approx 0.083$ | 12-EDO / Dodecaplet subdivision |
+| **`Re`** | $2 / 12 = 1/6$ | $\approx 0.167$ | 1st sextuplet offbeat |
+| **`Me`** / `Ri` | $3 / 12 = 1/4$ | $0.25$ | **16th note** (1st sixteenth / "e") |
+| **`Mi`** | $4 / 12 = 1/3$ | $\approx 0.333$ | **Triplet** (1st triplet offbeat) |
+| **`Fa`** / `Se` | $5 / 12$ | $\approx 0.417$ | 5/12 subdivision |
+| **`Fi`** | $6 / 12 = 1/2$ | $0.5$ | **8th note offbeat** (upbeat / "and") |
+| **`So`** / `Si` | $7 / 12$ | $\approx 0.583$ | 7/12 subdivision |
+| **`Le`** | $8 / 12 = 2/3$ | $\approx 0.667$ | **Triplet** (2nd triplet offbeat) |
+| **`La`** / `Li` | $9 / 12 = 3/4$ | $0.75$ | **16th note** (3rd sixteenth / "a") |
+| **`Te`** | $10 / 12 = 5/6$ | $\approx 0.833$ | 2nd sextuplet offbeat |
+| **`Ti`** | $11 / 12$ | $\approx 0.917$ | 11/12 subdivision |
+
+### 2. Recursive Compound Suffixes
+Suffix syllables recursively subdivide the remaining duration between the current offset and the next downbeat boundary (1.0):
+- **`LeFi`**: Starts at $Le = 8/12 = 2/3$. Suffix $Fi$ ($1/2$) subdivides the remaining $1/3$, producing $2/3 + 1/6 = 5/6$ (sextuplet offset).
+- **`MeFi`**: Starts at $Me = 3/12 = 1/4$. Suffix $Fi$ ($1/2$) subdivides the remaining $3/4$, producing $1/4 + 3/8 = 5/8$.
+
+### 3. Downbeat Skips and Delays (`Dox` Prefix)
+The `Dox` prefix acts as a downbeat delay or rest:
+- **`Dox`** (alone): Represents a 1-beat downbeat rest.
+- **`DoxDo`**: Delays the onset by 1 full beat, landing on the next downbeat ($+1.0$).
+- **`DoxFi`**: Delays by 1 beat and places the note on the 8th-note offbeat ($+1.5$).
+- **`DoxMe`**: Delays by 1 beat and places the note on the 16th-note subdivision ($+1.25$).
+- **`DoxDoxDo`**: Delays the onset by 2 full beats.
+
+### 4. Timeline Resolution & Automatic Beat Advancement
+The timeline engine automatically advances beats when:
+1. An onset starts on **`Do`** (the downbeat).
+2. A **`Dox`** prefix specifies one or more beat skips.
+3. A subdivision offset is less than or equal to the preceding offset within the same beat (e.g. `[Fi, Fi]` or `[La, Me]` triggers beat advancement on the second token).
+
+### 5. Rhythm Repetitions & Target Extension
+- **Repeats (`X` and `X.Y`)**: Rhythmic patterns support integer repeats (e.g. `[Do, 3]`) and lookbacks (e.g. `[Do, Fi, 3.2]`).
+- **Target Expansion**: If the melody has more onsets than the declared rhythm array, the final rhythm token is automatically sustained across the remaining melody onsets.
 
 ---
 
@@ -187,40 +267,87 @@ Harmony chords are automatically voiced into tertian triads/sevenths and adapted
 | Token | Chord Name | Harmonic Formula | Example ($Do = \text{C}$) |
 | :--- | :--- | :--- | :--- |
 | `Do` | Major Triad | $1 - 3 - 5$ | C major (`C - E - G`) |
-| `DoMe` | Minor Triad | $1 - \flat 3 - 5$ | C minor (`C - Eb - G`) |
-| `FaMe` | Minor Triad on 4th | $4 - \flat 6 - 1$ | F minor (`F - Ab - C`) |
-| `SoTe` / `DoTe` | Dominant 7th | $1 - 3 - 5 - \flat 7$ | G7 / C7 |
-| `DoMeTe` | Minor 7th | $1 - \flat 3 - 5 - \flat 7$ | C minor 7th |
-| `DoFi` / `TiFi` | Diminished Triad | $1 - \flat 3 - \flat 5$ | C dim / B dim |
+| `DoMe` / `DoRi` | Minor Triad | $1 - \flat 3 - 5$ | C minor (`C - Eb - G`) |
+| `DoTe` / `SoTe` | Dominant 7th | $1 - 3 - 5 - \flat 7$ | C7 (`C - E - G - Bb`) / G7 |
+| `DoMeTe` / `DoRiLi` | Minor 7th | $1 - \flat 3 - 5 - \flat 7$ | C minor 7th (`C - Eb - G - Bb`) |
+| `DoFi` / `TiFi` | Diminished Triad | $1 - \flat 3 - \flat 5$ | C dim (`C - Eb - Gb`) |
+| `DoMi` / `DoSi` | Augmented Triad | $1 - 3 - \sharp 5$ | C aug (`C - E - G#`) |
 | `Do^` / `Do_` | Octave Shift | Transposed $\pm 1$ Octave | `Do` shifted up or down |
-
-### Harmony Distribution & Repeat Counts
-
-1. **Repeat Padding Counts**: Use integers to sustain a chord across specific onsets:
-   ```yaml
-   harmony: [DoMe, 3, So, 2, Le]
-   # DoMe held for 4 beats (1 + 3), So held for 3 beats (1 + 2), Le for 1 beat
-   ```
-2. **Automatic Stretch Mode**: Unpadded chord lists are stretched evenly across the melody length:
-   ```yaml
-   melody: [Do, Re, Mi, Fa, So, La]  # 6 onsets
-   harmony: [Do, So]                # Do spans onsets 1-3, So spans onsets 4-6
-   ```
 
 ---
 
-## Rhythm Layer (`coil.rhythm`)
+### Bass Notes, Inversions, and Slash Chords (`${Bass}x${Root}${Modifiers}`)
 
-Named rhythm block-length labels validate the expected melody onset count per coil:
+Prepending an axis-marked Solfège syllable (e.g. `Sox`, `Miex`, `Mex`, `Rex`, `Fax`, `Lax`) explicitly dictates the bass note, enabling seamless chord inversions and slash chord harmonies:
 
-| Rhythm Label | Expected Onset Count |
-| :--- | :--- |
-| `DoSo` | 2 beats |
-| `DoRe` | 3 beats |
-| `DoLa` | 4 beats |
-| `DoMi` | 5 beats |
-| `DoSi` | 6 beats |
-| `DoFi` | 7 beats |
+#### 1. Chord Inversions (Chord Tone in Bass)
+When the bass syllable is a constituent tone of the chord triad or seventh, the voicing engine automatically inverts the upper structure:
+- **`MiexDo` / `MixDo`**: C major with E in the bass (**C/E** — 1st inversion major triad).
+- **`MexDoMe`**: C minor with E♭ in the bass (**Cm/E♭** — 1st inversion minor triad).
+- **`SoxDo`**: C major with G in the bass (**C/G** — 2nd inversion major triad).
+- **`RexSo`**: G major with D in the bass (**G/D** — 2nd inversion major triad).
+- **`TexDoTe`**: C dominant 7th with B♭ in the bass (**C7/B♭** — 3rd inversion dominant 7th).
+
+#### 2. Slash Chords (Non-Chord Tone Bass)
+When the bass syllable is outside the upper chord structure, the bass note is voiced underneath:
+- **`FaxDo`**: C major over F bass (**C/F**).
+- **`LaxDo`**: C major over A bass (**C/A** / Am7 sound).
+- **`RexDo`**: C major over D bass (**C/D** / D9sus4 sound).
+
+#### 3. Bass Octave Displacements
+You can displace the bass pitch register using `_` or `^` before the axis `x`:
+- **`So_xDo`**: C/G with the bass note dropped an extra octave.
+- **`So^xDo`**: C/G with the bass note raised one octave.
+
+---
+
+### Voicing Styles (`knot.harmonyVoicing`)
+
+Control how the harmony layer realizes chord tokens:
+
+| Voicing Style | Description | Voicing Formula |
+| :--- | :--- | :--- |
+| `close` *(default)* | Standard compact tertian block chord with inversion/slash bass handling. | Root + 3rd + 5th (+ 7th) |
+| `rootless` | Modern jazz piano comping without the root pitch. | 3rd + 5th + 7th + 9th |
+| `rootFifth` | Power chords and acoustic dyads. | Root + 5th |
+| `shell` | Essential jazz shell chords. | Root + 3rd + 7th |
+| `open` | Open spread voicing (1-5-10 or drop-2). | Root + 5th + 10th (3rd + 8ve) |
+| `smoothLead` | Parsimonious voice leading minimizing movement across chord changes. | Minimal voice distance search |
+| `bassOnly` | Strips upper chord tones, outputting only the root or slash bass note. | Root / Bass pitch |
+| `walkingBass` / `octaves` | Doubles root/bass in lower octaves for basslines. | Bass (octave lower) + Bass |
+
+---
+
+### Harmonic Augmentation & Arrangement Projections
+
+- **`melodyAugmentation`**: Harmonizes melody lines automatically under the lead voice:
+  - `none`: Single melody line.
+  - `thirdsBelow` / `sixthsBelow`: Adds parallel 3rds or 6ths below matching the active harmony.
+  - `triadClose`: Thickens melody into a 3-part close block chord.
+  - `drop2`: 4-part jazz chord melody with the second voice from the top dropped an octave.
+  - `guideToneDyad`: Accompanies melody with active 3rd/7th guide tones.
+  - `octaves`: Doubles melody one octave below.
+- **`projection`**: High-level arrangement presets combining voicings and augmentations:
+  - `chordMelody`, `leadSheet`, `jazzComping`, `acousticFolk`, `bassAndLead`.
+
+---
+
+### Harmony Distribution & Repeats
+
+1. **Integer Repeat Padding**:
+   ```yaml
+   harmony: [DoMe, 3, SoxDo, 2, Le]
+   # DoMe held for 4 beats (1 + 3), SoxDo held for 3 beats (1 + 2), Le for 1 beat
+   ```
+2. **Lookback Window Repeats (`X.Y`)**:
+   ```yaml
+   harmony: [Do, SoxDo, 2.2] # Repeats [Do, SoxDo] twice -> [Do, SoxDo, Do, SoxDo, Do, SoxDo]
+   ```
+3. **Automatic Stretch Mode**: Unpadded chord lists are stretched evenly across the melody length:
+   ```yaml
+   melody: [Do, Re, Mi, Fa, So, La]  # 6 onsets
+   harmony: [Do, SoxDo]             # Do spans onsets 1-3, SoxDo spans onsets 4-6
+   ```
 
 ---
 
@@ -230,24 +357,24 @@ Coils support priority-based layer inheritance:
 1. **Explicit Local Layer**: Defined directly on the coil.
 2. **`parents` Array**: Inherited from named coils in order of priority.
 3. **`defaultCoil`**: Inherited from the enclosing weave scope.
-4. **System Fallback**: Harmony defaults to `[Do]`.
+4. **System Fallback**: Harmony defaults to `[Do]`, rhythm defaults to `[Do]`.
 
 ```yaml
 tapestry:
   coils:
     verseBase:
-      rhythm: DoLa
-      harmony: [DoMe]
+      rhythm: [Do, Fi, 3.2]
+      harmony: [DoMe, SoxDo]
 
   weave:
     id: song
     defaultCoil:
-      rhythm: DoLa
+      rhythm: [Do, 3]
     children:
       - coil:
           id: motif1
           parents: [verseBase]
-          melody: [Dox, Me, Re, Do] # Inherits harmony: [DoMe]
+          melody: [Dox, Me, Re, Do] # Inherits harmony: [DoMe, SoxDo] & rhythm: [Do, Fi, 3.2]
 ```
 
 ---
@@ -282,4 +409,3 @@ ppt-resolve scores/dracula.ppt.yaml -o dracula.json -m dracula.mid
 ## License
 
 MIT © Midlife Muso
-
