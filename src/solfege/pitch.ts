@@ -149,6 +149,16 @@ export type NoteheadStyle = 'ppt' | 'sacredHarp' | 'aiken' | 'funk' | 'walker' |
  * Resolved knot providing absolute pitch context.
  */
 export interface ResolvedKnot {
+  /** Identifier of the knot (e.g. "default", "leadSheet") */
+  id?: string;
+  /** Human-readable display label/name for the knot */
+  name?: string;
+  /** Whether this knot is an abstract template excluded from dropdown selection (does NOT get inherited) */
+  abstract?: boolean;
+  /** Alias for abstract (does NOT get inherited) */
+  hidden?: boolean;
+  /** Explicit visibility toggle (does NOT get inherited) */
+  visible?: boolean;
   /** MIDI note number for Do (e.g. 60 for C4) */
   doMidi: number;
   /** Tempo in BPM (unused in v1 but carried through) */

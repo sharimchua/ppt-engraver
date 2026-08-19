@@ -12,6 +12,7 @@ import { resolveFile, resolveYaml } from '../resolver/resolve.js';
 import { compileToLilyPond, type CompileOptions } from '../lilypond/compiler.js';
 import { generateSidecarMap, type SidecarMap } from '../sidecar/map.js';
 import type { OnsetStream } from '../schema/onset.js';
+import type { KnotSummary } from '../schema/tapestry.js';
 
 export interface CompileResult {
   /** The emitted LilyPond notation string (.ly) */
@@ -22,6 +23,10 @@ export interface CompileResult {
   onsets: OnsetStream;
   /** Any non-fatal warnings generated during resolution */
   warnings: string[];
+  /** List of all available knots in the score */
+  availableKnots?: KnotSummary[];
+  /** The active resolved knot ID */
+  selectedKnotId?: string;
 }
 
 export interface CompileFileOptions extends CompileOptions {
@@ -31,6 +36,8 @@ export interface CompileFileOptions extends CompileOptions {
   outMapPath?: string;
   /** Attempt to render PDF using local lilypond binary */
   renderPdf?: boolean;
+  /** ID of the knot to resolve and compile */
+  knotId?: string;
 }
 
 /**
@@ -44,7 +51,7 @@ export function compileFile(
   yamlFilePath: string,
   options: CompileFileOptions = {},
 ): CompileResult {
-  const { onsets, warnings, knot } = resolveFile(yamlFilePath);
+  const { onsets, warnings, knot, availableKnots, selectedKnotId } = resolveFile(yamlFilePath, options.knotId);
   const effectiveOptions: CompileFileOptions = {
     title: knot?.title,
     subtitle: knot?.subtitle,
@@ -112,6 +119,8 @@ export function compileFile(
     sidecarMap,
     onsets,
     warnings,
+    availableKnots,
+    selectedKnotId,
   };
 }
 
@@ -126,7 +135,7 @@ export function compileYamlString(
   yamlContent: string,
   options: CompileOptions = {},
 ): CompileResult {
-  const { onsets, warnings, knot } = resolveYaml(yamlContent);
+  const { onsets, warnings, knot, availableKnots, selectedKnotId } = resolveYaml(yamlContent, options.knotId);
   const effectiveOptions: CompileOptions = {
     title: knot?.title,
     subtitle: knot?.subtitle,
@@ -166,7 +175,6 @@ export function compileYamlString(
   };
   const lilypondSource = compileToLilyPond(onsets, effectiveOptions);
 
-
   const sidecarMap = generateSidecarMap(onsets);
 
   return {
@@ -174,6 +182,8 @@ export function compileYamlString(
     sidecarMap,
     onsets,
     warnings,
+    availableKnots,
+    selectedKnotId,
   };
 }
 

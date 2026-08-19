@@ -17,14 +17,16 @@ import { resolveTapestry, type ResolutionResult } from './graph.js';
  * @param filePath - Path to the .ppt.yaml file
  * @returns Resolved onset stream + accumulated warnings
  */
-export function resolveFile(filePath: string): ResolutionResult {
+export function resolveFile(filePath: string, selectedKnotId?: string): ResolutionResult {
   const { tapestry, warnings: loadWarnings } = loadTapestryFile(filePath);
-  const { onsets, warnings: resolveWarnings, knot } = resolveTapestry(tapestry);
+  const { onsets, warnings: resolveWarnings, knot, availableKnots, selectedKnotId: resolvedKnotId } = resolveTapestry(tapestry, selectedKnotId);
   
   return {
     onsets,
     warnings: [...loadWarnings, ...resolveWarnings],
     knot,
+    availableKnots,
+    selectedKnotId: resolvedKnotId,
   };
 }
 
@@ -34,16 +36,19 @@ export function resolveFile(filePath: string): ResolutionResult {
  * Useful for testing and in-browser use (no file I/O).
  * 
  * @param yamlContent - Raw YAML string of a Tapestry
+ * @param selectedKnotId - Optional ID of the knot to resolve
  * @returns Resolved onset stream + accumulated warnings
  */
-export function resolveYaml(yamlContent: string): ResolutionResult {
+export function resolveYaml(yamlContent: string, selectedKnotId?: string): ResolutionResult {
   const { tapestry, warnings: loadWarnings } = parseTapestryYaml(yamlContent);
-  const { onsets, warnings: resolveWarnings, knot } = resolveTapestry(tapestry);
+  const { onsets, warnings: resolveWarnings, knot, availableKnots, selectedKnotId: resolvedKnotId } = resolveTapestry(tapestry, selectedKnotId);
   
   return {
     onsets,
     warnings: [...loadWarnings, ...resolveWarnings],
     knot,
+    availableKnots,
+    selectedKnotId: resolvedKnotId,
   };
 }
 

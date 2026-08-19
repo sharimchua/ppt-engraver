@@ -1,0 +1,32 @@
+id: knots-projections
+label: Multi-Knot Projections & Score Variations
+displayText: knots: [Projections]
+desc: Ordered knot projections (full score, lead sheet, chord melody) with inheritance
+category: Knots & Structure
+icon: 🪢
+context:
+  - root
+  - top
+  - tapestry
+snippet: |
+  knots:
+    - id: fullScore
+      name: Full Score (Concert)
+      tonic: C4
+      tempo: 120
+      engraving:
+        title: "Score Title"
+        composer: "Composer Name"
+        projection: default
+
+    - id: leadSheet
+      name: Lead Sheet
+      parent: fullScore
+      engraving:
+        projection: leadSheet
+
+    - id: chordMelody
+      name: Chord Melody (Solo)
+      parent: fullScore
+      engraving:
+        projection: chordMelody

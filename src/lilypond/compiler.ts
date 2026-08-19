@@ -126,6 +126,8 @@ export interface CompileOptions {
     | "normal";
   /** High-level arrangement / projection preset */
   projection?: string;
+  /** Optional knot ID to resolve */
+  knotId?: string;
 }
 
 /**

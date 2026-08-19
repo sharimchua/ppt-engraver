@@ -253,6 +253,22 @@ export type Engraving = z.infer<typeof EngravingSchema>;
  * and visual engraving configuration.
  */
 export const KnotSchema = z.object({
+  /** Unique identifier for this knot (optional for single root knot or dictionary keys) */
+  id: z.string().optional(),
+  /** Human-readable display label/name for selector dropdown */
+  name: z.string().optional(),
+  /** Alias for name */
+  label: z.string().optional(),
+  /** Whether this knot is an abstract template excluded from dropdown selection (does NOT get inherited) */
+  abstract: z.boolean().optional(),
+  /** Alias for abstract / hidden from dropdown selection (does NOT get inherited) */
+  hidden: z.boolean().optional(),
+  /** Explicit visibility toggle in dropdown (defaults to true; does NOT get inherited) */
+  visible: z.boolean().optional(),
+  /** Single parent Knot ID to inherit properties from */
+  parent: z.string().optional(),
+  /** Ordered list or single parent Knot ID to inherit properties from */
+  parents: z.union([z.string(), z.array(z.string())]).optional(),
   /** Absolute pitch anchor for Tonic / Do, e.g. "C4", "Eb4", "F#3" */
   tonic: z.string().regex(
     /^[A-G](#|b|♭)?\d+$/,
@@ -571,6 +587,8 @@ export const TapestrySchema = z.object({
   tapestry: z.object({
     /** Optional absolute anchor & engraving config (defaults to C4/120 if absent) */
     knot: KnotSchema.optional(),
+    /** Optional library or ordered list of named Knots (providing different projections/versions) */
+    knots: z.record(z.string(), KnotSchema).or(z.array(KnotSchema)).optional(),
     /** Optional library of reusable named Coils */
     coils: z.record(z.string(), CoilSchema).or(z.array(CoilSchema)).optional(),
     /** Optional library of reusable named Weaves */
@@ -579,6 +597,14 @@ export const TapestrySchema = z.object({
     weave: WeaveSchema.or(z.string()).optional(),
   }),
 });
+
+/** Summary descriptor for an available knot in a score */
+export interface KnotSummary {
+  id: string;
+  name: string;
+  title?: string;
+  abstract?: boolean;
+}
 
 /** TypeScript types inferred from schemas */
 export type Knot = z.infer<typeof KnotSchema>;

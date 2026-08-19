@@ -19,6 +19,7 @@ function main(): void {
     options: {
       output: { type: 'string', short: 'o' },
       map: { type: 'string' },
+      knot: { type: 'string', short: 'k' },
       render: { type: 'boolean', short: 'r' },
       help: { type: 'boolean', short: 'h' },
     },
@@ -30,11 +31,13 @@ function main(): void {
 Usage:
   ppt-compile <file.ppt.yaml>                 Compile to .notation.ly and .ppt-map.json
   ppt-compile <file.ppt.yaml> -o <out.ly>     Specify custom LilyPond output path
+  ppt-compile <file.ppt.yaml> -k <knotId>     Select specific Knot projection to compile
   ppt-compile <file.ppt.yaml> --render        Also render PDF if lilypond is installed
 
 Options:
   -o, --output <file>   Output .ly path (default: <base>.notation.ly)
   --map <file>          Output sidecar JSON path (default: <base>.ppt-map.json)
+  -k, --knot <id>       Select specific Knot projection by ID
   -r, --render          Invoke local lilypond binary to render PDF
   -h, --help            Show this help message`);
     process.exit(positionals.length === 0 && !values.help ? 1 : 0);
@@ -50,6 +53,7 @@ Options:
     const result = compileFile(inputFile, {
       outLyPath: outLy,
       outMapPath: outMap,
+      knotId: values.knot,
       renderPdf: values.render,
     });
 

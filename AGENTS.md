@@ -28,9 +28,7 @@ The repository consists of:
 
 ---
 
-## Prime Period Theory (PPT) Core Concepts
-
-- **Tapestry / Knot**: The global musical piece and root metadata (title, composer, tonic, tempo, engraving visibility toggles).
+- **Tapestry / Knot(s)**: The global musical piece and root metadata (title, composer, tonic, tempo, engraving visibility toggles, arrangement projections). Supports single `knot:` or multiple named `knots:` (ordered arrays or dictionaries) with single/multi-parent inheritance (`parent`, `parents`), abstract base templates (`abstract: true` / `hidden: true` excluded from dropdown and un-inherited), custom per-knot weave selections, transpositions, and projection switching via dropdown or CLI `-k`.
 - **Weave**: A structural container representing a voice, part, or section composed of hierarchical children or concatenated coils.
 - **Coil**: The fundamental musical motif containing:
   - `melody: [...]`: Solfège pitch degree array relative to reference root.

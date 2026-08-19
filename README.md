@@ -34,14 +34,14 @@ Opens the interactive Web Studio in your browser at `http://localhost:3333` with
 # Build the distribution CLI
 npm run build
 
-# Run unit test suite (240 tests)
+# Run unit test suite (270+ tests)
 npm test
 
 # Compile YAML score to LilyPond notation (.notation.ly) & sidecar map (.ppt-map.json)
 node dist/compile-cli.js scores/strive.ppt.yaml -o scores/
 
-# Resolve YAML to JSON onset stream and standard MIDI file
-node dist/index.js scores/strive.ppt.yaml -o out.json -m out.mid
+# Compile a specific knot projection from a multi-knot score
+node dist/compile-cli.js scores/autumn_leaves_variants.ppt.yaml -k leadSheet
 ```
 
 ---
@@ -111,13 +111,69 @@ tapestry:
 
 ---
 
-## Knot Attributes (`tapestry.knot`)
+## Knot Attributes & Multi-Knot Projections (`tapestry.knot` / `tapestry.knots`)
 
-The `knot` establishes the concrete pitch anchor, score headers, staff clefs, and engraving visual styles.
+Scores can define a single root `knot:` or multiple named `knots:` (ordered arrays or dictionaries) to provide different arrangement projections, transpositions, and part views of the same score.
+
+- **Declaration Order & Default Projection**: The first declared non-abstract knot in the tapestry serves as the default projection view.
+- **Knot Inheritance (`parent` / `parents`)**: Child knots inherit settings from parent knots with priority overrides (e.g. overriding only `projection: leadSheet` or `tonic: "Eb4"`).
+- **Abstract Knots (`abstract: true` / `hidden: true`)**: Mark shared baseline templates as abstract so they are excluded from the Studio dropdown. The `abstract` / `hidden` visibility parameter is explicitly **not inherited** by children, so child knots remain concrete, visible projections.
+- **Studio Dropdown & Deeplinking**: Switch projections instantly from the Studio toolbar header dropdown or share direct URLs (`?score=autumn_leaves_variants.ppt.yaml&knot=leadSheet`).
+- **CLI Projection Selection**: Compile specific knots from the command line using `-k <knotId>` or `--knot <knotId>`.
+
+### Multi-Knot Example with Abstract Base Knot & Inheritance
+
+```yaml
+tapestry:
+  knots:
+    - id: _baseArrangement
+      name: "Abstract Base (Common Settings)"
+      abstract: true
+      tonic: "C5"
+      weave: song
+      engraving:
+        title: "Autumn Leaves"
+        composer: "Joseph Kosma"
+        colorNotes: true
+
+    - id: fullScore
+      name: "Full Score (Concert C5)"
+      parent: _baseArrangement
+      engraving:
+        subtitle: "Full Arrangement"
+        projection: default
+
+    - id: leadSheet
+      name: "Lead Sheet"
+      parent: _baseArrangement
+      engraving:
+        subtitle: "Lead Sheet Edition"
+        projection: leadSheet
+
+    - id: chordMelody
+      name: "Chord Melody (Solo)"
+      parent: _baseArrangement
+      engraving:
+        subtitle: "Chord Melody Solo"
+        projection: chordMelody
+
+    - id: transposedEb
+      name: "Alto Sax (Eb5)"
+      parent: _baseArrangement
+      tonic: "Eb5"
+```
+
+### Knot Configuration Attributes
 
 | Attribute | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
+| `id` | `string` | `"default"` | Unique identifier for the knot projection. |
+| `name` / `label` | `string` | ID | Human-readable label displayed in Studio dropdown. |
+| `abstract` / `hidden` | `boolean` | `false` | When `true`, marks knot as an abstract template excluded from the dropdown (not inherited by children). |
+| `visible` | `boolean` | `true` | Visibility toggle in Studio dropdown (not inherited by children). |
+| `parent` / `parents` | `string \| string[]` | — | Single or ordered parent knot IDs to inherit settings from. |
 | `tonic` / `do` | `string` | `"C4"` | Absolute pitch anchor for $Do$ (e.g. `"Eb4"`, `"C4"`, `"F#3"`). |
+| `weave` | `string` | First weave | Target root weave ID to engrave for this knot projection. |
 | `tempo` | `number` | `120` | Playback tempo in BPM. |
 | `title` | `string` | — | Piece title engraved in score header. |
 | `subtitle` | `string` | — | Subtitle or secondary description. |

@@ -690,6 +690,53 @@ body.resizing-panels iframe {
   background-color: var(--bg-surface-elevated);
 }
 
+/* Knot / Projection Picker in Top Header */
+.knot-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 8px;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.knot-picker-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.knot-select {
+  background: transparent;
+  color: var(--text-main);
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  outline: none;
+  cursor: pointer;
+  padding: 0 4px;
+  min-width: 120px;
+  max-width: 220px;
+}
+
+.knot-select option {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+}
+
+.knot-picker-wrapper:hover {
+  border-color: var(--text-muted);
+}
+
 .preview-actions {
   display: flex;
   align-items: center;

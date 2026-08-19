@@ -20,8 +20,10 @@ desc: Short description of motif # Tooltip/description text
 category: Snippets               # Category in Command Palette (default: Snippets)
 icon: 🎵                         # Emoji/icon displayed in Command Palette
 context:                         # Array of scopes where autocomplete suggests this snippet
-  - root                         # At column 0 / top-level (tapestry, knot)
+  - root                         # At column 0 / top-level (tapestry, knot, knots)
   - top                          # Top of document
+  - knots                        # Inside `knots:` list/dictionary
+  - knot                         # Inside `knot:` definition block
   - weaves                       # Inside `weaves:` section
   - weave-body                   # Inside a weave definition block
   - children                     # Inside a `children:` list

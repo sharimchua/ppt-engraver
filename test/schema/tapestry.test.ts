@@ -264,6 +264,57 @@ describe('TapestrySchema', () => {
     const result = TapestrySchema.safeParse(tap);
     expect(result.success).toBe(true);
   });
+
+  it('accepts tapestry with knots array and parent inheritance', () => {
+    const tap = {
+      tapestry: {
+        knots: [
+          {
+            id: 'full',
+            name: 'Full Score',
+            tonic: 'C4',
+            tempo: 120,
+            engraving: { title: 'Score Title' },
+          },
+          {
+            id: 'lead',
+            name: 'Lead Sheet',
+            parent: 'full',
+            engraving: { projection: 'leadSheet' },
+          },
+          {
+            id: 'chordMelody',
+            name: 'Chord Melody',
+            parents: ['full'],
+            engraving: { projection: 'chordMelody' },
+          },
+        ],
+        weave: {
+          id: 'song',
+          children: [{ coil: { id: 'm', melody: ['Do'] } }],
+        },
+      },
+    };
+    const result = TapestrySchema.safeParse(tap);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts tapestry with knots dictionary/record', () => {
+    const tap = {
+      tapestry: {
+        knots: {
+          default: { tonic: 'C4', tempo: 120 },
+          alt: { parent: 'default', tonic: 'Eb4' },
+        },
+        weave: {
+          id: 'song',
+          children: [{ coil: { id: 'm', melody: ['Do'] } }],
+        },
+      },
+    };
+    const result = TapestrySchema.safeParse(tap);
+    expect(result.success).toBe(true);
+  });
 });
 
 

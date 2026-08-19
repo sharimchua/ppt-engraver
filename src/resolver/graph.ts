@@ -1,4 +1,4 @@
-import type { Tapestry, Coil, Weave } from '../schema/tapestry.js';
+import type { Tapestry, Coil, Weave, KnotSummary } from '../schema/tapestry.js';
 import type { OnsetStream } from '../schema/onset.js';
 import type { ResolvedKnot } from '../solfege/pitch.js';
 import { resolveKnot } from './knot.js';
@@ -11,6 +11,10 @@ export interface ResolutionResult {
   warnings: string[];
   /** The resolved Knot context */
   knot: ResolvedKnot;
+  /** List of all available knots defined in the Tapestry */
+  availableKnots?: KnotSummary[];
+  /** The active selected knot ID */
+  selectedKnotId?: string;
 }
 
 /**
@@ -25,6 +29,7 @@ export interface ResolutionResult {
  * 6. Return flat onset stream with provenance tags
  * 
  * @param tapestry - The validated Tapestry IR
+ * @param selectedKnotId - Optional ID of the knot to resolve
  * @returns Complete onset stream + accumulated warnings
  */
 function registerCoils(
@@ -45,7 +50,7 @@ function registerCoils(
   }
 }
 
-export function resolveTapestry(tapestry: Tapestry): ResolutionResult {
+export function resolveTapestry(tapestry: Tapestry, selectedKnotId?: string): ResolutionResult {
   const allWarnings: string[] = [];
   
   // 1. Build Coil library from top-level coils
@@ -77,7 +82,7 @@ export function resolveTapestry(tapestry: Tapestry): ResolutionResult {
   }
 
   // 3. Resolve Knot
-  const { knot, warnings: knotWarnings } = resolveKnot(tapestry);
+  const { knot, availableKnots, selectedKnotId: resolvedKnotId, warnings: knotWarnings } = resolveKnot(tapestry, selectedKnotId);
   allWarnings.push(...knotWarnings);
 
   // 4. Identify Root Weave
@@ -138,7 +143,13 @@ export function resolveTapestry(tapestry: Tapestry): ResolutionResult {
     applySmoothVoiceLeadingPass(onsets, knot);
   }
   
-  return { onsets, warnings: allWarnings, knot };
+  return {
+    onsets,
+    warnings: allWarnings,
+    knot,
+    availableKnots,
+    selectedKnotId: resolvedKnotId,
+  };
 }
 
 import { generateSmoothVoiceLeading, getChordIntervals } from '../solfege/voicings.js';

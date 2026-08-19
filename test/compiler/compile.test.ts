@@ -317,6 +317,54 @@ tapestry:
     const result = compileYamlString(yaml);
     expect(result.lilypondSource).toContain('\\new ChordNames');
   });
+
+  it('compiles specific knot projection when knotId is provided', () => {
+    const yaml = `
+tapestry:
+  knots:
+    - id: fullScore
+      name: Full Score
+      tonic: C4
+      engraving:
+        title: Master Score
+        projection: default
+    - id: leadSheet
+      name: Lead Sheet
+      parent: fullScore
+      engraving:
+        projection: leadSheet
+    - id: concertEb
+      name: Eb Transposition
+      parent: fullScore
+      tonic: Eb4
+
+  weave:
+    id: song
+    children:
+      - coil:
+          id: c1
+          melody: [Do, Mi]
+          harmony: [Do]
+`;
+
+    // 1. Default (first knot = fullScore)
+    const resDefault = compileYamlString(yaml);
+    expect(resDefault.selectedKnotId).toBe('fullScore');
+    expect(resDefault.availableKnots).toHaveLength(3);
+    expect(resDefault.lilypondSource).toContain("c'4"); // Do = C4
+    expect(resDefault.lilypondSource).toContain('\\new Staff \\harmonyVoice');
+
+    // 2. Selected knot = leadSheet (no harmonyStaff, has chord names)
+    const resLead = compileYamlString(yaml, { knotId: 'leadSheet' });
+    expect(resLead.selectedKnotId).toBe('leadSheet');
+    expect(resLead.lilypondSource).toContain('\\new ChordNames');
+    expect(resLead.lilypondSource).not.toContain('\\new Staff \\harmonyVoice');
+
+    // 3. Selected knot = concertEb (transposed Do = Eb4)
+    const resEb = compileYamlString(yaml, { knotId: 'concertEb' });
+    expect(resEb.selectedKnotId).toBe('concertEb');
+    expect(resEb.lilypondSource).toContain("ees'4"); // Do = Eb4
+  });
 });
 
 

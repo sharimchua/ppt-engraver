@@ -119,11 +119,15 @@ The `studio/public/` directory contains the client-side single-page application 
 - **Scroll Depth Preservation & Loading Reset**:
   - Automatically captures and restores preview window scroll position (`scrollTop` / `scrollLeft`) across PDF and SVG compilations during live editing of the same score.
   - When loading or switching to a new tapestry (`loadScore`, `createTapestry`), immediately clears the previous score from the preview canvas, resets scroll to top (`0, 0`), and displays the loading status card for responsive feedback.
+- **Knot Projection Selector & Deeplinking (`#knot-select`)**:
+  - Live dropdown in top toolbar header right after the tapestry score picker, dynamically listing all declared score knots in declaration order (`availableKnots`).
+  - Switching projections triggers immediate recompilation and updates URL search parameter `?score=...&knot=<knotId>` and history state.
+  - Retains knot selection across browser refreshes, bookmarks, and back/forward navigation (`popstate`).
 - **Draggable Split-Pane**: Resize editor and preview with min-width constraints (320px).
 - **Circular Loupe Magnifier**: Inspect dense score details with customizable lens diameter and magnification level (`Shift` shortcut).
 - **URL Deeplinking & History**:
-  - Shareable score URLs: `?score=strive.ppt.yaml`.
-  - Remembers active score across page refreshes via `localStorage` and `history.replaceState`.
+  - Shareable score & knot URLs: `?score=autumn_leaves_variants.ppt.yaml&knot=leadSheet`.
+  - Remembers active score and knot projection across page refreshes via `localStorage` and `history.replaceState`.
   - Full browser Back/Forward navigation support (`popstate`).
 
 ---

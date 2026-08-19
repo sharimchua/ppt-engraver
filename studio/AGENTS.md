@@ -18,8 +18,8 @@ The `studio/` directory houses the interactive web development environment for P
 | `/api/delete` | `POST` | `{ file }` | `{ success, file }` | Deletes YAML score file and associated export artifacts |
 | `/api/rename` | `POST` | `{ oldFile, newFile }` | `{ success, oldFile, newFile }` | Renames score YAML file and all associated compiled artifacts |
 | `/api/snippets` | `GET` | - | `{ snippets: [{ id, label, displayText, desc, category, icon, context, snippet, file }] }` | Reads and parses all snippet templates in `snippets/` |
-| `/api/compile` | `POST` | `{ yaml, format }` | `{ success, format, pdfBase64, svg, lilypondSource, onsets, sidecarMap, metrics }` | Compiles YAML with LilyPond and returns PDF/SVG |
-| `/api/export-pdf` | `POST` | `{ yaml, file }` | `{ success, pdfFile }` | Exports standalone PDF to `scores/` |
+| `/api/compile` | `POST` | `{ yaml, format, knotId }` | `{ success, format, pdfBase64, svg, lilypondSource, onsets, sidecarMap, availableKnots, selectedKnotId, metrics }` | Compiles YAML with LilyPond for selected knot and returns PDF/SVG |
+| `/api/export-pdf` | `POST` | `{ yaml, file, knotId }` | `{ success, pdfFile }` | Exports standalone PDF to `scores/` |
 
 ---
 

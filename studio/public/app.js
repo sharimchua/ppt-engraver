@@ -190,13 +190,21 @@ const TOKENS_HARMONY = [
 
 const ROOT_KEYS = [
   { text: 'tapestry:', displayText: 'tapestry:', type: 'prop', desc: 'Score root block' },
-  { text: 'knot:', displayText: 'knot:', type: 'prop', desc: 'Score metadata & settings' },
+  { text: 'knot:', displayText: 'knot:', type: 'prop', desc: 'Score metadata & default settings' },
+  { text: 'knots:', displayText: 'knots:', type: 'prop', desc: 'Named knot projections list/dictionary' },
   { text: 'coils:', displayText: 'coils:', type: 'prop', desc: 'Coil definitions dictionary' },
   { text: 'weaves:', displayText: 'weaves:', type: 'prop', desc: 'Hierarchical weave dictionary' },
   { text: 'weave:', displayText: 'weave: ...', type: 'prop', desc: 'Root weave reference' }
 ];
 
 const KNOT_KEYS = [
+  { text: 'id:', displayText: 'id: ...', type: 'prop', desc: 'Knot projection identifier' },
+  { text: 'name:', displayText: 'name: "..."', type: 'prop', desc: 'Display name for dropdown' },
+  { text: 'abstract:', displayText: 'abstract: true', type: 'prop', desc: 'Abstract template excluded from dropdown (not inherited)' },
+  { text: 'hidden:', displayText: 'hidden: true', type: 'prop', desc: 'Exclude from dropdown (not inherited)' },
+  { text: 'visible:', displayText: 'visible: true', type: 'prop', desc: 'Visibility toggle in dropdown (not inherited)' },
+  { text: 'parent:', displayText: 'parent: ...', type: 'prop', desc: 'Parent knot to inherit settings from' },
+  { text: 'parents:', displayText: 'parents: [...]', type: 'prop', desc: 'Parent knots to inherit settings from' },
   { text: 'tonic:', displayText: 'tonic: "C4"', type: 'prop', desc: 'Root tonic reference' },
   { text: 'tempo:', displayText: 'tempo: 120', type: 'prop', desc: 'Score tempo in BPM' },
   { text: 'weave:', displayText: 'weave: ...', type: 'prop', desc: 'Root weave reference' },
@@ -538,54 +546,84 @@ function indentSnippet(snippetText, baseIndent) {
 }
 
 /**
- * Cache of declared coil and weave IDs in the document.
+ * Cache of declared knot, coil and weave IDs in the document.
  */
 let declaredIdsCache = new Set();
 
+const RESERVED_SCHEMA_KEYS = new Set([
+  'tapestry', 'knot', 'knots', 'engraving', 'weaves', 'coils',
+  'children', 'melody', 'rhythm', 'harmony', 'chords', 'pitches',
+  'from', 'use', 'meter', 'clef', 'concat', 'parents', 'parent',
+  'show', 'title', 'subtitle', 'composer', 'arranger', 'poet', 'lyricist',
+  'copyright', 'tagline', 'tempo', 'tonic', 'do', 'colorNotes', 'omitStem',
+  'id', 'name', 'label', 'layout', 'coil', 'weave', 'projection', 'harmonyVoicing',
+  'melodyAugmentation', 'melodyAugmentationDisplay', 'harmonyStaffStyle', 'harmonyClef',
+  'melodyClef', 'harmonyOctave', 'noteheadStyle', 'traditionalRhythms',
+  'traditionalDurations', 'noteheadOutline', 'harmonyChangesOnly', 'chordChanges',
+  'showChordNames', 'showTraditionalHarmony', 'showRhythmGrid', 'showMelody',
+  'showHarmonyCoil', 'showMelodyCoilAbsolute', 'showMelodyCoilInterval',
+  'showRhythmCoil', 'zoom', 'indent', 'tags', 'repeat', 'transposition'
+]);
+
 function scanDeclaredCoilsAndWeaves(cm) {
-  if (!cm) return { coils: [], weaves: [], all: [] };
+  if (!cm) return { coils: [], weaves: [], knots: [], all: [] };
   const text = cm.getValue();
   const coilIds = new Set();
   const weaveIds = new Set();
+  const knotIds = new Set();
 
   const lines = text.split('\n');
-  let currentSection = null; // 'weaves' | 'coils' | other
+  let currentSection = null; // 'weaves' | 'coils' | 'knots' | other
+  let sectionIndent = 0;
 
   for (let l = 0; l < lines.length; l++) {
     const line = lines[l];
-    if (/^\s*#/.test(line)) continue;
+    if (/^\s*#/.test(line) || !line.trim()) continue;
 
-    if (/^weaves\s*:/i.test(line) || /^\s+weaves\s*:/i.test(line)) {
-      currentSection = 'weaves';
+    const indent = (line.match(/^(\s*)/) || [''])[0].length;
+
+    const sectionMatch = line.match(/^(\s*)(weaves|coils|knots)\s*:/i);
+    if (sectionMatch) {
+      currentSection = sectionMatch[2].toLowerCase();
+      sectionIndent = indent;
       continue;
-    } else if (/^coils\s*:/i.test(line) || /^\s+coils\s*:/i.test(line)) {
-      currentSection = 'coils';
-      continue;
-    } else if (/^[a-zA-Z0-9_]+\s*:/i.test(line)) {
-      currentSection = null;
+    } else if (indent <= sectionIndent && /^\s*[_a-zA-Z0-9]+\s*:/i.test(line)) {
+      const topMatch = line.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
+      if (topMatch && ['tapestry', 'knot', 'knots', 'weaves', 'coils'].includes(topMatch[1].toLowerCase())) {
+        currentSection = topMatch[1].toLowerCase();
+        sectionIndent = indent;
+      } else if (indent === 0) {
+        currentSection = null;
+      }
     }
 
     const dictKeyMatch = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)/);
     if (dictKeyMatch) {
       const key = dictKeyMatch[2];
-      if (!['tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'melody', 'rhythm', 'harmony', 'chords', 'pitches', 'from', 'use', 'meter', 'clef', 'concat', 'parents', 'parent', 'show', 'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes', 'omitStem', 'id'].includes(key)) {
+      if (!RESERVED_SCHEMA_KEYS.has(key.toLowerCase())) {
         if (currentSection === 'weaves') weaveIds.add(key);
+        else if (currentSection === 'knots') knotIds.add(key);
+        else if (currentSection === 'coils') coilIds.add(key);
         else coilIds.add(key);
       }
     }
 
     const inlineIdMatch = line.match(/\bid\s*:\s*["']?([_a-zA-Z0-9]+)["']?/);
     if (inlineIdMatch) {
-      coilIds.add(inlineIdMatch[1]);
+      const idVal = inlineIdMatch[1];
+      if (currentSection === 'weaves') weaveIds.add(idVal);
+      else if (currentSection === 'knots') knotIds.add(idVal);
+      else coilIds.add(idVal);
     }
   }
 
-  const all = Array.from(new Set([...coilIds, ...weaveIds]));
+  const all = Array.from(new Set([...coilIds, ...weaveIds, ...knotIds]));
   declaredIdsCache = new Set(all);
 
   return {
     coils: Array.from(coilIds),
     weaves: Array.from(weaveIds),
+    knots: Array.from(knotIds),
     all
   };
 }
@@ -615,11 +653,11 @@ function findParentSection(cm, lineNum) {
 
     const prevIndent = (prevLine.match(/^(\s*)/) || [''])[0].length;
     if (prevIndent < targetIndent || targetIndent === 0) {
-      const match = prevLine.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
+      const match = prevLine.match(/^\s*(?:-\s*)?([_a-zA-Z0-9]+)\s*:/);
       if (match) {
         const key = match[1].toLowerCase();
         if (key === 'engraving') return 'engraving';
-        if (key === 'knot') return 'knot';
+        if (key === 'knot' || key === 'knots') return 'knot';
         if (key === 'show') return 'show';
         if (key === 'coils') return 'coils';
         if (key === 'weaves') return 'weaves';
@@ -628,6 +666,7 @@ function findParentSection(cm, lineNum) {
         if (key === 'parents' || key === 'parent') return 'parents';
 
         const grandParent = findParentSection(cm, l);
+        if (grandParent === 'knots' || grandParent === 'knot') return 'knot';
         if (grandParent === 'coils' || grandParent === 'coil-body') return 'coil-body';
         if (grandParent === 'weaves' || grandParent === 'weave-body') return 'weave-body';
         return key;
@@ -643,7 +682,7 @@ function findParentSection(cm, lineNum) {
 function getContextSuggestions(cm, cursor) {
   const line = cm.getLine(cursor.line) || '';
   const beforeCursor = line.slice(0, cursor.ch);
-  const { coils, weaves } = scanDeclaredCoilsAndWeaves(cm);
+  const { coils, weaves, knots } = scanDeclaredCoilsAndWeaves(cm);
 
   // 0. Check if cursor is inside bracket array [...] on current line
   const openBracketIdx = beforeCursor.lastIndexOf('[');
@@ -656,6 +695,10 @@ function getContextSuggestions(cm, cursor) {
     if (/harmony|chords/i.test(beforeCursor)) return TOKENS_HARMONY;
     if (/show/i.test(beforeCursor)) return ENUMS_SHOW;
     if (/concat|parents|parent/i.test(beforeCursor)) {
+      const parentSection = findParentSection(cm, cursor.line);
+      if (parentSection === 'knot' || parentSection === 'knots') {
+        return (knots.length > 0 ? knots : coils).map(id => ({ text: id, displayText: id, type: 'knot', desc: 'Parent Knot reference' }));
+      }
       return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
     }
   }
@@ -674,7 +717,7 @@ function getContextSuggestions(cm, cursor) {
     if (/^noteheadStyle$/i.test(propName)) return ENUMS_NOTEHEAD_STYLE;
     if (/^harmonyStaffStyle$/i.test(propName)) return ENUMS_HARMONY_STAFF_STYLE;
     if (/^layout$/i.test(propName)) return [{ text: 'concatenate', displayText: 'concatenate', type: 'enum', desc: 'Sequential concatenation' }];
-    if (/^(colorNotes|omitStem|traditionalRhythms|traditionalDurations|noteheadOutline|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil)$/i.test(propName)) {
+    if (/^(abstract|hidden|visible|colorNotes|omitStem|traditionalRhythms|traditionalDurations|noteheadOutline|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil)$/i.test(propName)) {
       return [
         { text: 'true', displayText: 'true', type: 'enum', desc: 'Enable' },
         { text: 'false', displayText: 'false', type: 'enum', desc: 'Disable' },
@@ -693,6 +736,10 @@ function getContextSuggestions(cm, cursor) {
       ];
     }
     if (/^(parent|parents|from|use)$/i.test(propName)) {
+      const parentSection = findParentSection(cm, cursor.line);
+      if (parentSection === 'knot' || parentSection === 'knots') {
+        return (knots.length > 0 ? knots : coils).map(id => ({ text: id, displayText: id, type: 'knot', desc: 'Parent Knot ID reference' }));
+      }
       return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil ID reference' }));
     }
     if (/^concat$/i.test(propName)) {
@@ -754,6 +801,18 @@ function getContextSuggestions(cm, cursor) {
     if (parentSection === 'concat' || parentSection === 'parents') {
       return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
     }
+    if (parentSection === 'knot' || parentSection === 'knots') {
+      const knotSnippets = SNIPPET_TEMPLATES.filter(s => s.context && (s.context.includes('knot') || s.context.includes('knots'))).map(s => ({
+        text: s.label,
+        displayText: s.displayText,
+        type: s.type,
+        desc: s.desc,
+        isSnippet: true,
+        snippet: s.snippet,
+        context: s.context
+      }));
+      return [...knotSnippets, ...KNOT_KEYS];
+    }
     if (parentSection === 'children') {
       const childSnippets = SNIPPET_TEMPLATES.filter(s => s.context && s.context.includes('children')).map(s => ({
         text: s.label,
@@ -800,8 +859,17 @@ function getContextSuggestions(cm, cursor) {
     return [...engSnippets, ...ENGRAVING_KEYS];
   }
 
-  if (parentSection === 'knot') {
-    return [...KNOT_KEYS];
+  if (parentSection === 'knot' || parentSection === 'knots') {
+    const knotSnippets = SNIPPET_TEMPLATES.filter(s => s.context && (s.context.includes('knot') || s.context.includes('knots'))).map(s => ({
+      text: s.label,
+      displayText: s.displayText,
+      type: s.type,
+      desc: s.desc,
+      isSnippet: true,
+      snippet: s.snippet,
+      context: s.context
+    }));
+    return [...knotSnippets, ...KNOT_KEYS];
   }
 
   if (parentSection === 'coils' || parentSection === 'coil-body') {
@@ -855,7 +923,7 @@ function getContextSuggestions(cm, cursor) {
     snippet: s.snippet,
     context: s.context
   }));
-  return [...allSnippets, ...COIL_KEYS, ...ENGRAVING_KEYS, ...ROOT_KEYS];
+  return [...allSnippets, ...KNOT_KEYS, ...COIL_KEYS, ...ENGRAVING_KEYS, ...ROOT_KEYS];
 }
 
 
@@ -913,14 +981,14 @@ const solfegeOverlay = {
 
     // Check if we are at the start of a word
     const rest = line.slice(stream.pos);
-    const wordMatch = rest.match(/^[_A-Za-z0-9\^_]+/);
+    const wordMatch = rest.match(/^["']?([_A-Za-z0-9\^_]+)["']?/);
     if (!wordMatch) {
       stream.next();
       return null;
     }
 
     const fullWord = wordMatch[0];
-    const cleanWord = fullWord.replace(/^["']|["']$/g, '');
+    const cleanWord = wordMatch[1];
 
     // Ensure cache is initialized
     if (!declaredIdsCache || declaredIdsCache.size === 0) {
@@ -2368,6 +2436,9 @@ editor.on('cursorActivity', () => {
 
 // DOM Elements
 const scoreSelect = document.getElementById('score-select');
+const knotSelect = document.getElementById('knot-select');
+const knotPickerWrapper = document.getElementById('knot-picker-wrapper');
+let currentKnotId = null;
 const btnNewScore = document.getElementById('btn-new-score');
 const btnDeleteScore = document.getElementById('btn-delete-score');
 const btnCompile = document.getElementById('btn-compile');
@@ -2565,6 +2636,20 @@ function clearPreviewWindow(loadingMessage = null) {
 }
 
 // --- URL & Deeplinking Helpers ---
+function getKnotFromUrlOrStorage() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramKnot = urlParams.get('knot');
+  if (paramKnot) return paramKnot;
+
+  if (window.location.hash) {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const hashKnot = hashParams.get('knot');
+    if (hashKnot) return hashKnot;
+  }
+
+  return localStorage.getItem('ppt_active_knot') || null;
+}
+
 function getScoreFromUrlOrStorage(scoreList) {
   if (!scoreList || scoreList.length === 0) return null;
 
@@ -2583,7 +2668,10 @@ function getScoreFromUrlOrStorage(scoreList) {
 
   // 2. Check URL hash (#...)
   if (window.location.hash) {
-    const hashScore = window.location.hash.slice(1).toLowerCase().replace(/^scores[\\/]/, '');
+    const hashText = window.location.hash.slice(1);
+    const hashParams = new URLSearchParams(hashText);
+    const hashScoreParam = hashParams.get('score');
+    const hashScore = (hashScoreParam || hashText).toLowerCase().replace(/^scores[\\/]/, '');
     const match = scoreList.find(s => 
       s.name.toLowerCase() === hashScore ||
       s.path.toLowerCase().endsWith(hashScore)
@@ -2607,13 +2695,44 @@ function getScoreFromUrlOrStorage(scoreList) {
   return scoreList[0].path;
 }
 
-function updateUrlAndStorage(filePath) {
+function updateUrlAndStorage(filePath, knotId = currentKnotId) {
   if (!filePath) return;
   localStorage.setItem('ppt_active_score', filePath);
+  if (knotId) {
+    localStorage.setItem('ppt_active_knot', knotId);
+  } else {
+    localStorage.removeItem('ppt_active_knot');
+  }
 
   const cleanName = filePath.replace(/^scores[\\/]/, '');
-  const newUrl = `${window.location.pathname}?score=${encodeURIComponent(cleanName)}`;
-  window.history.replaceState({ score: cleanName }, '', newUrl);
+  let newUrl = `${window.location.pathname}?score=${encodeURIComponent(cleanName)}`;
+  if (knotId) {
+    newUrl += `&knot=${encodeURIComponent(knotId)}`;
+  }
+  window.history.replaceState({ score: cleanName, knot: knotId }, '', newUrl);
+}
+
+function updateKnotDropdown(availableKnots, selectedKnotId) {
+  if (!knotSelect) return;
+  knotSelect.innerHTML = '';
+
+  const knots = (availableKnots && availableKnots.length > 0)
+    ? availableKnots
+    : [{ id: selectedKnotId || 'default', name: 'Default' }];
+
+  knots.forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k.id;
+    opt.textContent = k.name || k.title || k.id;
+    if (k.id === selectedKnotId) {
+      opt.selected = true;
+    }
+    knotSelect.appendChild(opt);
+  });
+
+  const effectiveSelected = selectedKnotId || knots[0].id;
+  knotSelect.value = effectiveSelected;
+  currentKnotId = effectiveSelected;
 }
 
 // --- API Helpers ---
@@ -2637,6 +2756,7 @@ async function fetchScores(targetPath = null) {
       if (!isInitialScoreLoadDone) {
         isInitialScoreLoadDone = true;
         const initialScore = targetPath || getScoreFromUrlOrStorage(cachedScores);
+        currentKnotId = getKnotFromUrlOrStorage();
         currentScoreFile = initialScore;
         scoreSelect.value = initialScore;
         loadScore(initialScore);
@@ -2644,7 +2764,7 @@ async function fetchScores(targetPath = null) {
         const selected = targetPath || currentScoreFile || cachedScores[0].path;
         currentScoreFile = selected;
         scoreSelect.value = selected;
-        updateUrlAndStorage(selected);
+        updateUrlAndStorage(selected, currentKnotId);
       }
     } else {
       scoreSelect.innerHTML = '<option value="">No tapestries found</option>';
@@ -2677,10 +2797,10 @@ async function loadScore(filePath, force = false) {
     if (data.content) {
       currentScoreFile = filePath;
       scoreSelect.value = filePath;
-      updateUrlAndStorage(filePath);
+      updateUrlAndStorage(filePath, currentKnotId);
       editor.setValue(data.content);
       setDirty(false);
-      triggerCompile();
+      triggerCompile(currentKnotId);
     }
   } catch (err) {
     console.error('Failed to load tapestry:', err);
@@ -2703,7 +2823,7 @@ async function saveScore() {
       currentScoreFile = data.file;
       setDirty(false);
       setStatus('ready', 'Tapestry Saved');
-      updateUrlAndStorage(data.file);
+      updateUrlAndStorage(data.file, currentKnotId);
       await fetchScores(data.file); // Refresh list without reloading or recompiling editor!
     }
   } catch (err) {
@@ -2712,9 +2832,11 @@ async function saveScore() {
   }
 }
 
-async function triggerCompile() {
+async function triggerCompile(customKnotId = null) {
   const yaml = editor.getValue();
   if (!yaml.trim()) return;
+
+  const targetKnotId = customKnotId || currentKnotId || getKnotFromUrlOrStorage();
 
   setStatus('compiling', 'Compiling...');
   hideError();
@@ -2723,13 +2845,23 @@ async function triggerCompile() {
     const res = await fetch('/api/compile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ yaml }),
+      body: JSON.stringify({ yaml, knotId: targetKnotId }),
     });
     const data = await res.json();
     lastCompiledData = data;
     latestSidecarMap = data.sidecarMap || null;
     latestLilypondSource = data.lilypondSource || '';
     latestOnsets = data.onsets || [];
+
+    if (data.availableKnots) {
+      updateKnotDropdown(data.availableKnots, data.selectedKnotId);
+    }
+    if (data.selectedKnotId) {
+      currentKnotId = data.selectedKnotId;
+      if (currentScoreFile) {
+        updateUrlAndStorage(currentScoreFile, currentKnotId);
+      }
+    }
 
     if (data.success) {
       setStatus('ready', `⚡ ${data.metrics?.totalTimeMs || 0}ms`);
@@ -2759,7 +2891,7 @@ async function exportPdf() {
     const res = await fetch('/api/export-pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ yaml, file }),
+      body: JSON.stringify({ yaml, file, knotId: currentKnotId }),
     });
     const data = await res.json();
     if (data.success) {
@@ -3777,13 +3909,31 @@ window.addEventListener('beforeunload', (e) => {
 
 scoreSelect.addEventListener('change', (e) => {
   if (e.target.value) {
+    currentKnotId = null; // reset knot selection on score switch
     loadScore(e.target.value);
   }
 });
 
+if (knotSelect) {
+  knotSelect.addEventListener('change', (e) => {
+    const selectedKnot = e.target.value;
+    if (selectedKnot) {
+      currentKnotId = selectedKnot;
+      if (currentScoreFile) {
+        updateUrlAndStorage(currentScoreFile, selectedKnot);
+      }
+      triggerCompile(selectedKnot);
+    }
+  });
+}
+
 window.addEventListener('popstate', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const paramScore = urlParams.get('score');
+  const paramKnot = urlParams.get('knot');
+
+  let scoreChanged = false;
+
   if (paramScore && scoreSelect.options.length > 0) {
     const cleanParam = paramScore.toLowerCase().replace(/^scores[\\/]/, '');
     for (let i = 0; i < scoreSelect.options.length; i++) {
@@ -3792,16 +3942,24 @@ window.addEventListener('popstate', () => {
         if (opt.value !== currentScoreFile) {
           if (!confirmDiscardUnsavedChanges()) {
             if (currentScoreFile) {
-              updateUrlAndStorage(currentScoreFile);
+              updateUrlAndStorage(currentScoreFile, currentKnotId);
             }
-            break;
+            return;
           }
           scoreSelect.value = opt.value;
+          currentKnotId = paramKnot || null;
+          scoreChanged = true;
           loadScore(opt.value, true);
         }
         break;
       }
     }
+  }
+
+  if (!scoreChanged && paramKnot !== undefined && paramKnot !== currentKnotId) {
+    currentKnotId = paramKnot;
+    if (knotSelect && paramKnot) knotSelect.value = paramKnot;
+    triggerCompile(paramKnot);
   }
 });
 

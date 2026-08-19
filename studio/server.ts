@@ -107,11 +107,11 @@ function sendError(res: ServerResponse, message: string, status = 500, details?:
 /**
  * Compiles a YAML string to LilyPond .ly and runs LilyPond to produce PDF (super-fast native backend).
  */
-async function compileScore(yamlContent: string, format = 'pdf') {
+async function compileScore(yamlContent: string, format = 'pdf', knotId?: string) {
   const startTime = Date.now();
   
   // 1. In-memory YAML -> LilyPond compilation (runs in ~10-20ms)
-  const result = compileYamlString(yamlContent);
+  const result = compileYamlString(yamlContent, { knotId });
   const compileTimeMs = Date.now() - startTime;
 
   // 2. Render via LilyPond
@@ -152,6 +152,8 @@ async function compileScore(yamlContent: string, format = 'pdf') {
         lilypondSource: result.lilypondSource,
         onsets: result.onsets,
         sidecarMap: result.sidecarMap,
+        availableKnots: result.availableKnots,
+        selectedKnotId: result.selectedKnotId,
         warnings: result.warnings,
         metrics: {
           compileTimeMs,
@@ -184,6 +186,8 @@ async function compileScore(yamlContent: string, format = 'pdf') {
         lilypondSource: result.lilypondSource,
         onsets: result.onsets,
         sidecarMap: result.sidecarMap,
+        availableKnots: result.availableKnots,
+        selectedKnotId: result.selectedKnotId,
         warnings: result.warnings,
         metrics: {
           compileTimeMs,
@@ -199,6 +203,8 @@ async function compileScore(yamlContent: string, format = 'pdf') {
       stderr: err.stderr,
       stdout: err.stdout,
       lilypondSource: result.lilypondSource,
+      availableKnots: result.availableKnots,
+      selectedKnotId: result.selectedKnotId,
       warnings: result.warnings,
       metrics: {
         compileTimeMs,
@@ -246,7 +252,7 @@ const server = createServer(async (req, res) => {
         if (!body.yaml || typeof body.yaml !== 'string') {
           return sendError(res, 'Missing yaml content', 400);
         }
-        const result = await compileScore(body.yaml, body.format || 'pdf');
+        const result = await compileScore(body.yaml, body.format || 'pdf', body.knotId || body.knot);
         return sendJson(res, result);
       }
 
@@ -455,7 +461,7 @@ const server = createServer(async (req, res) => {
         const lyPath = join(SCORES_DIR, `${fileName}.notation.ly`);
         const pdfOutPrefix = join(SCORES_DIR, fileName);
 
-        const result = compileYamlString(body.yaml);
+        const result = compileYamlString(body.yaml, { knotId: body.knotId || body.knot });
         writeFileSync(lyPath, result.lilypondSource, 'utf-8');
 
         await execFileAsync(lilypondPath, [

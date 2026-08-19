@@ -10,7 +10,10 @@ The `src/resolver/` directory resolves high-level declarative PPT constructs int
 
 1. **`resolveTapestry()`**:
    - Master orchestrator resolving knots and recursively descending through weave trees.
-2. **`resolveCoil()`**:
+2. **`resolveKnot()`**:
+   - Resolves anchor pitch, tempo, root weave selection, and visual engraving settings.
+   - Supports ordered arrays/dictionaries (`knots:`), single/multi-parent inheritance (`parent`, `parents`), abstract base templates (`abstract: true`, `hidden: true` un-inherited by children), deep engraving config merging, cycle detection, and projection selection (`selectedKnotId`).
+3. **`resolveCoil()`**:
    - Computes musical alignment across:
      - `melody`: Sequence of Solfège tokens (e.g. `[Do, Re, Mi, Fa, So]`), structured voice object (`{ pitches: [...], rhythm: [...] }`), named coil reference (`melody: motif_a` / `melody: { from: 'motif_a' }`), or polyphonic array of voices (`[ [...], [...] ]` / `[ { pitches: ... }, ... ]`). Supports integer repeats (`X`) and lookback repeat windows (`X.Y`).
      - `rhythm`: Rhythmic durations, subdivisions, metric block labels (`DoLa`, `DoSo`), named rhythm coil reference (`rhythm: groove_1` / `rhythm: { from: 'groove_1' }`), and `X.Y` lookback repeat tokens.
