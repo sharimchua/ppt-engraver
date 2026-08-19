@@ -237,8 +237,13 @@ export function resolveRhythmTimeline(
 
     if (i > 0) {
       if (p.beatSkips > 0) {
-        // Dox prefix skips over the next downbeat(s)
-        currentBeat += 1 + p.beatSkips;
+        if (p.baseSyllable === 'Do') {
+          currentBeat += 1 + p.beatSkips;
+        } else if (p.offsetInBeat <= prevOffsetInBeat) {
+          currentBeat += 1 + p.beatSkips;
+        } else {
+          currentBeat += p.beatSkips;
+        }
         prevOffsetInBeat = -1;
       } else if (p.baseSyllable === 'Do') {
         currentBeat += 1;
@@ -270,7 +275,7 @@ export function resolveRhythmTimeline(
       durationBeats = timestamps[i + 1] - startBeat;
     } else {
       // Final note: extend to the next beat boundary (at least 1.0 beat if starting on downbeat)
-      const nextBeatBoundary = Math.floor(startBeat) + 1;
+      const nextBeatBoundary = Math.floor(startBeat + 1e-5) + 1;
       durationBeats = nextBeatBoundary > startBeat
         ? nextBeatBoundary - startBeat
         : 1.0;
@@ -291,3 +296,270 @@ export function resolveRhythmTimeline(
 
   return result;
 }
+
+/**
+ * Converts a fractional offset within a beat [0, 1) into a canonical Solfège rhythm syllable.
+ * Handles primary 12ths and recursive compound subdivisions (e.g. MeFi, LeFi).
+ */
+export function offsetInBeatToSolfege(offset: number): string {
+  const EPS = 1e-4;
+  const modOffset = ((offset % 1.0) + 1.0) % 1.0;
+  if (modOffset < EPS || modOffset > 1.0 - EPS) return 'Do';
+
+  const twelfths = modOffset * 12;
+  const nearestTwelfth = Math.round(twelfths);
+  if (Math.abs(twelfths - nearestTwelfth) < EPS) {
+    const SYLLABLES_12: Record<number, string> = {
+      0: 'Do',
+      1: 'Ra',
+      2: 'Re',
+      3: 'Me',
+      4: 'Mi',
+      5: 'Fa',
+      6: 'Fi',
+      7: 'So',
+      8: 'Le',
+      9: 'La',
+      10: 'Te',
+      11: 'Ti',
+    };
+    return SYLLABLES_12[nearestTwelfth] ?? 'Do';
+  }
+
+  const CANDIDATES = ['Do', 'Ra', 'Re', 'Me', 'Mi', 'Fa', 'Fi', 'So', 'Le', 'La', 'Te', 'Ti'];
+  let bestToken = 'Do';
+  let bestErr = Infinity;
+
+  for (const base of CANDIDATES) {
+    const baseFrac = (SOLFEGE_TO_SEMITONE[base] ?? 0) / 12;
+    if (baseFrac <= modOffset + EPS) {
+      const remaining = 1.0 - baseFrac;
+      if (remaining > EPS) {
+        for (const suffix of CANDIDATES) {
+          const suffixFrac = (SOLFEGE_TO_SEMITONE[suffix] ?? 0) / 12;
+          const candidateOffset = baseFrac + suffixFrac * remaining;
+          const err = Math.abs(modOffset - candidateOffset);
+          if (err < bestErr) {
+            bestErr = err;
+            bestToken = base === 'Do' ? suffix : `${base}${suffix}`;
+          }
+        }
+      }
+    }
+  }
+
+  return bestToken;
+}
+
+/**
+ * Converts an array of absolute onset start beat timestamps (quarter note = 1.0)
+ * into a sequence of PPT rhythm tokens.
+ */
+export function timestampsToRhythmTokens(timestamps: number[]): string[] {
+  if (timestamps.length === 0) return [];
+  const tokens: string[] = [];
+  let prevBeat = 0;
+  let prevOffset = -1;
+
+  for (let i = 0; i < timestamps.length; i++) {
+    const t = timestamps[i];
+    const currentBeat = Math.floor(t + 1e-5);
+    const offsetInBeat = t - currentBeat;
+    const syl = offsetInBeatToSolfege(offsetInBeat);
+
+    if (i === 0) {
+      if (currentBeat > 0) {
+        tokens.push('Dox'.repeat(currentBeat) + syl);
+      } else {
+        tokens.push(syl);
+      }
+    } else {
+      const beatDelta = currentBeat - prevBeat;
+      if (beatDelta > 0) {
+        if (syl === 'Do') {
+          if (beatDelta === 1) {
+            tokens.push('Do');
+          } else {
+            tokens.push('Dox'.repeat(beatDelta - 1) + 'Do');
+          }
+        } else {
+          if (offsetInBeat <= prevOffset) {
+            const extraSkips = beatDelta - 1;
+            if (extraSkips > 0) {
+              tokens.push('Dox'.repeat(extraSkips) + syl);
+            } else {
+              tokens.push(syl);
+            }
+          } else {
+            tokens.push('Dox'.repeat(beatDelta) + syl);
+          }
+        }
+      } else {
+        tokens.push(syl);
+      }
+    }
+
+    prevBeat = currentBeat;
+    prevOffset = offsetInBeat;
+  }
+
+  return tokens;
+}
+
+/**
+ * Calculates the phase offset in beats to align the primary chord downbeat with an integer downbeat.
+ * E.g., if a chord starts on beat 3.0 (after a 3-beat pickup) and factor is 0.5 (half time, period = 2.0 beats),
+ * the phase offset is 1.0, so (3.0 + 1.0) * 0.5 = 2.0 (integer downbeat).
+ */
+export function calculateHarmonyPhaseOffset(
+  harmonyRhythmTokens: string[],
+  factor: number,
+): number {
+  if (harmonyRhythmTokens.length === 0 || factor <= 0) return 0;
+  const timeline = resolveRhythmTimeline(harmonyRhythmTokens);
+  if (timeline.length === 0) return 0;
+  const firstChordBeat = timeline[0].startBeat;
+  const period = 1.0 / factor;
+  const rem = ((firstChordBeat % period) + period) % period;
+  if (Math.abs(rem) < 1e-4 || Math.abs(rem - period) < 1e-4) {
+    return 0;
+  }
+  return period - rem;
+}
+
+/**
+ * Transposes/scales an array of rhythm tokens by a scaling factor with an optional phase offset in beats.
+ * E.g. factor = 2.0 scales beat period to double time (doubles beat density / halves duration).
+ * factor = 0.5 scales beat period to half time.
+ * phaseOffset shifts the input timeline before scaling so pickups land on appropriate sub-beats.
+ */
+export function transposeRhythmTokens(
+  rhythmTokens: string[],
+  factor: number,
+  phaseOffset: number = 0,
+): string[] {
+  if (rhythmTokens.length === 0 || factor <= 0) return rhythmTokens;
+  const timeline = resolveRhythmTimeline(rhythmTokens);
+  const scaledTimestamps = timeline.map(onset => (onset.startBeat + phaseOffset) * factor);
+  return timestampsToRhythmTokens(scaledTimestamps);
+}
+
+export interface RhythmComplexityStats {
+  doxCount: number;
+  compoundSuffixCount: number;
+  subdivisionCount: number;
+  downbeatCount: number;
+  complexityScore: number;
+  totalTokens: number;
+}
+
+/**
+ * Analyzes the rhythmic grammar complexity of a sequence of rhythm tokens.
+ * Computes counts of Dox delays, compound subdivision suffixes, sub-beat offbeat syllables, and clean downbeats.
+ */
+export function analyzeRhythmComplexity(tokens: string[]): RhythmComplexityStats {
+  let doxCount = 0;
+  let compoundSuffixCount = 0;
+  let subdivisionCount = 0;
+  let downbeatCount = 0;
+
+  for (const tok of tokens) {
+    const doxMatches = tok.match(/Dox/g);
+    if (doxMatches) doxCount += doxMatches.length;
+
+    try {
+      const parsed = parseRhythmToken(tok);
+      if (parsed.suffixes.length > 0) {
+        compoundSuffixCount += parsed.suffixes.length;
+      }
+      if (parsed.cleanToken === 'Do') {
+        downbeatCount++;
+      } else if (parsed.cleanToken !== 'Dox') {
+        subdivisionCount++;
+      }
+    } catch {
+      // Ignored
+    }
+  }
+
+  // Lower is simpler grammar: Dox delays (+3), Compound suffixes (+6), Sub-beat offbeats (+1)
+  const complexityScore = doxCount * 3 + compoundSuffixCount * 6 + subdivisionCount * 1;
+
+  return {
+    doxCount,
+    compoundSuffixCount,
+    subdivisionCount,
+    downbeatCount,
+    complexityScore,
+    totalTokens: tokens.length,
+  };
+}
+
+
+export interface OptimalRhythmicPeriodSuggestion {
+  recommendedFactor: number;
+  label: string;
+  originalComplexity: RhythmComplexityStats;
+  recommendedComplexity: RhythmComplexityStats;
+  doxReductionPercent: number;
+  suffixReductionPercent: number;
+  transposedTokens: string[];
+}
+
+/**
+ * Evaluates candidate scaling factors against current rhythm tokens to suggest
+ * the optimal rhythmic period length that minimizes Dox delays and compound suffixes.
+ */
+export function suggestOptimalRhythmicPeriod(tokens: string[]): OptimalRhythmicPeriodSuggestion {
+  const currentComplexity = analyzeRhythmComplexity(tokens);
+  const candidates = [
+    { factor: 2.0, label: 'Double Time (2× Beat Density)' },
+    { factor: 0.5, label: 'Half Time (0.5× Beat Density)' },
+    { factor: 4.0, label: 'Quadruple Time (4× Beat Density)' },
+    { factor: 0.25, label: 'Quarter Time (0.25× Beat Density)' },
+    { factor: 1.5, label: 'Dotted / Compound (1.5× Beat Density)' },
+    { factor: 3.0, label: 'Triplet (3× Beat Density)' },
+    { factor: 1.0 / 3.0, label: 'Triplet Reduction (0.33× Beat Density)' },
+  ];
+
+  let bestFactor = 1.0;
+  let bestLabel = 'Current Period Length (1×)';
+  let bestComplexity = currentComplexity;
+  let bestTokens = tokens;
+  let bestScore = currentComplexity.complexityScore;
+
+  for (const c of candidates) {
+    try {
+      const transposed = transposeRhythmTokens(tokens, c.factor);
+      const complexity = analyzeRhythmComplexity(transposed);
+      if (complexity.complexityScore < bestScore) {
+        bestScore = complexity.complexityScore;
+        bestFactor = c.factor;
+        bestLabel = c.label;
+        bestComplexity = complexity;
+        bestTokens = transposed;
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  const doxReductionPercent = currentComplexity.doxCount > 0
+    ? Math.max(0, Math.round(((currentComplexity.doxCount - bestComplexity.doxCount) / currentComplexity.doxCount) * 100))
+    : 0;
+
+  const suffixReductionPercent = currentComplexity.compoundSuffixCount > 0
+    ? Math.max(0, Math.round(((currentComplexity.compoundSuffixCount - bestComplexity.compoundSuffixCount) / currentComplexity.compoundSuffixCount) * 100))
+    : 0;
+
+  return {
+    recommendedFactor: bestFactor,
+    label: bestLabel,
+    originalComplexity: currentComplexity,
+    recommendedComplexity: bestComplexity,
+    doxReductionPercent,
+    suffixReductionPercent,
+    transposedTokens: bestTokens,
+  };
+}
+

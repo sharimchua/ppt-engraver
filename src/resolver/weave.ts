@@ -58,13 +58,15 @@ export function resolveWeave(
   if (weave.coils) {
     if (Array.isArray(weave.coils)) {
       for (const c of weave.coils) {
-        if (c.id) {
-          coilLibrary.set(c.id, c);
+        const unwrapped = (typeof c === 'object' && c !== null && 'coil' in c && (c as { coil?: Coil }).coil) ? (c as { coil: Coil }).coil : (c as Coil);
+        if (unwrapped && unwrapped.id) {
+          coilLibrary.set(unwrapped.id, unwrapped);
         }
       }
     } else {
       for (const [id, c] of Object.entries(weave.coils)) {
-        coilLibrary.set(id, { ...c, id: c.id ?? id });
+        const unwrapped = (typeof c === 'object' && c !== null && 'coil' in c && (c as { coil?: Coil }).coil) ? (c as { coil: Coil }).coil : (c as Coil);
+        coilLibrary.set(id, { ...unwrapped, id: unwrapped?.id ?? id });
       }
     }
   }

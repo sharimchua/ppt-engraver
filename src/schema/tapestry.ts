@@ -442,6 +442,24 @@ export const HarmonyLayerSchema = z.union([
 export type HarmonyLayer = string | HarmonyEntry[] | HarmonyObject;
 
 /**
+ * Concat item: either a string coil ID, an inline Coil, or an object wrapping a coil ID or inline Coil ({ coil: string | Coil }).
+ */
+export type ConcatEntry = string | Coil | { coil: string | Coil };
+
+/**
+ * Zod schema for a Concat entry.
+ */
+export const ConcatEntrySchema: z.ZodType<ConcatEntry> = z.lazy(() =>
+  z.union([
+    z.string().min(1),
+    z.object({
+      coil: z.union([z.string().min(1), CoilSchema]),
+    }),
+    CoilSchema,
+  ])
+);
+
+/**
  * Coil interface for TypeScript typing with recursive concat support.
  */
 export interface Coil {
@@ -452,7 +470,7 @@ export interface Coil {
   /** Ordered list or single parent Coil ID to inherit layers from */
   parents?: string | string[];
   /** Sub-coils to concatenate into a single continuous phrase */
-  concat?: Array<string | Coil>;
+  concat?: ConcatEntry[];
   /** Rhythm layer: micro Solfège rhythm tokens array, macro metric block-length label, or coil reference */
   rhythm?: RhythmLayer;
   /** Metric block-length label: macro time grouping (e.g. "DoLa", "DoSo") */
@@ -486,7 +504,7 @@ export const CoilSchema: z.ZodType<Coil> = z.lazy(() =>
     /** Ordered list or single parent Coil ID to inherit layers from */
     parents: z.union([z.string(), z.array(z.string())]).optional(),
     /** Sub-coils to concatenate into a single continuous phrase */
-    concat: z.array(z.union([z.string(), CoilSchema])).min(1).optional(),
+    concat: z.array(ConcatEntrySchema).min(1).optional(),
     /** Rhythm layer: either micro Solfège rhythm tokens array, macro metric block-length label, or coil ref */
     rhythm: RhythmLayerSchema.optional(),
     /** Metric block-length label: macro time grouping (e.g. "DoLa", "DoSo") */
@@ -517,7 +535,7 @@ export interface Weave {
   /** Layout mode — v1 supports only 'concatenate' */
   layout?: 'concatenate';
   /** Local/in-place library of reusable named Coils */
-  coils?: Record<string, Coil> | Coil[];
+  coils?: Record<string, Coil | { coil: Coil }> | Array<Coil | { coil: Coil }>;
   /** Default coil ID or inline Coil providing fallback layers for child coils */
   defaultCoil?: string | Coil;
   /** Ordered list of child coils and/or child weaves */
@@ -564,7 +582,7 @@ export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
     /** Layout mode — v1 supports only 'concatenate' */
     layout: z.enum(['concatenate']).default('concatenate'),
     /** Local/in-place library of reusable named Coils */
-    coils: z.record(z.string(), CoilSchema).or(z.array(CoilSchema)).optional(),
+    coils: z.record(z.string(), CoilSchema.or(z.object({ coil: CoilSchema }))).or(z.array(CoilSchema.or(z.object({ coil: CoilSchema })))).optional(),
     /** Default coil ID or inline Coil providing fallback layers for child coils */
     defaultCoil: z.string().or(CoilSchema).optional(),
     /** Ordered list of child coils and/or child weaves */
@@ -590,7 +608,7 @@ export const TapestrySchema = z.object({
     /** Optional library or ordered list of named Knots (providing different projections/versions) */
     knots: z.record(z.string(), KnotSchema).or(z.array(KnotSchema)).optional(),
     /** Optional library of reusable named Coils */
-    coils: z.record(z.string(), CoilSchema).or(z.array(CoilSchema)).optional(),
+    coils: z.record(z.string(), CoilSchema.or(z.object({ coil: CoilSchema }))).or(z.array(CoilSchema.or(z.object({ coil: CoilSchema })))).optional(),
     /** Optional library of reusable named Weaves */
     weaves: z.record(z.string(), WeaveSchema).or(z.array(WeaveSchema)).optional(),
     /** The top-level weave containing all coils and nested weaves (or reference ID) */

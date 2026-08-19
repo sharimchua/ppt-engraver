@@ -33,19 +33,21 @@ export interface ResolutionResult {
  * @returns Complete onset stream + accumulated warnings
  */
 function registerCoils(
-  rawCoils: Record<string, Coil> | Coil[] | undefined,
+  rawCoils: Record<string, Coil | { coil: Coil }> | Array<Coil | { coil: Coil }> | undefined,
   coilLibrary: Map<string, Coil>,
 ) {
   if (!rawCoils) return;
   if (Array.isArray(rawCoils)) {
     for (const c of rawCoils) {
-      if (c.id) {
-        coilLibrary.set(c.id, c);
+      const unwrapped = (typeof c === 'object' && c !== null && 'coil' in c && (c as { coil?: Coil }).coil) ? (c as { coil: Coil }).coil : (c as Coil);
+      if (unwrapped && unwrapped.id) {
+        coilLibrary.set(unwrapped.id, unwrapped);
       }
     }
   } else {
     for (const [id, c] of Object.entries(rawCoils)) {
-      coilLibrary.set(id, { ...c, id: c.id ?? id });
+      const unwrapped = (typeof c === 'object' && c !== null && 'coil' in c && (c as { coil?: Coil }).coil) ? (c as { coil: Coil }).coil : (c as Coil);
+      coilLibrary.set(id, { ...unwrapped, id: unwrapped?.id ?? id });
     }
   }
 }

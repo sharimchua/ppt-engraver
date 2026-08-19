@@ -20,6 +20,7 @@ The `src/resolver/` directory resolves high-level declarative PPT constructs int
      - `harmony`: Chords applied across the coil, structured `{ chords: [...], rhythm: [...] }`, or named coil injection (`harmony: changes` / `harmony: { from: 'changes', harmonyOctave: -1, harmonyVoicing: 'shell' }`) with optional `X.Y` lookback repetitions.
 3. **`resolveConcat()` (`resolveConcatCoil()`)**:
    - Combines multiple sub-coils into a single continuous weave structure, ensuring timing offsets and voice alignment remain continuous.
+   - Accepts string coil IDs (`part1`), wrapped coil references (`- coil: part1`), standard indented inline coils (`- coil:\n    melody: [...]`), and raw inline coils (`- melody: [...]`).
    - Fully inherits and resolves composite-level layers (such as phrase-wide harmony changes or augmentation) via `inheritCoilLayers()`, allowing `concat` coils to use `harmony: changes` or `parents: changes`.
 4. **`resolveInheritance()` (`inheritCoilLayers()`) & Layer Injection**:
    - Explicit Layer Injection: Directly injects specific layers from other coils (`harmony: changes`, `rhythm: { from: 'groove_1' }`, cross-layer `melody: { from: 'changes.harmony' }`) with local property overrides.

@@ -854,6 +854,158 @@ export function getScaleDegreeFromDo(midi: number, doMidi: number): string {
   return SOLFEGE_POSITIONS[semitoneOffset];
 }
 
+/**
+ * Standard mode degree offsets relative to Do (Ionian).
+ */
+export const MODE_DEGREE_OFFSETS: Record<string, { degree: string; semitones: number; label: string }> = {
+  ionian: { degree: 'Do', semitones: 0, label: 'Ionian (Major / Do)' },
+  dorian: { degree: 'Re', semitones: 2, label: 'Dorian (Re / +2 st)' },
+  phrygian: { degree: 'Me', semitones: 3, label: 'Phrygian (Me / +3 st)' },
+  lydian: { degree: 'Fa', semitones: 5, label: 'Lydian (Fa / +5 st)' },
+  mixolydian: { degree: 'So', semitones: 7, label: 'Mixolydian (So / +7 st)' },
+  aeolian: { degree: 'La', semitones: 9, label: 'Aeolian (Natural Minor / La / -3 st)' },
+  locrian: { degree: 'Ti', semitones: 11, label: 'Locrian (Ti / -1 st)' },
+};
 
+/**
+ * Calculates the signed semitone difference and MIDI values between old and new tonic strings.
+ */
+export function calculateTonicShift(
+  oldTonicName: string,
+  newTonicName: string,
+): { semitones: number; oldMidi: number; newMidi: number } {
+  const oldMidi = pitchNameToMidi(oldTonicName);
+  const newMidi = pitchNameToMidi(newTonicName);
+  // Shift needed to preserve pitch when tonic changes: oldMidi - newMidi
+  return {
+    semitones: oldMidi - newMidi,
+    oldMidi,
+    newMidi,
+  };
+}
 
+/**
+ * Transposes a single solfège pitch token by a given semitone offset.
+ * Preserves axis marker ('x') and octave displacement ('^' / '_').
+ * 
+ * In PPT:
+ * Base octave runs from So (-5) to Fi (+6) centered on Do (0).
+ */
+export function transposeSolfegeToken(token: string, semitones: number): string {
+  const clean = token.trim().replace(/^['"]|['"]$/g, '');
+  if (!clean || clean === 'R' || clean === '~') {
+    return token;
+  }
 
+  // Check repeat syntax (e.g. 2 or 2.3)
+  if (/^\d+(?:\.\d+)?$/.test(clean)) {
+    return token;
+  }
+
+  const match = clean.match(/^([a-zA-Z]+?)(x)?([\^_]*)(x)?$/);
+  if (!match) {
+    return token;
+  }
+
+  let syllable = match[1];
+  const hasAxis = Boolean(match[2] || match[4] || syllable.toLowerCase().endsWith('x'));
+  if (syllable.length > 2 && syllable.toLowerCase().endsWith('x')) {
+    syllable = syllable.slice(0, -1);
+  }
+
+  const octStr = match[3] || '';
+  let octShift = 0;
+  for (const c of octStr) {
+    if (c === '^') octShift++;
+    else if (c === '_') octShift--;
+  }
+
+  const baseSemitone = solfegeToNearestAddress(syllable);
+  const currentTotal = baseSemitone + (octShift * 12);
+  const newTotal = currentTotal + semitones;
+
+  // Convert back to base octave [-5, +6]
+  const base = ((newTotal + 5) % 12 + 12) % 12 - 5;
+  const newOct = Math.round((newTotal - base) / 12);
+
+  const BASE_SYLLABLES: Record<number, string> = {
+    [-5]: 'So',
+    [-4]: 'Le',
+    [-3]: 'La',
+    [-2]: 'Te',
+    [-1]: 'Ti',
+    0: 'Do',
+    1: 'Ra',
+    2: 'Re',
+    3: 'Me',
+    4: 'Mi',
+    5: 'Fa',
+    6: 'Fi',
+  };
+
+  const newBaseSyllable = BASE_SYLLABLES[base] || 'Do';
+  let result = newBaseSyllable;
+  if (hasAxis) {
+    result += 'x';
+  }
+  if (newOct > 0) {
+    result += '^'.repeat(newOct);
+  } else if (newOct < 0) {
+    result += '_'.repeat(Math.abs(newOct));
+  }
+
+  return result;
+}
+
+/**
+ * Transposes a harmony chord token (e.g. "DoMe", "SoTe", "SoxDo", "DoMe^") by a given semitone offset.
+ * Transposes the root syllable and optional axis bass prefix while preserving quality modifiers.
+ */
+export function transposeHarmonyToken(token: string, semitones: number): string {
+  const clean = token.trim().replace(/^['"]|['"]$/g, '');
+  if (!clean || clean === 'R' || clean === '~') {
+    return token;
+  }
+
+  try {
+    const parsed = parseHarmonyChord(clean);
+    const transposedRoot = transposeSolfegeToken(parsed.rootSyllable, semitones);
+    const cleanTransposedRoot = transposedRoot.replace(/[\^_x]/g, '');
+
+    let result = '';
+
+    if (parsed.hasAxisBass && parsed.bassSyllable) {
+      const transposedBass = transposeSolfegeToken(parsed.bassSyllable, semitones);
+      const cleanTransposedBass = transposedBass.replace(/[\^_x]/g, '');
+      result += cleanTransposedBass;
+      const bassOct = parsed.bassOctaveShift ?? 0;
+      if (bassOct > 0) {
+        result += '^'.repeat(bassOct);
+      } else if (bassOct < 0) {
+        result += '_'.repeat(Math.abs(bassOct));
+      }
+      result += 'x';
+    }
+
+    result += cleanTransposedRoot;
+    if (parsed.hasAxis) {
+      result += 'x';
+    }
+
+    // Attach quality modifiers (e.g. Me, Te, Ti, Fi)
+    for (const mod of parsed.modifiers) {
+      result += mod.syllable;
+      if (mod.hasAxis) result += 'x';
+    }
+
+    if (parsed.octaveShift > 0) {
+      result += '^'.repeat(parsed.octaveShift);
+    } else if (parsed.octaveShift < 0) {
+      result += '_'.repeat(Math.abs(parsed.octaveShift));
+    }
+
+    return result;
+  } catch {
+    return token;
+  }
+}

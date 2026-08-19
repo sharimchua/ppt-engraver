@@ -101,3 +101,17 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
   - `drop2`: 4-part jazz chord melody with 2nd voice dropped an octave.
   - `guideToneDyad`: Accompanies melody note with active 3rd/7th guide tone.
   - `octaves`: Doubles melody an octave below.
+
+---
+
+## Pitch/Mode Transposition & Rhythmic Period Optimization
+
+- **Pitch/Mode Transposition (`transposeSolfegeToken`, `transposeHarmonyToken`, `calculateTonicShift`)**:
+  - Shifts the root "Do" anchor across modes non-destructively while preserving sounding concert pitches.
+  - Correctly shifts absolute solfège tokens, interval anchors (`Dox` $\to$ `Mex`), compound harmony chords (`DoMe` $\to$ `MeMe`), and slash bass prefixes (`SoxDo` $\to$ `TexMe`).
+- **Rhythmic Period Scaling & Optimizer (`transposeRhythmTokens`, `analyzeRhythmComplexity`, `suggestOptimalRhythmicPeriod`, `calculateHarmonyPhaseOffset`)**:
+  - Scales onset timelines by rational factors ($2\times, 0.5\times, 4\times, 0.25\times, 1.5\times, 3\times$) to alter downbeat density.
+  - Supports metric phase shifting (`phaseOffset`) and automatic harmonic downbeat alignment via `calculateHarmonyPhaseOffset` to ensure pickup notes land on offbeat subdivisions while chord changes align with macro downbeats.
+  - Evaluates rhythmic grammar complexity (counts of `Dox` delays, compound subdivision suffixes, and sub-beat offbeats) to recommend the optimal beat period length minimizing `Dox` prefixes and complex suffixes.
+
+

@@ -14,10 +14,24 @@ The `studio/public/` directory contains the client-side single-page application 
   - Token boundaries are strictly validated (`isValidSolfegeToken`) to avoid coloring YAML structure keywords (e.g. `mode`, `tempo`, `coils`) or identifiers (e.g. `bridge:`).
   - Sub-syllables in compound tokens (e.g. `FaMe`, `DoxDo`, `DoMeTe`) are individually highlighted in their respective colors.
   - **Clickable ID References vs Free Text (`cm-ppt-id-reference` / `cm-ppt-id-def`)**: Declared coil and weave IDs referenced in `parents:`, `concat:`, `coil:`, `weave:`, etc. are highlighted in vibrant sky cyan with a subtle dashed underline badge (`cm-ppt-id-reference`), distinguishing them from definitions (`cm-ppt-id-def`) and unresolved/free text strings.
-- **Solfège Navigation & Transposition Shortcuts**:
-  - `Ctrl+Up` / `Ctrl+Down` (`Cmd+Up` / `Cmd+Down`): Transpose active Solfège syllable (or individual sub-syllable in compound tokens like `FaMe`) up/down chromatically centered around `Do` (0) within the base octave from `So` (-5) to `Fi` (+6). Correctly retains and computes existing octave displacements (`So^` down $\to$ `Fi`, `So_` up $\to$ `Le_`, `Fi` up $\to$ `So^`), and preserves axis markers (`Dox` $\to$ `Rax`).
-  - `Ctrl+Alt+Up` / `Ctrl+Alt+Down` (`Cmd+Alt+Up` / `Cmd+Alt+Down`): Shift active syllable octave up/down (+1 / -1 octave) by appending or stripping `^` / `_` modifiers (e.g. `Do` $\to$ `Do^` $\to$ `Do^^`, `Do` $\to$ `Do_`).
-  - `Ctrl+Left` / `Ctrl+Right` (`Cmd+Left` / `Cmd+Right`): Navigate between Solfège tokens in lists/arrays; duplicates active syllable (`[Do, Re] -> [Do, Re, Re]`) when pressing `Ctrl+Right` at list end.
+- **Contextual Solfège & Structural Navigation Shortcuts**:
+  - **On Solfège Syllable**:
+    - `Ctrl+Up` / `Ctrl+Down` (`Cmd+Up` / `Cmd+Down`): Transpose active Solfège syllable (or individual sub-syllable in compound tokens like `FaMe`) up/down chromatically centered around `Do` (0) within the base octave from `So` (-5) to `Fi` (+6). Correctly retains and computes existing octave displacements (`So^` down $\to$ `Fi`, `So_` up $\to$ `Le_`, `Fi` up $\to$ `So^`), and preserves axis markers (`Dox` $\to$ `Rax`).
+    - `Ctrl+Alt+Up` / `Ctrl+Alt+Down` (`Cmd+Alt+Up` / `Cmd+Alt+Down`): Shift active syllable octave up/down (+1 / -1 octave) by appending or stripping `^` / `_` modifiers (e.g. `Do` $\to$ `Do^` $\to$ `Do^^`, `Do` $\to$ `Do_`).
+    - `Ctrl+Left` / `Ctrl+Right` (`Cmd+Left` / `Cmd+Right`): Navigate between Solfège tokens in lists/arrays; duplicates active syllable (`[Do, Re] -> [Do, Re, Re]`) when pressing `Ctrl+Right` at list end.
+  - **On Property Line / Structure Block**:
+    - `Ctrl+Up` / `Ctrl+Down` (`Cmd+Up` / `Cmd+Down`): Navigate cursor to previous/next **property sibling** at the exact same indentation level (skipping indented child blocks).
+    - `Ctrl+Alt+Up` / `Ctrl+Alt+Down` (`Cmd+Alt+Up` / `Cmd+Alt+Down`): **Reorder property / array item** up/down within parent container boundaries (blocked at boundary edges).
+  - **Global Duplication**:
+    - `Ctrl+Alt+Enter` (`Cmd+Alt+Enter`): Contextually duplicates enclosing coil/weave/knot or array item below with auto-incremented ID and cursor focus.
+- **Go to Named Reference / Symbol Palette (`Ctrl+G` / `Cmd+G`)**:
+  - Fast searchable symbol palette with prefix filtering:
+    - `w:` or `weave:` $\to$ filter Weaves only (`[WEAVE]`)
+    - `c:` or `coil:` $\to$ filter Coils only (`[COIL]`)
+    - `k:` or `knot:` $\to$ filter Knots only (`[KNOT]`)
+    - `s:` or `section:` $\to$ filter top-level Sections only (`[SECTION]`)
+    - Plain query $\to$ fuzzy search all symbols with definition line preview.
+  - Jumping scrolls directly to definition in CodeMirror and pulses the line (`.cm-point-click-flash`).
 - **Go-to-Definition (`Ctrl+Click` / `Cmd+Click` / `F12`)**:
   - Hovering over declared or referenced structure IDs (including `parents: intro`, `parents: _verse_harm`, `parents: [a, b]`, `concat:`, `coil:`, `weave:`) with `Ctrl`/`Cmd` held highlights them (`.cm-id-reference-hover`).
   - Clicking on the reference identifier or `parents` keyword jumps the cursor directly to the definition in YAML with a pulse highlight (`.cm-point-click-flash`).
@@ -49,7 +63,15 @@ The `studio/public/` directory contains the client-side single-page application 
 - **Delete Tapestry (`🗑️` Toolbar Button / Command Palette `Delete Current Tapestry...`)**:
   - Prompts for confirmation and permanently removes the score YAML file and all associated compiled artifacts (`.notation.ly`, `.pdf`, `.ppt-map.json`, `.svg`) via `POST /api/delete`.
 
-### 3. Refactoring Operations & Quick Actions
+### 3. Refactoring Operations & Transposition Tools
+- **Non-Destructive Tonic & Mode Pitch Transposition Modal (`Transpose Tonic & Mode (Preserve Pitch)...`)**:
+  - Shifts "Do" root anchor across mode presets (Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian) or custom target pitch/shift.
+  - Non-destructively preserves sounding concert pitch by transposing Solfège syllables across `melody:`, `harmony:`, and `pitches:` inversely while updating `knot.tonic`.
+- **Rhythmic Period Transposition & Grammar Optimizer Modal (`Transpose Rhythmic Period & Optimize Grammar...`)**:
+  - Scales beat period length ($2\times, 0.5\times, 4\times, 0.25\times, 1.5\times, 3\times$) to alter downbeat density.
+  - **Downbeat & Harmony Phase Alignment**: Automatically detects chord change downbeats from `harmony.rhythm` and applies an optimal phase offset ($\phi$) so that pickups (e.g. 3-beat pickup in Autumn Leaves) land on proper offbeat subdivisions while primary chord changes land on clean `Do` downbeats.
+  - Features an automated **Grammar Optimization Suggester** that analyzes onset timestamps and recommends the period length that minimizes `Dox` delays and compound suffixes (`LeFi`, `MeFi`).
+  - Optional tempo compensation to preserve real-time playback duration.
 - **Extract into Parent Coil (`Ctrl+Alt+P` / `Cmd+Alt+P`)**:
   - Detects enclosing coil under cursor, prompts for new Parent ID, layer selection (`melody`, `rhythm`, `harmony`), and destination (`coils:` in current weave or top-level `tapestry.coils:`).
   - Automatically creates the parent definition and replaces extracted layers with `parents: <parentId>`.
@@ -62,10 +84,7 @@ The `studio/public/` directory contains the client-side single-page application 
 - **Rename Symbol / ID Globally (`F2`)**:
   - Scans definition and all references across `parents:`, `parent:`, `concat:`, `harmony:`, `chords:`, `rhythm:`, `melody:`, `pitches:`, `from:`, `use:`, `- coil:`, `- weave:`, and dot-path references (e.g. `changes.harmony`) throughout the YAML document with symbol boundary precision.
 - **Convert Melody: Interval $\leftrightarrow$ Absolute (`Ctrl+Alt+A` / `Cmd+Alt+A`)**:
-  - Detects enclosing coil or active `melody: [...]` line and converts seamlessly between:
-    - **Interval Mode** (anchor notehead with axis `x` + relative signed interval degree steps `Do`, `Re`, `Ti`, `Me`, etc.)
-    - **Absolute Mode** (absolute chromatic scale degrees relative to tonic `Do`).
-  - Available via `Ctrl+Alt+A`, Command Palette `Convert Melody: Interval to Absolute`, and `Convert Melody: Absolute to Interval`.
+  - Converts seamlessly between **Interval Mode** (anchor notehead with axis `x` + relative interval tokens) and **Absolute Mode** (chromatic scale degrees relative to Do).
 
 ### 4. Contextual Autocomplete, Snippets & Command Palette
 - **Rich Context Autocomplete (`Ctrl+Space`)**:

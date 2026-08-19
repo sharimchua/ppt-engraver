@@ -462,7 +462,7 @@ coils:
 ```
 
 ### 2. Composite Concat Coils (`concat: [...]`)
-Stitch sub-coils into a single continuous phrase while applying phrase-level harmony changes or parent templates across the entire concatenated onset stream:
+Stitch sub-coils into a single continuous phrase while applying phrase-level harmony changes or parent templates across the entire concatenated onset stream (supports named string references, `- coil: name`, standard indented inline sub-coils, and raw inline coils):
 
 ```yaml
 coils:
@@ -471,7 +471,9 @@ coils:
     concat:
       - verse_1
       - verse_2
-      - verse_3
+      - coil:
+          melody: [Do, Re, Mi, Fa]
+          rhythm: [Do, Fi, Do, Fi]
       - verse_4
 ```
 
@@ -525,6 +527,42 @@ ppt-resolve scores/dracula.ppt.yaml
 # Save JSON onset stream and playable MIDI file
 ppt-resolve scores/dracula.ppt.yaml -o dracula.json -m dracula.mid
 ```
+
+---
+
+## PPT Studio Refactoring Tools & Shortcuts
+
+PPT Studio includes a suite of musical transposition modals, structural AST helpers, and keyboard navigation shortcuts:
+
+### Transposition Modals (Command Palette `Ctrl+Shift+P` / `F1`)
+- **Transpose Tonic & Mode (Preserve Pitch)**:
+  - Shifts the root "Do" anchor across modes non-destructively (e.g. Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian, or custom pitch).
+  - Automatically transposes Solfège syllables across `melody:`, `harmony:`, and `pitches:` inversely while updating `knot.tonic` so sounding concert pitch remains invariant.
+- **Transpose Rhythmic Period & Optimize Grammar**:
+  - Scales beat period length ($2\times, 0.5\times, 4\times, 0.25\times, 1.5\times, 3\times$) to alter downbeat density.
+  - **Downbeat & Harmony Phase Alignment**: Automatically detects chord change downbeats from `harmony.rhythm` and applies an optimal phase offset ($\phi$) so pickup bars land on offbeats while primary chord changes align with clean `Do` downbeats.
+  - Features an automated **Grammar Optimization Suggester** that analyzes onset timestamps and recommends the period length that minimizes `Dox` delays and compound suffixes (`LeFi`, `MeFi`).
+  - Optional tempo compensation to preserve real-time playback duration.
+
+### Keyboard Shortcuts Reference
+
+| Shortcut | Context | Action |
+|---|---|---|
+| `Ctrl+Up` / `Ctrl+Down` | On Solfège note | Transpose active note chromatically (+1 / -1 semitone) |
+| `Ctrl+Up` / `Ctrl+Down` | On property line | Navigate cursor to previous / next **property sibling** at same indentation |
+| `Ctrl+Alt+Up` / `Ctrl+Alt+Down` | On Solfège note | Shift active note octave (+1 / -1 octave with `^` / `_`) |
+| `Ctrl+Alt+Up` / `Ctrl+Alt+Down` | On property block | **Reorder property / array item** up/down within parent boundaries |
+| `Ctrl+Alt+Enter` | Anywhere in block | **Duplicate property / array item** contextually with auto-incremented ID |
+| `Ctrl+G` / `Cmd+G` | Global | **Go to Named Reference / Symbol** palette (`w:`, `c:`, `k:`, `s:`) |
+| `Ctrl+Alt+A` | In coil / melody line | Convert Melody between **Interval Mode** and **Absolute Mode** |
+| `Ctrl+Alt+P` | In coil | Extract layer into Parent Coil |
+| `Ctrl+Alt+C` | In child coil | Extract Inline Coil to Named Coil |
+| `Ctrl+Alt+W` | In selection | Group Selection into Weave |
+| `F2` | On declared ID | Rename Symbol / ID globally |
+| `F12` / `Ctrl+Click` | On ID reference | Jump to Symbol Definition |
+| `Ctrl+Space` | In editor | Trigger contextual autocomplete & YAML snippets |
+| `Ctrl+Q` | On block | Fold / unfold current section |
+| `Ctrl+Enter` | Global | Recompile sheet music with LilyPond |
 
 ---
 

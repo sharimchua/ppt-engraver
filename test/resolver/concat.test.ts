@@ -164,4 +164,72 @@ tapestry:
     const barMatches = result.lilypondSource.match(/\\bar\s*"/g);
     expect(barMatches?.length).toBe(1);
   });
+
+  it('supports standard indented inline coils with - coil: inside concat', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: C4
+    weave: song
+  weaves:
+    song:
+      children:
+        - coil:
+            id: verse_concat
+            concat:
+              - coil:
+                  melody: [Do, Re]
+                  rhythm: [Do, Do]
+              - coil:
+                  melody: [Mi, Fa]
+                  rhythm: [Do, Do]
+`;
+    const { onsets } = resolveYaml(yaml);
+    expect(onsets).toHaveLength(4);
+    expect(onsets[0].scaleDegree).toBe('Do');
+    expect(onsets[1].scaleDegree).toBe('Re');
+    expect(onsets[2].scaleDegree).toBe('Mi');
+    expect(onsets[3].scaleDegree).toBe('Fa');
+    expect(onsets[0].tag).toBe('ppt_song_verse_concat_1');
+    expect(onsets[3].tag).toBe('ppt_song_verse_concat_4');
+  });
+
+  it('supports mixed concat entries (wrapped coil ID, indented inline coil, unwrapped coil, and plain string)', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: C4
+    weave: song
+  weaves:
+    song:
+      coils:
+        p1:
+          melody: [Do]
+          rhythm: [Do]
+        p4:
+          melody: [So]
+          rhythm: [Do]
+      children:
+        - coil:
+            id: mixed_concat
+            concat:
+              - coil: p1
+              - coil:
+                  id: p2_inline
+                  melody: [Re]
+                  rhythm: [Do]
+              - melody: [Mi]
+                rhythm: [Do]
+              - p4
+`;
+    const { onsets } = resolveYaml(yaml);
+    expect(onsets).toHaveLength(4);
+    expect(onsets[0].scaleDegree).toBe('Do');
+    expect(onsets[0].sourceCoilId).toBe('p1');
+    expect(onsets[1].scaleDegree).toBe('Re');
+    expect(onsets[1].sourceCoilId).toBe('p2_inline');
+    expect(onsets[2].scaleDegree).toBe('Mi');
+    expect(onsets[3].scaleDegree).toBe('So');
+    expect(onsets[3].sourceCoilId).toBe('p4');
+  });
 });

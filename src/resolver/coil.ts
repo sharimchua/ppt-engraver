@@ -260,9 +260,13 @@ export function resolveConcatCoil(
   const rawSubCoilOnsets: ResolvedOnset[][] = [];
 
   for (let i = 0; i < concatEntries.length; i++) {
-    const entry = concatEntries[i];
+    const rawEntry = concatEntries[i];
+    const entry: string | Coil =
+      typeof rawEntry === 'object' && rawEntry !== null && 'coil' in rawEntry && rawEntry.coil !== undefined
+        ? (rawEntry.coil as string | Coil)
+        : (rawEntry as string | Coil);
     let subCoil: Coil;
-    const subCoilId = typeof entry === 'string' ? entry : (entry.id ?? `subCoil_${i}`);
+    const subCoilId = typeof entry === 'string' ? entry : (entry.id ?? `${coil.id ?? 'concat'}_sub_${i + 1}`);
     if (typeof entry === 'string') {
       const found = coilLibrary.get(entry);
       if (!found) {
@@ -273,6 +277,10 @@ export function resolveConcatCoil(
       subCoil = { ...found, id: subCoilId };
     } else {
       subCoil = { ...entry, id: subCoilId };
+      // Register inline sub-coil in coilLibrary if it has an explicit ID
+      if (entry.id && !coilLibrary.has(entry.id)) {
+        coilLibrary.set(entry.id, subCoil);
+      }
     }
 
     const { onsets: subOnsets, warnings: subWarnings } = resolveCoil(

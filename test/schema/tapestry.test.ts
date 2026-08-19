@@ -315,6 +315,31 @@ describe('TapestrySchema', () => {
     const result = TapestrySchema.safeParse(tap);
     expect(result.success).toBe(true);
   });
+
+  it('accepts concat arrays with wrapped { coil: ... } entries and raw coil entries', () => {
+    const tap = {
+      tapestry: {
+        weave: {
+          id: 'song',
+          children: [
+            {
+              coil: {
+                id: 'full_concat',
+                concat: [
+                  { coil: { melody: ['Do', 'Re'], rhythm: ['Do', 'Do'] } },
+                  { coil: 'part_named' },
+                  { melody: ['Mi', 'Fa'] },
+                  'another_named',
+                ],
+              },
+            },
+          ],
+        },
+      },
+    };
+    const result = TapestrySchema.safeParse(tap);
+    expect(result.success).toBe(true);
+  });
 });
 
 
