@@ -912,11 +912,101 @@ describe('computeOnsetBeaming & LilyPond Beaming', () => {
     expect(ly).toContain("\\tag #'ppt_song_motif_chordName_1 <c' e' g'>/g2");
     expect(ly).toContain("\\tag #'ppt_song_motif_chordName_2 <c' e' g'>/e2");
   });
+
+  const metricOnsets: OnsetStream = [
+    {
+      tag: 'ppt_song_motif_1',
+      pitch: 'C4',
+      midiNote: 60,
+      scaleDegree: 'Do',
+      chordTones: ['C4', 'E4', 'G4'],
+      chordMidi: [60, 64, 67],
+      chordRoot: 'Do',
+      coilId: 'motif',
+      weaveId: 'song',
+      onsetIndex: 1,
+      startBeat: 0.0,
+      durationBeats: 2.0,
+      duration: '2',
+    },
+    {
+      tag: 'ppt_song_motif_2',
+      pitch: 'G4',
+      midiNote: 67,
+      scaleDegree: 'So',
+      chordTones: ['G4', 'B4', 'D5'],
+      chordMidi: [67, 71, 74],
+      chordRoot: 'So',
+      coilId: 'motif',
+      weaveId: 'song',
+      onsetIndex: 2,
+      startBeat: 2.0,
+      durationBeats: 2.0,
+      duration: '2',
+    },
+  ];
+
+  it('emits pulseCoilVoice with P clef when showPulseCoil is true', () => {
+    const ly = compileToLilyPond(metricOnsets, { showPulseCoil: true, meter: 'DoLa' });
+    expect(ly).toContain('pulseCoilVoice = {');
+    expect(ly).toContain('#pptClefPStencil');
+    expect(ly).toContain("\\tag #'ppt_song_motif_pulse_1");
+  });
+
+  it('renders pulse signature as SVG glyphs on a separate line below key anchor in header', () => {
+    const ly = compileToLilyPond(metricOnsets, {
+      doPitch: 'C4',
+      showPulseSignature: true,
+      pulseSignature: 'DoLa',
+    });
+    // New format: column with key anchor body and pulse glyph body (no nested \markup inside column)
+    expect(ly).toContain('poet = \\markup \\column {');
+    expect(ly).toContain('\\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = C" }');
+    // Pulse row uses P: label and glyph stencils
+    expect(ly).toContain('"P:"');
+    expect(ly).toContain('make-solfege-glyph');
+    // Should NOT use plain bold text for pulse
+    expect(ly).not.toContain('\\bold "DoLa"');
+  });
+
+  it('renders time signature on traditional notation staves when showTimeSignature is true', () => {
+    const ly = compileToLilyPond(metricOnsets, {
+      doPitch: 'C4',
+      showTimeSignature: true,
+      timeSignature: '4/4',
+    });
+    expect(ly).toContain('\\time 4/4');
+    expect(ly).not.toContain('\\remove "Time_signature_engraver"');
+  });
+
+  it('annotates rhythm grid lines with notehead shapes and respects excludeGridDoSymbol', () => {
+    // When excludeGridDoSymbol is true, Do onsets at beats 0.0 and 2.0 have no markup
+    const lyExcluded = compileToLilyPond(metricOnsets, {
+      showRhythmGrid: true,
+      gridSymbols: true,
+      excludeGridDoSymbol: true,
+      strongBeatGridWeight: true,
+      meter: 'DoLa',
+    });
+    expect(lyExcluded).toContain('rhythmGridVoice = {');
+    expect(lyExcluded).toContain('gridSymbolsTopVoice = {');
+    expect(lyExcluded).toContain('gridSymbolsBottomVoice = {');
+    expect(lyExcluded).not.toContain('^\\markup { \\stencil #gridSymbolDo }');
+    expect(lyExcluded).toContain('\\override GridLine.thickness = #0.8');
+    expect(lyExcluded).toContain('\\override GridLine.color = #(x11-color \'gray65)');
+    expect(lyExcluded).toContain('make-strong-grid-point-stencil');
+
+    // When excludeGridDoSymbol is false, Do onsets get gridSymbolDo markup
+    const lyWithSymbols = compileToLilyPond(metricOnsets, {
+      showRhythmGrid: true,
+      gridSymbols: true,
+      excludeGridDoSymbol: false,
+      meter: 'DoLa',
+    });
+    expect(lyWithSymbols).toContain('^\\markup { \\stencil #gridSymbolDo }');
+    expect(lyWithSymbols).toContain('_\\markup { \\stencil #gridSymbolDo }');
+  });
 });
-
-
-
-
 
 
 

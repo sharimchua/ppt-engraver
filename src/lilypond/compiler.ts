@@ -30,7 +30,13 @@ import {
   SOLFEGE_POSITIONS,
   SOLFEGE_TO_SEMITONE,
 } from "../solfege/pitch.js";
-import { beatsToLilyPondDuration } from "../solfege/rhythm.js";
+import {
+  beatsToLilyPondDuration,
+  resolveMetricGrammar,
+  resolveMetricPulseTimeline,
+  solfegeToGlyphShape,
+  type MetricPulseOnset,
+} from "../solfege/rhythm.js";
 
 export interface CompileOptions {
   /** LilyPond version string to emit (default: "2.24.4") */
@@ -72,6 +78,26 @@ export interface CompileOptions {
   showMelodyCoilInterval?: boolean;
   /** Whether to show the Rhythm Coil row layer (displays Solfège rhythm tokens / glyphs) */
   showRhythmCoil?: boolean;
+  /** Whether to show the Pulse / Metric Coil row layer (displays Solfège metric pulse glyphs with 'P' clef) */
+  showPulseCoil?: boolean;
+  /** Whether to show the time signature on the traditional notation staff */
+  showTimeSignature?: boolean;
+  /** Custom time signature or metric grammar label override (e.g. "4/4", "3/4", "6/8") */
+  timeSignature?: string;
+  /** Whether to show the PPT pulse signature in the score header next to key anchor */
+  showPulseSignature?: boolean;
+  /** Custom pulse signature label override for the score header (e.g. "DoLa", "DoRe", "[Dox, Re, So]") */
+  pulseSignature?: string;
+  /** Metric pulse grammar specification for knot */
+  pulse?: string | string[];
+  /** Alias for pulse */
+  meter?: string | string[];
+  /** Whether to annotate rhythm grid lines with geometric Solfège notehead symbols */
+  gridSymbols?: boolean | 'all' | 'no-do' | 'off';
+  /** Whether to exclude circle symbol on Do/downbeats when annotating rhythm grid */
+  excludeGridDoSymbol?: boolean;
+  /** Whether to draw heavier / darker grid lines on strong beats (Do/Dix) */
+  strongBeatGridWeight?: boolean;
   /** Whether to show chord names above the staff (default: true, reads directly from harmonyVoice) */
   showChordNames?: boolean;
   /** Whether to only display chord names when the chord changes (default: false, displaying every chord) */
@@ -569,6 +595,23 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 #(define pptClefMStencil (make-clef-text-stencil "M"))
 #(define pptClefHStencil (make-clef-text-stencil "H"))
 #(define pptClefRStencil (make-clef-text-stencil "R"))
+#(define pptClefPStencil (make-clef-text-stencil "P"))
+
+#(define (make-grid-symbol-stencil stc)
+   (ly:stencil-translate (ly:stencil-aligned-to (ly:stencil-aligned-to stc X CENTER) Y CENTER) (cons 0.65 0)))
+
+#(define gridSymbolDo (make-grid-symbol-stencil (stencil-with-color (make-circle-stencil 0.30 0.0 #t) colorDo)))
+#(define gridSymbolFi (make-grid-symbol-stencil (stencil-with-color (ly:stencil-add (make-line-stencil 0.18 -0.24 -0.24 0.24 0.24) (make-line-stencil 0.18 -0.24 0.24 0.24 -0.24)) colorFi)))
+#(define gridSymbolMe (make-grid-symbol-stencil (stencil-with-color (make-path-stencil '(moveto -0.28 0.24 lineto 0.28 0.24 lineto 0.0 -0.26 closepath) 0.0 1.0 1.0 #t) colorMe)))
+#(define gridSymbolLa (make-grid-symbol-stencil (stencil-with-color (make-path-stencil '(moveto -0.28 -0.24 lineto 0.28 -0.24 lineto 0.0 0.26 closepath) 0.0 1.0 1.0 #t) colorLa)))
+#(define gridSymbolMi (make-grid-symbol-stencil (stencil-with-color (make-path-stencil '(moveto -0.28 -0.24 lineto 0.28 -0.24 lineto 0.0 0.26 closepath) 0.0 1.0 1.0 #t) colorMi)))
+#(define gridSymbolLe (make-grid-symbol-stencil (stencil-with-color (make-path-stencil '(moveto -0.28 0.24 lineto 0.28 0.24 lineto 0.0 -0.26 closepath) 0.0 1.0 1.0 #t) colorLe)))
+#(define gridSymbolRe (make-grid-symbol-stencil (stencil-with-color (make-path-stencil '(moveto -0.24 -0.24 lineto 0.24 -0.24 lineto 0.24 0.24 lineto -0.24 0.24 closepath) 0.0 1.0 1.0 #t) colorRe)))
+#(define gridSymbolTe (make-grid-symbol-stencil (stencil-with-color (make-path-stencil '(moveto -0.28 0.0 lineto 0.0 0.24 lineto 0.28 0.0 lineto 0.0 -0.24 closepath) 0.0 1.0 1.0 #t) colorTe)))
+#(define gridSymbolDi (make-grid-symbol-stencil (stencil-with-color (ly:stencil-add (make-line-stencil 0.16 -0.22 -0.22 0.22 0.22) (make-line-stencil 0.16 -0.22 0.22 0.22 -0.22)) colorRa)))
+#(define gridSymbolFa (make-grid-symbol-stencil (stencil-with-color (make-path-stencil '(moveto 0.18 -0.24 lineto 0.18 0.24 curveto -0.12 0.24 -0.32 0.14 -0.32 0.0 curveto -0.32 -0.14 -0.12 -0.24 0.18 -0.24 closepath) 0.0 1.0 1.0 #t) colorFa)))
+#(define gridSymbolSo (make-grid-symbol-stencil (stencil-with-color (make-path-stencil '(moveto -0.18 -0.24 lineto -0.18 0.24 curveto 0.12 0.24 0.32 0.14 0.32 0.0 curveto 0.32 -0.14 0.12 -0.24 -0.18 -0.24 closepath) 0.0 1.0 1.0 #t) colorSo)))
+#(define gridSymbolTi (make-grid-symbol-stencil (stencil-with-color (make-path-stencil '(moveto -0.28 0.0 lineto 0.0 0.24 lineto 0.28 0.0 lineto 0.0 -0.24 closepath) 0.0 1.0 1.0 #t) colorTi)))
 
 #(define (make-grid-point-stencil grob)
    (let* ((col (x11-color 'gray80))
@@ -584,13 +627,36 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
            (let* ((next-y (min (+ y dash-len) y-top))
                   (seg (make-line-stencil thickness 0.0 y 0.0 next-y)))
              (loop (+ next-y space-len) (ly:stencil-add res seg)))))))
+
+#(define (make-strong-grid-point-stencil grob)
+   (let* ((col (x11-color 'gray65))
+          (thickness 0.12)
+          (y-bottom -2.5)
+          (y-top 2.5))
+     (stencil-with-color
+       (make-line-stencil thickness 0.0 y-bottom 0.0 y-top)
+       col)))
+
+#(define (make-weak-grid-point-stencil grob)
+   (let* ((col (x11-color 'gray85))
+          (dash-len 0.4)
+          (space-len 0.4)
+          (thickness 0.08)
+          (y-bottom -2.5)
+          (y-top 2.5))
+     (let loop ((y y-bottom)
+                (res empty-stencil))
+       (if (>= y y-top)
+           (stencil-with-color res col)
+           (let* ((next-y (min (+ y dash-len) y-top))
+                  (seg (make-line-stencil thickness 0.0 y 0.0 next-y)))
+             (loop (+ next-y space-len) (ly:stencil-add res seg)))))))
 `;
 
 /**
- * Converts a harmony chord token (e.g. "Do", "DoMe", "Dox", "DoxMe", "DoTe")
- * into a LilyPond markup string using rotated and outlined Solfège glyphs.
+ * Returns inner LilyPond stencil markup for a chord/pulse token without wrapping in outer \markup.
  */
-export function chordTokenToCoilMarkup(token: string): string {
+export function chordTokenToInnerMarkup(token: string): string {
   const parsed = parseHarmonyChord(token);
 
   let bassStencil = "";
@@ -603,8 +669,8 @@ export function chordTokenToCoilMarkup(token: string): string {
         : bassSpec.glyphType === "sharp"
           ? "pptPathSharp"
           : "pptPathFlat";
-    const bassOctArg = bassOct !== 0 ? ` ${bassOct}` : "";
-    bassStencil = `\\stencil #(make-solfege-glyph ${bassPathVar} ${bassSpec.rotation} ${bassSpec.colorSchemeVar} #t${bassOctArg}) `;
+    const bassOctArg = bassOct !== 0 ? " " + bassOct : "";
+    bassStencil = "\\stencil #(make-solfege-glyph " + bassPathVar + " " + bassSpec.rotation + " " + bassSpec.colorSchemeVar + " #t" + bassOctArg + ") ";
   }
 
   const rootOct = parsed.octaveShift ?? 0;
@@ -616,11 +682,11 @@ export function chordTokenToCoilMarkup(token: string): string {
         ? "pptPathSharp"
         : "pptPathFlat";
   const rootAxisBool = rootSpec.hasAxis ? "#t" : "#f";
-  const rootOctArg = rootOct !== 0 ? ` ${rootOct}` : "";
-  const rootStencil = `\\stencil #(make-solfege-glyph ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool}${rootOctArg})`;
+  const rootOctArg = rootOct !== 0 ? " " + rootOct : "";
+  const rootStencil = "\\stencil #(make-solfege-glyph " + basePathVar + " " + rootSpec.rotation + " " + rootSpec.colorSchemeVar + " " + rootAxisBool + rootOctArg + ")";
 
   if (parsed.modifiers.length === 0 && !bassStencil) {
-    return `\\markup \\vcenter { ${rootStencil} }`;
+    return rootStencil;
   }
 
   const modifierStencils = parsed.modifiers.map((mod) => {
@@ -632,10 +698,22 @@ export function chordTokenToCoilMarkup(token: string): string {
           ? "pptPathSharp"
           : "pptPathFlat";
     const modAxisBool = modSpec.hasAxis ? "#t" : "#f";
-    return `\\lower #0.35 \\stencil #(make-solfege-glyph-sub ${modPathVar} ${modSpec.rotation} ${modSpec.colorSchemeVar} ${modAxisBool})`;
+    return "\\lower #0.35 \\stencil #(make-solfege-glyph-sub " + modPathVar + " " + modSpec.rotation + " " + modSpec.colorSchemeVar + " " + modAxisBool + ")";
   });
 
-  return `\\markup \\vcenter \\concat { ${bassStencil}${rootStencil} ${modifierStencils.join(" ")} }`;
+  return "\\concat { " + bassStencil + rootStencil + " " + modifierStencils.join(" ") + " }";
+}
+
+/**
+ * Converts a harmony chord token (e.g. "Do", "DoMe", "Dox", "DoxMe", "DoTe")
+ * into a LilyPond markup string using rotated and outlined Solfège glyphs.
+ */
+export function chordTokenToCoilMarkup(token: string): string {
+  const inner = chordTokenToInnerMarkup(token);
+  if (inner.startsWith("\\concat")) {
+    return "\\markup \\vcenter " + inner;
+  }
+  return "\\markup \\vcenter { " + inner + " }";
 }
 
 /**
@@ -653,12 +731,12 @@ export function rhythmTokenToCoilMarkup(token: string): string {
         ? "pptPathSharp"
         : "pptPathFlat";
   const rootAxisBool = rootSpec.hasAxis ? "#t" : "#f";
-  const rootOctArg = rootOct !== 0 ? ` ${rootOct}` : "";
+  const rootOctArg = rootOct !== 0 ? " " + rootOct : "";
 
-  const rootStencil = `\\stencil #(make-solfege-glyph ${basePathVar} ${rootSpec.rotation} ${rootSpec.colorSchemeVar} ${rootAxisBool}${rootOctArg})`;
+  const rootStencil = "\\stencil #(make-solfege-glyph " + basePathVar + " " + rootSpec.rotation + " " + rootSpec.colorSchemeVar + " " + rootAxisBool + rootOctArg + ")";
 
   if (parsed.modifiers.length === 0) {
-    return `\\markup \\vcenter { ${rootStencil} }`;
+    return "\\markup \\vcenter { " + rootStencil + " }";
   }
 
   const modifierStencils = parsed.modifiers.map((mod) => {
@@ -670,10 +748,69 @@ export function rhythmTokenToCoilMarkup(token: string): string {
           ? "pptPathSharp"
           : "pptPathFlat";
     const modAxisBool = modSpec.hasAxis ? "#t" : "#f";
-    return `\\lower #0.35 \\stencil #(make-solfege-glyph-sub ${modPathVar} ${modSpec.rotation} ${modSpec.colorSchemeVar} ${modAxisBool})`;
+    return "\\lower #0.35 \\stencil #(make-solfege-glyph-sub " + modPathVar + " " + modSpec.rotation + " " + modSpec.colorSchemeVar + " " + modAxisBool + ")";
   });
 
-  return `\\markup \\vcenter \\concat { ${rootStencil} ${modifierStencils.join(" ")} }`;
+  return "\\markup \\vcenter \\concat { " + rootStencil + " " + modifierStencils.join(" ") + " }";
+}
+
+/**
+ * Determines the Scheme grid symbol stencil name for an onset based on its rhythm token and fractional beat offset.
+ */
+export function getGridSymbolSchemeVar(onset: Onset, excludeDo: boolean = false): string | null {
+  const token = onset.rhythmToken ?? "";
+  const startBeat = onset.startBeat ?? 0;
+  const frac = Math.abs(startBeat - Math.floor(startBeat + 1e-5));
+
+  // Downbeat: Do / Dox
+  if (frac < 0.03 || frac > 0.97 || token === "Do" || token === "Dox" || token.startsWith("DoxDo")) {
+    return excludeDo ? null : "gridSymbolDo";
+  }
+
+  // Check 8th offbeat (Fi)
+  if (Math.abs(frac - 0.5) < 0.04 || token === "Fi" || token.endsWith("Fi")) {
+    return "gridSymbolFi";
+  }
+
+  // Check 16th notes (Me = 0.25, La = 0.75)
+  if (Math.abs(frac - 0.25) < 0.04 || token.includes("Me") || token.includes("Ri")) {
+    return "gridSymbolMe";
+  }
+  if (Math.abs(frac - 0.75) < 0.04 || token.includes("La") || token.includes("Li")) {
+    return "gridSymbolLa";
+  }
+
+  // Check Triplets (Mi = 1/3, Le = 2/3)
+  if (Math.abs(frac - 1/3) < 0.04 || token.includes("Mi")) {
+    return "gridSymbolMi";
+  }
+  if (Math.abs(frac - 2/3) < 0.04 || token.includes("Le")) {
+    return "gridSymbolLe";
+  }
+
+  // Check Sextuplets (Re = 1/6, Te = 5/6)
+  if (Math.abs(frac - 1/6) < 0.04 || token.includes("Re")) {
+    return "gridSymbolRe";
+  }
+  if (Math.abs(frac - 5/6) < 0.04 || token.includes("Te")) {
+    return "gridSymbolTe";
+  }
+
+  // Dodecaplet / 12th (Ra/Di = 1/12, Fa = 5/12, So = 7/12, Ti = 11/12)
+  if (Math.abs(frac - 1/12) < 0.04 || token.includes("Ra") || token.includes("Di")) {
+    return "gridSymbolDi";
+  }
+  if (Math.abs(frac - 5/12) < 0.04 || token.includes("Fa") || token.includes("Se")) {
+    return "gridSymbolFa";
+  }
+  if (Math.abs(frac - 7/12) < 0.04 || token.includes("So") || token.includes("Si")) {
+    return "gridSymbolSo";
+  }
+  if (Math.abs(frac - 11/12) < 0.04 || token.includes("Ti")) {
+    return "gridSymbolTi";
+  }
+
+  return null;
 }
 
 export const DROP_NATURALS_SCHEME_DEFINITION = `#(define (drop-naturals-stencil grob)
@@ -826,6 +963,18 @@ export function compileToLilyPond(
     }
   } else if (noteheadStyle === "diamond") {
     melodyLines.push("  \\override NoteHead.style = #'diamond");
+  }
+
+  const showTimeSignature =
+    options.showTimeSignature === true || options.timeSignature !== undefined;
+  const resolvedTimeSig =
+    options.timeSignature ??
+    (options.pulse || options.meter
+      ? resolveMetricGrammar(options.pulse ?? options.meter).timeSignature
+      : "4/4");
+
+  if (showTimeSignature) {
+    melodyLines.push(`  \\time ${resolvedTimeSig}`);
   }
 
   if (omitStem) {
@@ -1032,6 +1181,7 @@ export function compileToLilyPond(
   const showMelodyCoilAbsolute = options.showMelodyCoilAbsolute ?? false;
   const showMelodyCoilInterval = options.showMelodyCoilInterval ?? false;
   const showRhythmCoil = options.showRhythmCoil ?? false;
+  const showPulseCoil = options.showPulseCoil ?? false;
   const showTraditionalHarmony = options.showTraditionalHarmony ?? true;
   const showHarmonyCoil =
     options.showHarmonyCoil ??
@@ -1267,6 +1417,66 @@ export function compileToLilyPond(
   rhythmCoilLines.push("  \\cadenzaOff");
 
   // ---------------------------------------------------------------------------
+  // 3b. Pulse / Metric Coil Voice (Row band displaying Solfège metric pulse glyphs)
+  // ---------------------------------------------------------------------------
+  const pulseCoilLines: string[] = [
+    "  \\override NoteHead.stencil = #ly:text-interface::print",
+    "  \\cadenzaOn",
+  ];
+
+  if (showPulseCoil) {
+    let runningPhaseOffset = 0;
+    let prevPulseKey = "";
+
+    for (let g = 0; g < coilGroups.length; g++) {
+      const group = coilGroups[g];
+      if (g > 0) {
+        pulseCoilLines.push('  \\bar "|"');
+      }
+
+      const pOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
+      const totalBeats = pOnsets.reduce(
+        (sum, o) => sum + (o.durationBeats !== undefined ? o.durationBeats : 1.0),
+        0,
+      );
+      const groupPulse = (group.onsets[0] as any)?.pulse ?? (group.onsets[0] as any)?.meter ?? options.pulse ?? options.meter ?? 'DoLa';
+      const pulseKey = Array.isArray(groupPulse) ? groupPulse.join(',') : String(groupPulse);
+      const grammar = resolveMetricGrammar(groupPulse);
+      const barBeats = grammar.totalBeats;
+
+      if (g === 0) {
+        // Check if first coil is a pickup
+        const remainder = totalBeats % barBeats;
+        if (remainder > 1e-4) {
+          runningPhaseOffset = (barBeats - remainder) % barBeats;
+        } else {
+          runningPhaseOffset = 0;
+        }
+      } else if (pulseKey !== prevPulseKey) {
+        // Reset pulse tracking to downbeat if pulse definition changed
+        runningPhaseOffset = 0;
+      }
+
+      const pulses = resolveMetricPulseTimeline(groupPulse, totalBeats, runningPhaseOffset);
+      runningPhaseOffset = (runningPhaseOffset + totalBeats) % barBeats;
+      prevPulseKey = pulseKey;
+
+      for (let pIdx = 0; pIdx < pulses.length; pIdx++) {
+        const pulse = pulses[pIdx];
+        const markup = chordTokenToCoilMarkup(pulse.syllable);
+        pulseCoilLines.push(
+          `  \\tag #'ppt_${group.weaveId}_${group.coilId}_pulse_${pIdx + 1} \\tweak NoteHead.text ${markup} b'${pulse.lilypondDuration ?? '4'}`,
+        );
+      }
+    }
+
+    if (coilGroups.length > 0) {
+      pulseCoilLines.push('  \\bar "|."');
+    }
+  }
+  pulseCoilLines.push("  \\cadenzaOff");
+
+  // ---------------------------------------------------------------------------
   // 4. Harmony Coil Voice (Row band with Solfège glyphs and alterations)
   // ---------------------------------------------------------------------------
   const harmonyCoilLines: string[] = [
@@ -1405,6 +1615,10 @@ export function compileToLilyPond(
     harmonyLines.push("  \\omit Flag");
     harmonyLines.push("  \\omit Beam");
     harmonyLines.push("  \\omit Dots");
+  }
+
+  if (showTimeSignature) {
+    harmonyLines.push(`  \\time ${resolvedTimeSig}`);
   }
 
   if (!traditionalRhythms) {
@@ -1650,16 +1864,100 @@ export function compileToLilyPond(
   const melodyCoilAbsoluteVoiceStr = melodyCoilAbsoluteLinesSingle.join("\n");
   const melodyCoilIntervalVoiceStr = melodyCoilIntervalLines.join("\n");
   const rhythmCoilVoiceStr = rhythmCoilLines.join("\n");
+  const pulseCoilVoiceStr = pulseCoilLines.join("\n");
   const harmonyCoilVoiceStr = harmonyCoilLines.join("\n");
   const harmonyVoiceStr = harmonyLines.join("\n");
   const chordNamesVoiceStr = chordNamesLines.join("\n");
+
+  const gridSymbolsMode = options.gridSymbols;
+  const hasGridSymbols =
+    gridSymbolsMode === true ||
+    gridSymbolsMode === "all" ||
+    gridSymbolsMode === "no-do";
+  const excludeDo =
+    options.excludeGridDoSymbol === true || gridSymbolsMode === "no-do";
+  const hasCoils =
+    showMelodyCoilAbsolute ||
+    showMelodyCoilInterval ||
+    showRhythmCoil ||
+    showPulseCoil ||
+    showHarmonyCoil;
+
+  const gridSymbolsTopLines: string[] = [
+    "  \\override TextScript.outside-staff-priority = ##f",
+    "  \\override TextScript.self-alignment-Y = #CENTER",
+    hasCoils
+      ? "  \\override TextScript.Y-offset = #3.6"
+      : "  \\override TextScript.Y-offset = #4.5",
+    "  \\cadenzaOn",
+  ];
+  const gridSymbolsBottomLines: string[] = [
+    "  \\override TextScript.outside-staff-priority = ##f",
+    "  \\override TextScript.self-alignment-Y = #CENTER",
+    hasCoils
+      ? "  \\override TextScript.Y-offset = #-3.6"
+      : "  \\override TextScript.Y-offset = #-4.5",
+    "  \\cadenzaOn",
+  ];
+
+  if (hasGridSymbols) {
+    for (let c = 0; c < coilGroups.length; c++) {
+      const group = coilGroups[c];
+      const pOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
+      const topSpacers: string[] = [];
+      const bottomSpacers: string[] = [];
+
+      for (let idx = 0; idx < pOnsets.length; idx++) {
+        const onset = pOnsets[idx];
+        const onsetDur =
+          traditionalRhythms && onset.durationBeats !== undefined
+            ? beatsToLilyPondDuration(onset.durationBeats, true)
+            : (onset.duration ?? dur);
+        const schemeVar = getGridSymbolSchemeVar(onset, excludeDo);
+        if (schemeVar) {
+          topSpacers.push(`s${onsetDur}^\\markup { \\stencil #${schemeVar} }`);
+          bottomSpacers.push(`s${onsetDur}_\\markup { \\stencil #${schemeVar} }`);
+        } else {
+          topSpacers.push(`s${onsetDur}`);
+          bottomSpacers.push(`s${onsetDur}`);
+        }
+      }
+      gridSymbolsTopLines.push(`  ${topSpacers.join(" ")}`);
+      gridSymbolsBottomLines.push(`  ${bottomSpacers.join(" ")}`);
+      if (c < coilGroups.length - 1) {
+        gridSymbolsTopLines.push('  \\bar "|"');
+        gridSymbolsBottomLines.push('  \\bar "|"');
+      } else {
+        gridSymbolsTopLines.push('  \\bar "|."');
+        gridSymbolsBottomLines.push('  \\bar "|."');
+      }
+    }
+    gridSymbolsTopLines.push("  \\cadenzaOff");
+    gridSymbolsBottomLines.push("  \\cadenzaOff");
+  }
+
+  const gridSymbolsTopVoiceStr = gridSymbolsTopLines.join("\n");
+  const gridSymbolsBottomVoiceStr = gridSymbolsBottomLines.join("\n");
 
   // Assemble staves in PianoStaff
   const gridSuffix = options.showRhythmGrid ? " \\rhythmGridVoice >>" : "";
   const wrapWithGrid = (voiceName: string) =>
     options.showRhythmGrid ? `<< ${voiceName}${gridSuffix}` : voiceName;
 
-  const makeCoilStaff = (voiceName: string, clefStencil: string) => `      \\new Staff \\with {
+  const makeCoilStaff = (voiceName: string, clefStencil: string, isTopCoil = false, isBottomCoil = false) => {
+    let combinedVoice = voiceName;
+    if (hasGridSymbols) {
+      if (isTopCoil && isBottomCoil) {
+        // When only one coil layer is shown, place the single row between the coil layer and the melody staff (top)
+        combinedVoice = `<< ${combinedVoice} \\gridSymbolsTopVoice >>`;
+      } else if (isTopCoil) {
+        combinedVoice = `<< ${combinedVoice} \\gridSymbolsTopVoice >>`;
+      } else if (isBottomCoil) {
+        combinedVoice = `<< ${combinedVoice} \\gridSymbolsBottomVoice >>`;
+      }
+    }
+
+    return `      \\new Staff \\with {
         \\override StaffSymbol.line-positions = #'(-2.0 2.0)
         \\override StaffSymbol.thickness = #1.0
         \\override StaffSymbol.stencil = #ppt-row-band-stencil
@@ -1676,43 +1974,66 @@ export function compileToLilyPond(
         \\override Beam.stencil = ##f
         \\override Dots.stencil = ##f
         \\override NoteHead.no-ledgers = ##t
-      } ${wrapWithGrid(voiceName)}`;
+      } ${wrapWithGrid(combinedVoice)}`;
+  };
 
-  const coilStaffLines: string[] = [];
+  const coilStaffDefList: Array<{ voiceName: string; clefStencil: string }> = [];
   if (showMelodyCoilAbsolute) {
     if (isMultiVoice) {
       for (const v of voiceIndices) {
-        coilStaffLines.push(
-          makeCoilStaff(
-            `\\melodyCoilAbsoluteVoice${voiceNumberToWord(v)}`,
-            `#(make-clef-text-stencil "M${v}")`,
-          ),
-        );
+        coilStaffDefList.push({
+          voiceName: `\\melodyCoilAbsoluteVoice${voiceNumberToWord(v)}`,
+          clefStencil: `#(make-clef-text-stencil "M${v}")`,
+        });
       }
     } else {
-      coilStaffLines.push(makeCoilStaff("\\melodyCoilAbsoluteVoice", "#pptClefMStencil"));
+      coilStaffDefList.push({
+        voiceName: "\\melodyCoilAbsoluteVoice",
+        clefStencil: "#pptClefMStencil",
+      });
     }
   }
 
   if (showMelodyCoilInterval) {
-    coilStaffLines.push(
-      makeCoilStaff(
-        "\\melodyCoilIntervalVoice",
-        isMultiVoice ? '#(make-clef-text-stencil "M1")' : "#pptClefMStencil",
-      ),
-    );
+    coilStaffDefList.push({
+      voiceName: "\\melodyCoilIntervalVoice",
+      clefStencil: isMultiVoice ? '#(make-clef-text-stencil "M1")' : "#pptClefMStencil",
+    });
   }
 
   if (showRhythmCoil) {
-    coilStaffLines.push(makeCoilStaff("\\rhythmCoilVoice", "#pptClefRStencil"));
+    coilStaffDefList.push({
+      voiceName: "\\rhythmCoilVoice",
+      clefStencil: "#pptClefRStencil",
+    });
+  }
+
+  if (showPulseCoil) {
+    coilStaffDefList.push({
+      voiceName: "\\pulseCoilVoice",
+      clefStencil: "#pptClefPStencil",
+    });
   }
 
   if (showHarmonyCoil) {
-    coilStaffLines.push(makeCoilStaff("\\harmonyCoilVoice", "#pptClefHStencil"));
+    coilStaffDefList.push({
+      voiceName: "\\harmonyCoilVoice",
+      clefStencil: "#pptClefHStencil",
+    });
   }
+
+  const numCoils = coilStaffDefList.length;
+  const coilStaffLines: string[] = coilStaffDefList.map((def, idx) =>
+    makeCoilStaff(def.voiceName, def.clefStencil, idx === 0, idx === numCoils - 1),
+  );
 
   const rhythmGridLines: string[] = ["  \\cadenzaOn"];
   if (options.showRhythmGrid) {
+    const strongBeatGridWeight = options.strongBeatGridWeight === true;
+
+    let runningPhaseOffset = 0;
+    let prevPulseKey = "";
+
     for (let c = 0; c < coilGroups.length; c++) {
       const group = coilGroups[c];
       const pOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
@@ -1723,12 +2044,43 @@ export function compileToLilyPond(
       const roundedBeats = Math.round(totalBeats * 48) / 48;
       const fullBeats = Math.floor(roundedBeats);
       const fracBeats = roundedBeats - fullBeats;
+      const groupPulse = (group.onsets[0] as any)?.pulse ?? (group.onsets[0] as any)?.meter ?? options.pulse ?? options.meter ?? 'DoLa';
+      const pulseKey = Array.isArray(groupPulse) ? groupPulse.join(',') : String(groupPulse);
+      const grammar = resolveMetricGrammar(groupPulse);
+      const barBeats = grammar.totalBeats;
+
+      if (c === 0) {
+        const remainder = totalBeats % barBeats;
+        if (remainder > 1e-4) {
+          runningPhaseOffset = (barBeats - remainder) % barBeats;
+        } else {
+          runningPhaseOffset = 0;
+        }
+      } else if (pulseKey !== prevPulseKey) {
+        runningPhaseOffset = 0;
+      }
+
+      const pulses = strongBeatGridWeight
+        ? resolveMetricPulseTimeline(groupPulse, totalBeats, runningPhaseOffset)
+        : [];
+
+      runningPhaseOffset = (runningPhaseOffset + totalBeats) % barBeats;
+      prevPulseKey = pulseKey;
+
       const spacers: string[] = [];
       for (let b = 0; b < fullBeats; b++) {
-        spacers.push("s4");
+        const pulse = pulses[b];
+        const isStrong = pulse
+          ? (pulse.weight === "primary" || pulse.syllable.startsWith("Do") || pulse.syllable.startsWith("Dox") || pulse.syllable.startsWith("Di") || pulse.syllable.startsWith("Dix"))
+          : (b === 0);
+        const pt = isStrong
+          ? "make-strong-grid-point-stencil"
+          : "make-weak-grid-point-stencil";
+        spacers.push(`\\once \\override Staff.GridPoint.stencil = #${pt} s4`);
       }
-      if (fracBeats > 0.001) {
-        spacers.push(`s${beatsToLilyPondDuration(fracBeats)}`);
+      if (fracBeats > 1e-4) {
+        const fracDur = beatsToLilyPondDuration(fracBeats);
+        spacers.push(`\\once \\override Staff.GridPoint.stencil = #make-weak-grid-point-stencil s${fracDur}`);
       }
       rhythmGridLines.push(`  ${spacers.join(" ")}`);
       if (c < coilGroups.length - 1) {
@@ -1743,8 +2095,15 @@ export function compileToLilyPond(
 
   const staffLines: string[] = [];
   if (showMelody) {
+    const melodyInnerVoices = ["\\melodyVoice"];
     if (options.showRhythmGrid) {
-      staffLines.push("    \\new Staff << \\melodyVoice \\rhythmGridVoice >>");
+      melodyInnerVoices.push("\\rhythmGridVoice");
+    }
+    if (hasGridSymbols && numCoils === 0) {
+      melodyInnerVoices.push("\\gridSymbolsBottomVoice");
+    }
+    if (melodyInnerVoices.length > 1) {
+      staffLines.push(`    \\new Staff << ${melodyInnerVoices.join(" ")} >>`);
     } else {
       staffLines.push("    \\new Staff \\melodyVoice");
     }
@@ -1764,8 +2123,15 @@ ${coilStaffLines.join("\n")}
     staffLines.push(`  ${coilStaffLines[0].trim()}`);
   }
   if (showTraditionalHarmony) {
+    const harmonyInnerVoices = ["\\harmonyVoice"];
     if (options.showRhythmGrid) {
-      staffLines.push("    \\new Staff << \\harmonyVoice \\rhythmGridVoice >>");
+      harmonyInnerVoices.push("\\rhythmGridVoice");
+    }
+    if (hasGridSymbols && numCoils === 0 && !showMelody) {
+      harmonyInnerVoices.push("\\gridSymbolsTopVoice");
+    }
+    if (harmonyInnerVoices.length > 1) {
+      staffLines.push(`    \\new Staff << ${harmonyInnerVoices.join(" ")} >>`);
     } else {
       staffLines.push("    \\new Staff \\harmonyVoice");
     }
@@ -1814,23 +2180,72 @@ ${chordChangesDirective}      \\chordNamesVoice
       `  copyright = "${options.copyright.replace(/"/g, '\\"')}"`,
     );
 
-  // Key anchor: vertically aligned with composer/artist on the left side (poet), with vertical padding
-  let keyAnchorMarkup: string | null = null;
+  // Key anchor & Pulse Signature: vertically aligned with composer/artist on the left side (poet), with vertical padding
+  // Each row is stored as its markup body (without the leading \markup keyword)
+  // so they can be placed inside \markup \column { ... } without double-\markup.
+  let keyAnchorBody: string | null = null;
+  let pulseSignatureBody: string | null = null;
   if (options.piece) {
     headerLines.push(`  piece = "${options.piece.replace(/"/g, '\\"')}"`);
   } else if (options.doPitch && options.showKeyAnchor !== false) {
     const doPitchClass = options.doPitch.replace(/\d+$/, "");
-    keyAnchorMarkup = `\\markup \\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = ${doPitchClass}" }`;
+    keyAnchorBody = `\\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = ${doPitchClass}" }`;
+
+    if (options.showPulseSignature || options.pulseSignature) {
+      const pulseVal = options.pulse ?? options.meter;
+      const displayPulse =
+        options.pulseSignature ??
+        (pulseVal
+          ? Array.isArray(pulseVal)
+            ? pulseVal.join("")
+            : String(pulseVal)
+          : "");
+
+      if (displayPulse) {
+        // Parse pulse string into syllables (e.g. "DoRe" -> ["Do","Re"], "[Do, Re, So]" -> ["Do","Re","So"])
+        const cleanPulse = displayPulse.replace(/[\[\]]/g, "").replace(/,\s*/g, "");
+        const SYL_RE = /Dox|Rax|Dix|Rex|Mex|Rix|Mix|Fax|Fix|Sex|Sox|Lex|Six|Lax|Tex|Lix|Tix|Do|Ra|Di|Re|Me|Ri|Mi|Fa|Fi|Se|So|Le|Si|La|Te|Li|Ti/gi;
+        const syllables: string[] = [];
+        let m: RegExpExecArray | null;
+        while ((m = SYL_RE.exec(cleanPulse)) !== null) {
+          syllables.push(m[0].charAt(0).toUpperCase() + m[0].slice(1).toLowerCase());
+        }
+
+        if (syllables.length > 0) {
+          const glyphStencils = syllables.map((syl) => {
+            const hasAxis = syl.endsWith("x") || syl.endsWith("X");
+            try {
+              const spec = getSolfegeGlyphSpec(syl, hasAxis);
+              const basePathVar =
+                spec.glyphType === "base"
+                  ? "pptPathBase"
+                  : spec.glyphType === "sharp"
+                    ? "pptPathSharp"
+                    : "pptPathFlat";
+              const axisBool = hasAxis ? "#t" : "#f";
+              return `\\stencil #(make-solfege-glyph ${basePathVar} ${spec.rotation} ${spec.colorSchemeVar} ${axisBool})`;
+            } catch {
+              return `\\bold "${syl}"`;
+            }
+          });
+          pulseSignatureBody = `\\line \\vcenter { \\fontsize #-1.5 "P:" \\hspace #0.5 ${glyphStencils.join(" ")} }`;
+        }
+      }
+    }
   }
 
-  if (options.poet && keyAnchorMarkup) {
-    headerLines.push(
-      `  poet = \\markup \\column { "${options.poet.replace(/"/g, '\\"')}" ${keyAnchorMarkup} }`,
-    );
-  } else if (options.poet) {
-    headerLines.push(`  poet = "${options.poet.replace(/"/g, '\\"')}"`);
-  } else if (keyAnchorMarkup) {
-    headerLines.push(`  poet = ${keyAnchorMarkup}`);
+  // Build poet field: compose rows. Inside \markup \column { } each element is a markup body (no \markup prefix).
+  const poetRowBodies: string[] = [];
+  if (options.poet) poetRowBodies.push(`"${options.poet.replace(/"/g, '\\"')}"`);
+  if (keyAnchorBody) poetRowBodies.push(keyAnchorBody);
+  if (pulseSignatureBody) poetRowBodies.push(pulseSignatureBody);
+
+  if (poetRowBodies.length === 1) {
+    // Single row: emit as standalone \markup
+    headerLines.push(`  poet = \\markup ${poetRowBodies[0]}`);
+  } else if (poetRowBodies.length > 1) {
+    // Multiple rows: wrap in \markup \column { body1 body2 ... }
+    headerLines.push(`  poet = \\markup \\column { ${poetRowBodies.join(" ")} }`);
   }
 
   // Tagline handling: default to false (suppresses "Music engraving by LilyPond")
@@ -1862,7 +2277,9 @@ ${chordChangesDirective}      \\chordNamesVoice
     showMelodyCoilAbsolute ||
     showMelodyCoilInterval ||
     showRhythmCoil ||
+    showPulseCoil ||
     options.showRhythmGrid ||
+    hasGridSymbols ||
     (options.doPitch && options.showKeyAnchor !== false)
   ) {
     preambles += `\n${PPT_SCHEME_COLOR_DEFINITIONS}`;
@@ -1910,6 +2327,9 @@ ${chordChangesDirective}      \\chordNamesVoice
   if (showRhythmCoil) {
     voiceDefs.push(`rhythmCoilVoice = {\n${rhythmCoilVoiceStr}\n}`);
   }
+  if (showPulseCoil) {
+    voiceDefs.push(`pulseCoilVoice = {\n${pulseCoilVoiceStr}\n}`);
+  }
   if (showHarmonyCoil) {
     voiceDefs.push(`harmonyCoilVoice = {\n${harmonyCoilVoiceStr}\n}`);
   }
@@ -1918,6 +2338,10 @@ ${chordChangesDirective}      \\chordNamesVoice
   }
   if (options.showRhythmGrid) {
     voiceDefs.push(`rhythmGridVoice = {\n${rhythmGridVoiceStr}\n}`);
+  }
+  if (hasGridSymbols) {
+    voiceDefs.push(`gridSymbolsTopVoice = {\n${gridSymbolsTopVoiceStr}\n}`);
+    voiceDefs.push(`gridSymbolsBottomVoice = {\n${gridSymbolsBottomVoiceStr}\n}`);
   }
   let zoomPreamble = "";
   if (options.zoom !== undefined) {
@@ -1930,14 +2354,17 @@ ${chordChangesDirective}      \\chordNamesVoice
 
   const indentMm = options.indent ?? 0;
 
+  const gridLineThickness = options.strongBeatGridWeight ? "0.8" : "0.5";
+  const gridLineColor = options.strongBeatGridWeight ? "(x11-color 'gray65)" : "(x11-color 'gray80)";
+
   const gridLayoutContext = options.showRhythmGrid
     ? `    \\context {
       \\Score
       \\consists "Grid_line_span_engraver"
       \\override GridLine.stencil = #ly:grid-line-interface::print
-      \\override GridLine.color = #(x11-color 'gray80)
+      \\override GridLine.color = #${gridLineColor}
       \\override GridLine.style = #'dashed-line
-      \\override GridLine.thickness = #0.5
+      \\override GridLine.thickness = #${gridLineThickness}
       \\override GridLine.layer = #-1
     }
     \\context {
@@ -1961,6 +2388,10 @@ ${chordChangesDirective}      \\chordNamesVoice
     }\n`
     : "";
 
+  const timeSignatureLayoutContext = showTimeSignature
+    ? ""
+    : `      \\remove "Time_signature_engraver"\n`;
+
   return `\\version "${version}"
 ${zoomPreamble}${preambles}${headerBlock}${paperBlock}
 ${voiceDefs.join("\n\n")}
@@ -1972,8 +2403,7 @@ ${scoreBody}
     short-indent = 0\\mm
 ${outlineLayoutContext}${gridLayoutContext}${omitStemLayoutContext}    \\context {
       \\Staff
-      \\remove "Time_signature_engraver"
-${dropNaturalsContext}    }
+${timeSignatureLayoutContext}${dropNaturalsContext}    }
   }
 }
 `;

@@ -42,6 +42,8 @@ export interface SidecarEntry {
   sourceCoilId?: string;
   /** 1-based index within the underlying sub-coil */
   sourceOnsetIndex?: number;
+  /** 1-based melody array position (excludes Dox beat-skip tokens) — for click navigation to melody source */
+  melodyOnsetIndex?: number;
   /** Coil where melody layer was defined (local or inherited parent) */
   melodySourceCoil?: string;
   /** Coil where rhythm layer was defined (local or inherited parent) */
@@ -77,6 +79,7 @@ export function generateSidecarMap(onsets: OnsetStream): SidecarMap {
       voiceIndex: onset.voiceIndex,
       sourceCoilId: onset.sourceCoilId,
       sourceOnsetIndex: onset.sourceOnsetIndex,
+      melodyOnsetIndex: onset.melodyOnsetIndex,
       melodySourceCoil: onset.melodySourceCoil,
       rhythmSourceCoil: onset.rhythmSourceCoil,
       harmonySourceCoil: onset.harmonySourceCoil,

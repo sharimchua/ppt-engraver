@@ -202,7 +202,7 @@ tapestry:
 `;
     const result = compileYamlString(yaml);
     expect(result.warnings).toHaveLength(0);
-    expect(result.onsets).toHaveLength(9);
+    expect(result.onsets).toHaveLength(8);
 
     // 16th notes on beat 1
     expect(result.onsets[0].duration).toBe('16');
@@ -212,15 +212,13 @@ tapestry:
     // 8th notes on beat 2
     expect(result.onsets[4].duration).toBe('8');
     expect(result.onsets[5].duration).toBe('8');
-    // Quarter note on beat 3 (beat 2.0 to 3.0)
-    expect(result.onsets[6].duration).toBe('4');
-    // Dox skip on beat 4 (beat 3.0 to 4.0)
-    expect(result.onsets[7].rhythmToken).toBe('Dox');
-    expect(result.onsets[7].isRest).toBe(true);
-    expect(result.onsets[7].duration).toBe('4');
-    // Final delayed note on beat 5 (beat 4.0 to 5.0)
-    expect(result.onsets[8].rhythmToken).toBe('Do');
-    expect(result.onsets[8].duration).toBe('4');
+    // Half note on beat 3 (beat 2.0 to 4.0 until next onset at beat 4.0)
+    expect(result.onsets[6].duration).toBe('2');
+    // DoxDo skip on beat 4 (beat 4.0 to 5.0)
+    expect(result.onsets[7].rhythmToken).toBe('DoxDo');
+    expect(result.onsets[7].isRest).toBe(false);
+    expect(result.onsets[7].startBeat).toBe(4.0);
+    expect(result.onsets[7].scaleDegree).toBe('Do');
 
     // Check LilyPond melody emission contains 16 and 8 durations
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_riff_melody_1");
@@ -364,6 +362,79 @@ tapestry:
     const resEb = compileYamlString(yaml, { knotId: 'concertEb' });
     expect(resEb.selectedKnotId).toBe('concertEb');
     expect(resEb.lilypondSource).toContain("ees'4"); // Do = Eb4
+  });
+
+  it('compiles score with pulseCoil, gridSymbols, strongBeatGridWeight, and nested weave pulse cascading', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: "F4"
+    weave: song
+    engraving:
+      gridSymbols: true
+      strongBeatGridWeight: true
+      showPulseCoil: true
+      showRhythmGrid: true
+      show: [melody, harmony, pulseCoil, rhythmGrid]
+
+  weaves:
+    song:
+      pulse: [Dox, Re, So]
+      children:
+        - weave: pickup
+        - weave: main_phrase
+
+    pickup:
+      children:
+        - coil:
+            melody: [Do, Re]
+            harmony: [SoTe]
+            rhythm: [Do, Fi]
+
+    main_phrase:
+      children:
+        - coil:
+            melody: [Mi, Do, So^]
+            harmony: [Do]
+            rhythm: [Do, Fi, Do]
+`;
+
+    const result = compileYamlString(yaml);
+    expect(result.warnings).toHaveLength(0);
+    // Verified pulseCoilVoice contains P clef and pulse tokens
+    expect(result.lilypondSource).toContain('\\pulseCoilVoice');
+    expect(result.lilypondSource).toContain('#pptClefPStencil');
+    expect(result.lilypondSource).toContain('#make-strong-grid-point-stencil');
+    expect(result.lilypondSource).toContain('#make-weak-grid-point-stencil');
+    expect(result.lilypondSource).toContain('s4^\\markup { \\stencil #gridSymbol');
+    expect(result.lilypondSource).not.toContain('\\markup \\vcenter { \\lower #0.5 \\fontsize #-3 \\markup');
+
+    // Check pickup alignment: pickup is 1 beat in a 3-beat pulse (offset 2 -> syllable So)
+    expect(result.lilypondSource).toContain("ppt_pickup_");
+    expect(result.lilypondSource).toContain("ppt_main_phrase_");
+  });
+
+  it('keeps compound rhythm tokens like DoxFi intact without index decoupling', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: C4
+  weaves:
+    song:
+      children:
+        - coil:
+            melody: [Do, Re]
+            harmony: [Do, So]
+            rhythm: [DoxFi, Do]
+`;
+
+    const result = compileYamlString(yaml);
+    expect(result.warnings).toHaveLength(0);
+    expect(result.onsets).toHaveLength(2);
+    expect(result.onsets[0].rhythmToken).toBe('DoxFi');
+    expect(result.onsets[0].startBeat).toBe(1.5);
+    expect(result.onsets[1].rhythmToken).toBe('Do');
+    expect(result.onsets[1].startBeat).toBe(2);
   });
 });
 
