@@ -20,13 +20,18 @@ let enableSolfegeContext = localStorage.getItem('ppt_enable_solfege_context') !=
 const ENUMS_SHOW = [
   { text: 'melody', displayText: 'melody', type: 'enum', desc: 'Melody notation staff' },
   { text: 'harmony', displayText: 'harmony', type: 'enum', desc: 'Traditional harmony staff' },
+  { text: 'traditionalHarmony', displayText: 'traditionalHarmony', type: 'enum', desc: 'Traditional 5-line harmony staff' },
+  { text: 'harmonyStaff', displayText: 'harmonyStaff', type: 'enum', desc: 'Traditional 5-line harmony staff' },
   { text: 'melodyCoilInterval', displayText: 'melodyCoilInterval', type: 'enum', desc: 'Relative Solfège interval coil' },
   { text: 'melodyCoilAbsolute', displayText: 'melodyCoilAbsolute', type: 'enum', desc: 'Absolute Solfège pitch coil' },
   { text: 'rhythmCoil', displayText: 'rhythmCoil', type: 'enum', desc: 'PPT Rhythm Coil staff' },
+  { text: 'pulseCoil', displayText: 'pulseCoil', type: 'enum', desc: 'PPT Pulse / Metric Coil staff' },
   { text: 'harmonyCoil', displayText: 'harmonyCoil', type: 'enum', desc: 'PPT Harmony Coil staff' },
-  { text: 'rhythmGrid', displayText: 'rhythmGrid', type: 'enum', desc: 'Pulse rhythm grid' },
   { text: 'chordNames', displayText: 'chordNames', type: 'enum', desc: 'Chord symbols above staff' },
-  { text: 'traditionalHarmony', displayText: 'traditionalHarmony', type: 'enum', desc: 'Traditional Roman harmony' }
+  { text: 'rhythmGrid', displayText: 'rhythmGrid', type: 'enum', desc: 'Vertical rhythm gridlines' },
+  { text: 'gridSymbols', displayText: 'gridSymbols', type: 'enum', desc: 'Annotate grid lines with notehead shapes' },
+  { text: 'timeSignature', displayText: 'timeSignature', type: 'enum', desc: 'Traditional time signature on staff' },
+  { text: 'pulseSignature', displayText: 'pulseSignature', type: 'enum', desc: 'PPT pulse declaration in header' },
 ];
 
 const ENUMS_CLEF = [
@@ -119,9 +124,9 @@ const TOKENS_MELODY = [
   { text: 'Si', displayText: 'Si', type: 'note', solfege: 'Si', desc: '7 semitones (Blue)' },
   { text: 'La', displayText: 'La', type: 'note', solfege: 'La', desc: '9 semitones (Indigo)' },
   { text: 'Lax', displayText: 'Lax', type: 'note', solfege: 'Lax', desc: '9 semitones (Axis)' },
+  { text: 'Li', displayText: 'Li', type: 'note', solfege: 'Li', desc: '9 semitones (Indigo)' },
   { text: 'Te', displayText: 'Te', type: 'note', solfege: 'Te', desc: '10 semitones (Pink)' },
   { text: 'Tex', displayText: 'Tex', type: 'note', solfege: 'Tex', desc: '10 semitones (Axis)' },
-  { text: 'Li', displayText: 'Li', type: 'note', solfege: 'Li', desc: '9 semitones (Indigo)' },
   { text: 'Ti', displayText: 'Ti', type: 'note', solfege: 'Ti', desc: '11 semitones (Pink)' },
   { text: 'Tix', displayText: 'Tix', type: 'note', solfege: 'Tix', desc: '11 semitones (Axis)' },
   { text: 'Do^', displayText: 'Do^', type: 'note', solfege: 'Do', desc: 'High octave (+12)' },
@@ -219,7 +224,17 @@ const KNOT_KEYS = [
   { text: 'arranger:', displayText: 'arranger: "..."', type: 'prop', desc: 'Arranger name' },
   { text: 'poet:', displayText: 'poet: "..."', type: 'prop', desc: 'Poet / lyricist' },
   { text: 'copyright:', displayText: 'copyright: "..."', type: 'prop', desc: 'Copyright statement' },
-  { text: 'tagline:', displayText: 'tagline: "..."', type: 'prop', desc: 'LilyPond bottom tagline' }
+  { text: 'tagline:', displayText: 'tagline: "..."', type: 'prop', desc: 'LilyPond bottom tagline' },
+  { text: 'pulse:', displayText: 'pulse: "DoLa"', type: 'prop', desc: 'Metric pulse grammar' },
+  { text: 'meter:', displayText: 'meter: "DoLa"', type: 'prop', desc: 'Alias for pulse' },
+  { text: 'timeSignature:', displayText: 'timeSignature: "4/4"', type: 'prop', desc: 'Time signature for notation staff' },
+  { text: 'showTimeSignature:', displayText: 'showTimeSignature: true', type: 'prop', desc: 'Show time signature on staff' },
+  { text: 'pulseSignature:', displayText: 'pulseSignature: "DoLa"', type: 'prop', desc: 'Pulse signature in header' },
+  { text: 'showPulseSignature:', displayText: 'showPulseSignature: true', type: 'prop', desc: 'Show pulse signature in header' },
+  { text: 'showPulseCoil:', displayText: 'showPulseCoil: true', type: 'prop', desc: 'Show Pulse / Metric coil row' },
+  { text: 'gridSymbols:', displayText: 'gridSymbols: true', type: 'prop', desc: 'Annotate grid lines with notehead shapes' },
+  { text: 'excludeGridDoSymbol:', displayText: 'excludeGridDoSymbol: true', type: 'prop', desc: 'Omit circle on Do downbeats' },
+  { text: 'strongBeatGridWeight:', displayText: 'strongBeatGridWeight: true', type: 'prop', desc: 'Solid line on strong beats' }
 ];
 
 const ENGRAVING_KEYS = [
@@ -247,6 +262,16 @@ const ENGRAVING_KEYS = [
   { text: 'showMelodyCoilAbsolute:', displayText: 'showMelodyCoilAbsolute: true', type: 'prop', desc: 'Show absolute melody coil' },
   { text: 'showMelodyCoilInterval:', displayText: 'showMelodyCoilInterval: true', type: 'prop', desc: 'Show interval melody coil' },
   { text: 'showRhythmCoil:', displayText: 'showRhythmCoil: true', type: 'prop', desc: 'Show rhythm coil staff' },
+  { text: 'showPulseCoil:', displayText: 'showPulseCoil: true', type: 'prop', desc: 'Show Pulse / Metric coil row' },
+  { text: 'showTimeSignature:', displayText: 'showTimeSignature: true', type: 'prop', desc: 'Show time signature on staff' },
+  { text: 'timeSignature:', displayText: 'timeSignature: "4/4"', type: 'prop', desc: 'Time signature for notation staff' },
+  { text: 'showPulseSignature:', displayText: 'showPulseSignature: true', type: 'prop', desc: 'Show pulse signature in header' },
+  { text: 'pulseSignature:', displayText: 'pulseSignature: "DoLa"', type: 'prop', desc: 'Pulse signature in header' },
+  { text: 'pulse:', displayText: 'pulse: "DoLa"', type: 'prop', desc: 'Metric pulse grammar' },
+  { text: 'meter:', displayText: 'meter: "DoLa"', type: 'prop', desc: 'Alias for pulse' },
+  { text: 'gridSymbols:', displayText: 'gridSymbols: true', type: 'prop', desc: 'Annotate grid lines with notehead shapes' },
+  { text: 'excludeGridDoSymbol:', displayText: 'excludeGridDoSymbol: true', type: 'prop', desc: 'Omit circle on Do downbeats' },
+  { text: 'strongBeatGridWeight:', displayText: 'strongBeatGridWeight: true', type: 'prop', desc: 'Solid line on strong beats' },
   { text: 'show:', displayText: 'show:', type: 'prop', desc: 'Visible score layers list' }
 ];
 
@@ -254,7 +279,8 @@ const COIL_KEYS = [
   { text: 'melody:', displayText: 'melody: [ ... ]', type: 'prop', desc: 'Solfège melody array' },
   { text: 'rhythm:', displayText: 'rhythm: [ ... ]', type: 'prop', desc: 'Rhythm token array' },
   { text: 'harmony:', displayText: 'harmony: [ ... ]', type: 'prop', desc: 'Harmony chords array' },
-  { text: 'meter:', displayText: 'meter: ...', type: 'prop', desc: 'Metric pattern / length' },
+  { text: 'pulse:', displayText: 'pulse: ...', type: 'prop', desc: 'Metric pulse pattern / length' },
+  { text: 'meter:', displayText: 'meter: ...', type: 'prop', desc: 'Alias for pulse' },
   { text: 'parents:', displayText: 'parents: ...', type: 'prop', desc: 'Parent coil inheritance' },
   { text: 'parent:', displayText: 'parent: ...', type: 'prop', desc: 'Single parent inheritance' },
   { text: 'concat:', displayText: 'concat:', type: 'prop', desc: 'Concatenation of sub-coils' },
@@ -270,6 +296,8 @@ const WEAVE_KEYS = [
   { text: 'id:', displayText: 'id: ...', type: 'prop', desc: 'Weave identifier' },
   { text: 'layout:', displayText: 'layout: concatenate', type: 'prop', desc: 'Child sequencing layout' },
   { text: 'defaultCoil:', displayText: 'defaultCoil: ...', type: 'prop', desc: 'Default fallback coil' },
+  { text: 'pulse:', displayText: 'pulse: ...', type: 'prop', desc: 'Weave-level metric pulse pattern' },
+  { text: 'meter:', displayText: 'meter: ...', type: 'prop', desc: 'Alias for pulse' },
   { text: 'coils:', displayText: 'coils:', type: 'prop', desc: 'In-place coils map' },
   { text: 'children:', displayText: 'children:', type: 'prop', desc: 'List of child coils & weaves' },
   { text: 'harmonyVoicing:', displayText: 'harmonyVoicing: ...', type: 'prop', desc: 'Weave-level voicing override' },
@@ -553,7 +581,7 @@ let declaredIdsCache = new Set();
 const RESERVED_SCHEMA_KEYS = new Set([
   'tapestry', 'knot', 'knots', 'engraving', 'weaves', 'coils',
   'children', 'melody', 'rhythm', 'harmony', 'chords', 'pitches',
-  'from', 'use', 'meter', 'clef', 'concat', 'parents', 'parent',
+  'from', 'use', 'pulse', 'meter', 'clef', 'concat', 'parents', 'parent',
   'show', 'title', 'subtitle', 'composer', 'arranger', 'poet', 'lyricist',
   'copyright', 'tagline', 'tempo', 'tonic', 'do', 'colorNotes', 'omitStem',
   'id', 'name', 'label', 'layout', 'coil', 'weave', 'projection', 'harmonyVoicing',
@@ -562,7 +590,13 @@ const RESERVED_SCHEMA_KEYS = new Set([
   'traditionalDurations', 'noteheadOutline', 'harmonyChangesOnly', 'chordChanges',
   'showChordNames', 'showTraditionalHarmony', 'showRhythmGrid', 'showMelody',
   'showHarmonyCoil', 'showMelodyCoilAbsolute', 'showMelodyCoilInterval',
-  'showRhythmCoil', 'zoom', 'indent', 'tags', 'repeat', 'transposition'
+  'showRhythmCoil', 'showPulseCoil', 'zoom', 'indent', 'tags', 'repeat', 'transposition',
+  // Engraving feature keys (all property names that appear as YAML dict keys in engraving blocks)
+  'gridSymbols', 'excludeGridDoSymbol', 'gridSymbolExcludeDo', 'strongBeatGridWeight',
+  'gridBeatWeights', 'showTimeSignature', 'timeSignature', 'showPulseSignature',
+  'pulseSignature', 'showKeyAnchor', 'piece', 'abstract', 'hidden', 'visible',
+  'noteheadOutline', 'colorNotes', 'omitStem', 'chordChanges', 'harmonyChangesOnly',
+  'piece', 'copyright', 'tagline', 'zoom', 'indent', 'tags', 'repeat',
 ]);
 
 function scanDeclaredCoilsAndWeaves(cm) {
@@ -717,10 +751,18 @@ function getContextSuggestions(cm, cursor) {
     if (/^noteheadStyle$/i.test(propName)) return ENUMS_NOTEHEAD_STYLE;
     if (/^harmonyStaffStyle$/i.test(propName)) return ENUMS_HARMONY_STAFF_STYLE;
     if (/^layout$/i.test(propName)) return [{ text: 'concatenate', displayText: 'concatenate', type: 'enum', desc: 'Sequential concatenation' }];
-    if (/^(abstract|hidden|visible|colorNotes|omitStem|traditionalRhythms|traditionalDurations|noteheadOutline|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil)$/i.test(propName)) {
+    if (/^(abstract|hidden|visible|colorNotes|noteheadOutline|omitStem|traditionalRhythms|traditionalDurations|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil|showPulseCoil|showTimeSignature|showPulseSignature|excludeGridDoSymbol|gridSymbolExcludeDo|strongBeatGridWeight|gridBeatWeights|showChordNames)$/i.test(propName)) {
       return [
         { text: 'true', displayText: 'true', type: 'enum', desc: 'Enable' },
         { text: 'false', displayText: 'false', type: 'enum', desc: 'Disable' },
+      ];
+    }
+    if (/^gridSymbols$/i.test(propName)) {
+      return [
+        { text: 'true', displayText: 'true', type: 'enum', desc: 'Enable grid notehead shapes' },
+        { text: '"no-do"', displayText: '"no-do"', type: 'enum', desc: 'Enable but exclude Do downbeat circle' },
+        { text: '"all"', displayText: '"all"', type: 'enum', desc: 'Include all subdivision notehead shapes' },
+        { text: 'false', displayText: 'false', type: 'enum', desc: 'Disable grid symbols' },
       ];
     }
     if (/^(tonic|do)$/i.test(propName)) {
@@ -751,13 +793,17 @@ function getContextSuggestions(cm, cursor) {
     if (/^defaultCoil$/i.test(propName)) {
       return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Default coil fallback' }));
     }
-    if (/^meter$/i.test(propName)) {
+    if (/^(pulse|meter)$/i.test(propName)) {
       return [
         { text: 'DoLa', displayText: 'DoLa (4-beat Common Time)', type: 'enum' },
-        { text: 'DoSo', displayText: 'DoSo (8-beat Time)', type: 'enum' },
-        { text: 'DoFi', displayText: 'DoFi (2-beat Half Time)', type: 'enum' },
-        { text: 'DoMe', displayText: 'DoMe (3-beat Triple Meter)', type: 'enum' },
-        { text: 'DoLe', displayText: 'DoLe (6-beat Compound)', type: 'enum' },
+        { text: 'DoRe', displayText: 'DoRe (3-beat Triple Pulse)', type: 'enum' },
+        { text: 'DoSo', displayText: 'DoSo (2-beat Half Time)', type: 'enum' },
+        { text: 'DoMi', displayText: 'DoMi (5-beat Quintuple Pulse)', type: 'enum' },
+        { text: 'DoSi', displayText: 'DoSi (6-beat Compound Pulse)', type: 'enum' },
+        { text: 'DoLaDiLa', displayText: 'DoLaDiLa (8-beat Compound 4/4)', type: 'enum' },
+        { text: 'DoReDiRe', displayText: 'DoReDiRe (6-beat Compound 6/8)', type: 'enum' },
+        { text: 'DoReDiSo', displayText: 'DoReDiSo (5-beat Compound 5/4 [3+2])', type: 'enum' },
+        { text: 'DoSoDiRe', displayText: 'DoSoDiRe (5-beat Compound 5/4 [2+3])', type: 'enum' },
       ];
     }
     if (/^rhythm$/i.test(propName)) {
@@ -3598,7 +3644,9 @@ function handlePointAndClick(url) {
   const { targetLine, targetCh } = findYamlTarget(
     yamlText,
     tagInfo.coilId,
-    tagInfo.sourceOnsetIndex || tagInfo.onsetIndex,
+    tagInfo.targetLayer === 'melody'
+      ? (tagInfo.melodyOnsetIndex || tagInfo.sourceOnsetIndex || tagInfo.onsetIndex)
+      : (tagInfo.sourceOnsetIndex || tagInfo.onsetIndex),
     tagInfo.targetLayer,
     tagInfo.voiceIndex || 1,
     tagInfo.parentCoilId,
@@ -3773,6 +3821,7 @@ function resolveTagFromLyLine(lyLineNum) {
     weaveId,
     onsetIndex,
     sourceOnsetIndex,
+    melodyOnsetIndex: sidecarEntry ? sidecarEntry.melodyOnsetIndex : undefined,
     sidecarEntry,
   };
 }
@@ -5801,7 +5850,7 @@ function refactorConvertMelody(cm, targetMode = 'auto') {
   const curLineText = cm.getLine(curLineNo) || '';
 
   let targetLineNo = -1;
-  let melodyArrayMatch = curLineText.match(/^(\s*melody\s*:\s*\[)(.*)(\])(\s*)$/);
+  let melodyArrayMatch = curLineText.match(/^(\s*(?:melody|pitches)\s*:\s*\[)(.*?)(\])\s*$/);
 
   if (melodyArrayMatch) {
     targetLineNo = curLineNo;
@@ -5810,25 +5859,90 @@ function refactorConvertMelody(cm, targetMode = 'auto') {
     if (coil && coil.fields && coil.fields.melody) {
       targetLineNo = coil.fields.melody.line;
       const targetText = cm.getLine(targetLineNo) || '';
-      melodyArrayMatch = targetText.match(/^(\s*melody\s*:\s*\[)(.*)(\])(\s*)$/);
+      melodyArrayMatch = targetText.match(/^(\s*(?:melody|pitches)\s*:\s*\[)(.*?)(\])\s*$/);
     }
   }
 
-  if (targetLineNo === -1 || !melodyArrayMatch) {
+  // --- Inline array format: melody: [Do, Re, Mi] ---
+  if (targetLineNo !== -1 && melodyArrayMatch) {
+    const prefix = melodyArrayMatch[1];
+    const innerTokensText = melodyArrayMatch[2];
+    const suffix = melodyArrayMatch[3];
+
+    const rawTokens = innerTokensText.split(',').map(s => s.trim()).filter(Boolean);
+    if (rawTokens.length === 0) {
+      alert('Melody array is empty.');
+      return;
+    }
+
+    const firstParsed = parseMelodyToken(rawTokens[0]);
+    const isCurrentlyInterval = firstParsed.hasAxis;
+
+    let newTokens = [];
+    let convertedTo = '';
+
+    if (targetMode === 'absolute' || (targetMode === 'auto' && isCurrentlyInterval)) {
+      newTokens = convertIntervalToAbsoluteMelody(rawTokens);
+      convertedTo = 'Absolute';
+    } else {
+      newTokens = convertAbsoluteToIntervalMelody(rawTokens);
+      convertedTo = 'Interval';
+    }
+
+    const newLineText = `${prefix}${newTokens.join(', ')}${suffix}`;
+    cm.replaceRange(newLineText, { line: targetLineNo, ch: 0 }, { line: targetLineNo, ch: cm.getLine(targetLineNo).length });
+
+    updateInlineSolfegeWidget();
+    updatePairedTokenHighlights(cm);
+    updateScoreHighlights(cm);
+    triggerCompile();
+    setStatus('ready', `Converted melody to ${convertedTo}`);
+    return;
+  }
+
+  // --- Multi-line format: melody:\n  - Do\n  - Re\n  - Mi ---
+  // Find the melody: header line and collect bullet items
+  let melodyHeaderLineNo = targetLineNo;
+  if (melodyHeaderLineNo === -1) {
+    const coil = getEnclosingCoilAtPos(cm, cur);
+    if (coil && coil.fields && coil.fields.melody) {
+      melodyHeaderLineNo = coil.fields.melody.line;
+    }
+  }
+
+  if (melodyHeaderLineNo === -1) {
+    alert('Please place your cursor on a melody line or within a coil with a melody declaration.');
+    return;
+  }
+
+  const headerLine = cm.getLine(melodyHeaderLineNo) || '';
+  const isMelodyHeader = /^\s*(?:melody|pitches)\s*:\s*$/.test(headerLine);
+  if (!isMelodyHeader) {
     alert('Please place your cursor on a melody line or within a coil with a melody array.');
     return;
   }
 
-  const prefix = melodyArrayMatch[1];
-  const innerTokensText = melodyArrayMatch[2];
-  const suffix = melodyArrayMatch[3] + melodyArrayMatch[4];
+  const headerIndent = (headerLine.match(/^(\s*)/) || [''])[0].length;
+  const totalLines = cm.lineCount();
 
-  const rawTokens = innerTokensText.split(',').map(s => s.trim()).filter(Boolean);
-  if (rawTokens.length === 0) {
-    alert('Melody array is empty.');
+  // Collect bullet lines
+  const bulletLines = []; // { lineNo, indent, token, prefix }
+  for (let l = melodyHeaderLineNo + 1; l < Math.min(totalLines, melodyHeaderLineNo + 200); l++) {
+    const lText = cm.getLine(l) || '';
+    if (!lText.trim()) break;
+    const lIndent = (lText.match(/^(\s*)/) || [''])[0].length;
+    if (lIndent <= headerIndent) break;
+    const bulletMatch = lText.match(/^(\s*-\s+)(\S+)(\s*)$/);
+    if (!bulletMatch) break;
+    bulletLines.push({ lineNo: l, bulletPrefix: bulletMatch[1], token: bulletMatch[2], trailing: bulletMatch[3] });
+  }
+
+  if (bulletLines.length === 0) {
+    alert('No melody tokens found in multi-line melody declaration.');
     return;
   }
 
+  const rawTokens = bulletLines.map(b => b.token);
   const firstParsed = parseMelodyToken(rawTokens[0]);
   const isCurrentlyInterval = firstParsed.hasAxis;
 
@@ -5843,8 +5957,12 @@ function refactorConvertMelody(cm, targetMode = 'auto') {
     convertedTo = 'Interval';
   }
 
-  const newLineText = `${prefix}${newTokens.join(', ')}${suffix}`;
-  cm.replaceRange(newLineText, { line: targetLineNo, ch: 0 }, { line: targetLineNo, ch: cm.getLine(targetLineNo).length });
+  // Replace each bullet line in reverse order (to preserve line numbers)
+  for (let i = bulletLines.length - 1; i >= 0; i--) {
+    const { lineNo, bulletPrefix, trailing } = bulletLines[i];
+    const newLineText = `${bulletPrefix}${newTokens[i] || rawTokens[i]}${trailing}`;
+    cm.replaceRange(newLineText, { line: lineNo, ch: 0 }, { line: lineNo, ch: cm.getLine(lineNo).length });
+  }
 
   updateInlineSolfegeWidget();
   updatePairedTokenHighlights(cm);
