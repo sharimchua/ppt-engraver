@@ -83,11 +83,22 @@ export const RhythmEntrySchema = z.union([
 export type RhythmEntry = z.infer<typeof RhythmEntrySchema>;
 
 /**
- * Rhythm block-length label: a named pair of solfège syllables.
- * V1 supported values: DoSo, DoRe, DoLa, DoMi, DoSi, DoFi
+ * Rhythm block-length label & Metric Grammar:
+ * Supports single cadential blocks (DoSo, DoRe, DoLa, DoMi, DoSi, DoFi, DoRa),
+ * compound metric chains (DoLaDiLa, DoReDiRe, DoReDiSo, DoSoDiRe),
+ * traditional time signatures (4/4, 3/4, 6/8, 5/4, 7/8, 12/8, 2/2, etc.),
+ * or pulse token sequences.
  */
-export const RhythmLabel = z.enum(['DoSo', 'DoRe', 'DoLa', 'DoMi', 'DoSi', 'DoFi']);
-export type RhythmLabelType = z.infer<typeof RhythmLabel>;
+export const RhythmLabel = z.string().min(1);
+export type RhythmLabelType = string;
+
+export const PulseSchema = z.union([
+  RhythmLabel,
+  z.array(z.string().min(1)),
+]);
+export type Pulse = z.infer<typeof PulseSchema>;
+export const MeterSchema = PulseSchema;
+export type Meter = Pulse;
 
 /**
  * Visual elements that can be selectively shown in the engraved score.
@@ -96,12 +107,17 @@ export const EngravingElementSchema = z.enum([
   'melody',
   'melodyCoilInterval',
   'melodyCoilAbsolute',
+  'pulseCoil',
   'rhythmCoil',
   'harmonyCoil',
   'harmony',
   'traditionalHarmony',
+  'harmonyStaff',
   'rhythmGrid',
   'chordNames',
+  'gridSymbols',
+  'timeSignature',
+  'pulseSignature',
 ]);
 
 export type EngravingElement = z.infer<typeof EngravingElementSchema>;
@@ -115,123 +131,121 @@ export const HarmonyVoicingEnum = z.enum([
   'rootFifth',      // Root + 5th (power dyads)
   'shell',          // Root + 3rd + 7th / Root + 7th
   'open',           // Spread voicing (1-5-10 or drop-2)
-  'smoothLead',     // Parsimonious voice leading (minimized semitone movement across chords)
-  'bassOnly',       // Root bass note only
-  'walkingBass',    // Walking bass / scalar approach notes
-  'octaves',        // Root in octaves
+  'smoothLead',     // Parsimonious voice leading minimizing step distance
+  'bassOnly',       // Emits single bass note in lowest octave
+  'walkingBass',    // Emits walking bass line with scalar connective tissue
+  'octaves',        // Doubled octaves in bass
 ]);
 
 export type HarmonyVoicing = z.infer<typeof HarmonyVoicingEnum>;
 
 /**
- * Augmentation styles for inferring accompanying harmony notes underneath melody notes.
+ * Melody harmonic augmentation styles.
  */
 export const MelodyAugmentationEnum = z.enum([
-  'none',           // No augmentation (original single melody)
-  'thirdsBelow',    // Harmonize in 3rds below (chord/scale aware)
-  'sixthsBelow',    // Harmonize in 6ths below
-  'triadClose',     // 3-note close block chord under melody
-  'drop2',          // 4-way close with second note dropped an octave
-  'guideToneDyad',  // Melody note + closest active guide tone (3rd or 7th)
-  'octaves',        // Melody doubled in octaves below
+  'none',           // Single melody note only
+  'thirdsBelow',    // Diatonic 3rd below matching active harmony
+  'sixthsBelow',    // Diatonic 6th below matching active harmony
+  'triadClose',     // Close 3-part chord below melody
+  'drop2',          // 4-part block chord with 2nd voice from top dropped an octave
+  'guideToneDyad',  // 3rd + 7th guide-tone dyad under melody note
+  'octaves',        // Doubled melody an octave below
 ]);
 
 export type MelodyAugmentation = z.infer<typeof MelodyAugmentationEnum>;
 
 /**
- * Visual display styles for distinguishing inferred/augmented melody notes from authored melody notes.
+ * Visual presentation styles for inferred harmonic augmentation notes.
  */
 export const MelodyAugmentationDisplayEnum = z.enum([
-  'ghosted',        // Dimmed / semi-transparent notehead color (Recommended)
-  'dimmed',         // Alias for ghosted
-  'smallColored',   // Reduced notehead with Solfège stencil and chromatic color
-  'smallMuted',     // Reduced notehead in dimmed / grayscale color
-  'parenthesized',  // Standard notehead with parentheses
-  'diamond',        // Diamond notehead style
-  'normal',         // Same appearance as primary melody notes
+  'ghosted',        // Small font size with dark outline
+  'dimmed',         // Muted opacity / gray color
+  'smallColored',   // Small notehead with PPT chromatic Solfège color
+  'smallMuted',     // Small notehead in muted gray
+  'parenthesized',  // Normal size with parentheses around notehead
+  'diamond',        // Diamond shape notehead
+  'normal',         // Standard notehead styling matching primary melody note
 ]);
 
 export type MelodyAugmentationDisplay = z.infer<typeof MelodyAugmentationDisplayEnum>;
 
 /**
- * High-level projection presets that bundle recommended voicing, augmentation, and staff visibility.
+ * High-level arrangement / projection presets.
  */
 export const ProjectionPresetEnum = z.enum([
-  'default',        // Standard PPT full score
-  'chordMelody',    // Melody with triadClose / drop2 augmentation, minimal harmony staff
-  'leadSheet',      // Melody, chord names above, rhythm coil, no bulky harmony staff
-  'jazzComping',    // Rootless / shell voicings on harmony staff
-  'acousticFolk',   // Root+5th harmony, thirdsBelow melody augmentation
-  'bassAndLead',    // Walking bass / bassOnly harmony, clean melody
+  'default',        // Standard lead sheet + full harmony staff
+  'chordMelody',    // Solo chord melody
+  'leadSheet',      // Melody + chord symbols only (hides harmony staff)
+  'jazzComping',    // Rootless voicings + muted augmentation
+  'acousticFolk',   // Open voicings + thirds below
+  'bassAndLead',    // Walking bass + solo lead line
 ]);
 
 export type ProjectionPreset = z.infer<typeof ProjectionPresetEnum>;
 
 /**
- * Engraving configuration schema: document metadata, visual styling, staves, and layout.
+ * Engraving visibility and presentation options for score generation.
  */
 export const EngravingSchema = z.object({
-  /** Piece title */
+  /** Custom piece title override */
   title: z.string().optional(),
-  /** Subtitle or secondary description */
+  /** Subtitle */
   subtitle: z.string().optional(),
-  /** Composer name */
+  /** Composer or Artist name */
   composer: z.string().optional(),
-  /** Artist name (alias for composer) */
-  artist: z.string().optional(),
-  /** Author or creator */
-  author: z.string().optional(),
   /** Arranger */
   arranger: z.string().optional(),
   /** Poet or lyricist */
   poet: z.string().optional(),
-  /** Lyricist (alias for poet) */
-  lyricist: z.string().optional(),
   /** Copyright statement */
   copyright: z.string().optional(),
-  /** Custom tagline or boolean (false suppresses LilyPond default footer) */
+  /** Custom tagline or boolean */
   tagline: z.union([z.string(), z.boolean()]).optional(),
-  /** Array of score elements / layers to display */
-  show: z.array(EngravingElementSchema).optional(),
-  /** Notehead style: 'ppt' | 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default' */
+  /** Clef for melody staff (default: 'treble') */
+  melodyClef: z.string().optional(),
+  /** Clef for harmony staff (default: 'treble') */
+  harmonyClef: z.string().optional(),
+  /** Notehead shape style: 'ppt' | 'sacredHarp' | 'aiken' | 'funk' | 'walker' | 'diamond' | 'default' */
   noteheadStyle: z.enum(['ppt', 'sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default']).optional(),
-  /** Whether to colorize melody noteheads according to the PPT Solfège palette */
+  /** Whether to colorize noteheads according to the PPT Solfège chromatic palette */
   colorNotes: z.boolean().optional(),
   /** Whether to draw a dark outline around colored noteheads for contrast */
   noteheadOutline: z.boolean().optional(),
-  /** Whether to omit stems on noteheads for unmetered notation */
-  omitStem: z.boolean().optional(),
-  /** Whether to use traditional note duration formatting (dotted notes, open noteheads for half/whole, visible rests) */
-  traditionalRhythms: z.boolean().optional(),
-  /** Alias for traditionalRhythms */
-  traditionalDurations: z.boolean().optional(),
-  /** Clef for the melody staff (e.g. "treble", "treble_8", "bass") */
-  melodyClef: z.string().optional(),
-  /** Clef for the harmony staff (e.g. "treble", "bass", "bass_8", "bass_15") */
-  harmonyClef: z.string().optional(),
-  /** Global octave shift for harmony layer (e.g. 0 for treble register, -1 for bass register) */
-  harmonyOctave: z.number().int().optional(),
-  /** Harmony staff rendering style: 'standard' (traditional 5-line staff), 'coil' (includes single-line staff with circle clef and solfège glyphs), or 'both' */
+  /** Harmony staff rendering style */
   harmonyStaffStyle: z.enum(['standard', 'coil', 'both']).optional(),
-  /** Whether to show harmony chords only when changed and at bar starts with whole noteheads (default: true) */
+  /** Whether to show harmony chords only when changed */
   harmonyChangesOnly: z.boolean().optional(),
-  /** Harmony chord voicing projection style */
+  /** Global octave shift for harmony layer */
+  harmonyOctave: z.number().int().optional(),
+  /** Global harmony voicing style */
   harmonyVoicing: HarmonyVoicingEnum.optional(),
-  /** Melody harmonic augmentation style (inferring accompanying notes under melody) */
+  /** Global melody harmonic augmentation style */
   melodyAugmentation: MelodyAugmentationEnum.optional(),
-  /** Visual presentation style for inferred melody augmentation notes */
+  /** Visual presentation style for melody augmentation notes */
   melodyAugmentationDisplay: MelodyAugmentationDisplayEnum.optional(),
   /** High-level arrangement / projection preset */
   projection: ProjectionPresetEnum.optional(),
-  /** Whether to only display chord names when the chord changes */
-  chordChanges: z.boolean().optional(),
-  /** Global zoom / staff size scaling factor (e.g. 1.2 for +20%, 0.8 for -20%) or absolute pt size (e.g. 24) */
+  /** Whether to omit stems on noteheads for unmetered notation */
+  omitStem: z.boolean().optional(),
+  /** Whether to format note durations with traditional dotted values and visible rests */
+  traditionalRhythms: z.boolean().optional(),
+  /** Alias for traditionalRhythms */
+  traditionalDurations: z.boolean().optional(),
+  /** Global staff size / zoom scaling factor (e.g. 1.2 for +20%) or absolute pt size (e.g. 24) */
   zoom: z.number().positive().optional(),
   /** First-line indentation in mm (default: 0 for flush alignment) */
-  indent: z.number().nonnegative().optional(),
-  /** Whether to draw light vertical grid lines indicating onset alignment */
+  indent: z.number().min(0).optional(),
+  /** Whether to draw vertical grid lines indicating onset alignment */
   showRhythmGrid: z.boolean().optional(),
-  /** Whether to show the Harmony Coil staff (single-line staff with circle clef and solfège glyphs) */
+  /** List of score elements to display */
+  show: z.array(EngravingElementSchema).optional(),
+  /** Whether to show chord names above the staff */
+  showChordNames: z.boolean().optional(),
+  /** Whether to only display chord names when chord changes */
+  chordChanges: z.boolean().optional(),
+  /** Accidental spelling mode ('sharps' or 'flats', auto-detected if omitted) */
+  accidentalMode: z.enum(['sharps', 'flats']).optional(),
+  /** Whether to show the Harmony Coil staff */
   showHarmonyCoil: z.boolean().optional(),
   /** Whether to show the traditional 5-line harmony staff */
   showTraditionalHarmony: z.boolean().optional(),
@@ -243,6 +257,32 @@ export const EngravingSchema = z.object({
   showMelodyCoilInterval: z.boolean().optional(),
   /** Whether to show the Rhythm Coil row layer (displays Solfège rhythm tokens / glyphs) */
   showRhythmCoil: z.boolean().optional(),
+  /** Whether to show the Pulse / Metric Coil row layer (displays Solfège metric pulse glyphs with 'P' clef) */
+  showPulseCoil: z.boolean().optional(),
+  /** Alias for showPulseCoil */
+  showMetricCoil: z.boolean().optional(),
+  /** Whether to show the time signature on the traditional notation staff */
+  showTimeSignature: z.boolean().optional(),
+  /** Custom time signature or metric grammar label override (e.g. "4/4", "3/4", "6/8") */
+  timeSignature: z.string().optional(),
+  /** Whether to show the PPT pulse signature in the score header next to key anchor */
+  showPulseSignature: z.boolean().optional(),
+  /** Custom pulse signature label override for the score header (e.g. "DoLa", "DoRe", "[Dox, Re, So]") */
+  pulseSignature: z.string().optional(),
+  /** Metric pulse grammar specification for knot */
+  pulse: PulseSchema.optional(),
+  /** Alias for pulse */
+  meter: PulseSchema.optional(),
+  /** Whether to annotate rhythm grid lines with geometric Solfège notehead symbols (true, 'all', 'no-do', 'off') */
+  gridSymbols: z.union([z.boolean(), z.enum(['all', 'no-do', 'off'])]).optional(),
+  /** Whether to exclude circle symbol on Do/downbeats when annotating rhythm grid (since heavy line marks downbeat) */
+  excludeGridDoSymbol: z.boolean().optional(),
+  /** Alias for excludeGridDoSymbol */
+  gridSymbolExcludeDo: z.boolean().optional(),
+  /** Whether to draw heavier / darker grid lines on strong beats (Do/Dix) */
+  strongBeatGridWeight: z.boolean().optional(),
+  /** Alias for strongBeatGridWeight */
+  gridBeatWeights: z.boolean().optional(),
 });
 
 export type Engraving = z.infer<typeof EngravingSchema>;
@@ -283,6 +323,10 @@ export const KnotSchema = z.object({
   weave: z.string().optional(),
   /** Tempo in BPM — accepted but unused in v1 */
   tempo: z.number().positive().optional(),
+  /** Metric pulse grammar specification for knot */
+  pulse: PulseSchema.optional(),
+  /** Metric grammar / time signature specification for knot (alias for pulse) */
+  meter: MeterSchema.optional(),
   /** Engraving configuration and visual presentation settings */
   engraving: EngravingSchema.optional(),
 
@@ -313,11 +357,22 @@ export const KnotSchema = z.object({
   noteheadOutline: z.boolean().optional(),
   harmonyStaffStyle: z.enum(['standard', 'coil', 'both']).optional(),
   showHarmonyCoil: z.boolean().optional(),
+  showPulseCoil: z.boolean().optional(),
   showTraditionalHarmony: z.boolean().optional(),
   showMelody: z.boolean().optional(),
   showMelodyCoilAbsolute: z.boolean().optional(),
   showMelodyCoilInterval: z.boolean().optional(),
   showRhythmCoil: z.boolean().optional(),
+  showMetricCoil: z.boolean().optional(),
+  showTimeSignature: z.boolean().optional(),
+  timeSignature: z.string().optional(),
+  showPulseSignature: z.boolean().optional(),
+  pulseSignature: z.string().optional(),
+  gridSymbols: z.union([z.boolean(), z.enum(['all', 'no-do', 'off'])]).optional(),
+  excludeGridDoSymbol: z.boolean().optional(),
+  gridSymbolExcludeDo: z.boolean().optional(),
+  strongBeatGridWeight: z.boolean().optional(),
+  gridBeatWeights: z.boolean().optional(),
   zoom: z.number().positive().optional(),
   indent: z.number().nonnegative().optional(),
   showRhythmGrid: z.boolean().optional(),
@@ -473,8 +528,10 @@ export interface Coil {
   concat?: ConcatEntry[];
   /** Rhythm layer: micro Solfège rhythm tokens array, macro metric block-length label, or coil reference */
   rhythm?: RhythmLayer;
-  /** Metric block-length label: macro time grouping (e.g. "DoLa", "DoSo") */
-  meter?: RhythmLabelType;
+  /** Metric pulse grammar specification for this coil */
+  pulse?: Pulse;
+  /** Alias for pulse */
+  meter?: Pulse;
   /** Melody layer: flat array, structured voice object, coil reference, or polyphonic array of voices */
   melody?: MelodyLayer;
   /** Harmony layer: flat array, structured harmony object, or coil reference */
@@ -507,8 +564,10 @@ export const CoilSchema: z.ZodType<Coil> = z.lazy(() =>
     concat: z.array(ConcatEntrySchema).min(1).optional(),
     /** Rhythm layer: either micro Solfège rhythm tokens array, macro metric block-length label, or coil ref */
     rhythm: RhythmLayerSchema.optional(),
-    /** Metric block-length label: macro time grouping (e.g. "DoLa", "DoSo") */
-    meter: RhythmLabel.optional(),
+    /** Metric pulse grammar specification for this coil */
+    pulse: PulseSchema.optional(),
+    /** Alias for pulse */
+    meter: PulseSchema.optional(),
     /** Melody layer: flat array, structured voice object, coil ref, or polyphonic array of voices */
     melody: MelodyLayerSchema.optional(),
     /** Harmony layer: flat array, structured harmony object, or coil ref */
@@ -538,6 +597,10 @@ export interface Weave {
   coils?: Record<string, Coil | { coil: Coil }> | Array<Coil | { coil: Coil }>;
   /** Default coil ID or inline Coil providing fallback layers for child coils */
   defaultCoil?: string | Coil;
+  /** Metric pulse grammar specification for this weave */
+  pulse?: Pulse;
+  /** Alias for pulse */
+  meter?: Pulse;
   /** Ordered list of child coils and/or child weaves */
   children: WeaveChild[];
   /** Optional harmony voicing style override for this weave */
@@ -585,6 +648,10 @@ export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
     coils: z.record(z.string(), CoilSchema.or(z.object({ coil: CoilSchema }))).or(z.array(CoilSchema.or(z.object({ coil: CoilSchema })))).optional(),
     /** Default coil ID or inline Coil providing fallback layers for child coils */
     defaultCoil: z.string().or(CoilSchema).optional(),
+    /** Metric pulse grammar specification for this weave */
+    pulse: PulseSchema.optional(),
+    /** Alias for pulse */
+    meter: PulseSchema.optional(),
     /** Ordered list of child coils and/or child weaves */
     children: z.array(WeaveChildSchema).min(1),
     /** Optional harmony voicing style override for this weave */

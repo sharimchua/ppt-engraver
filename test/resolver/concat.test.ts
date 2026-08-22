@@ -129,11 +129,11 @@ tapestry:
       expect(onsets[i].tag).toBe(`ppt_song_verse_phrase_${i + 1}`);
     }
 
-    // Verify boundary collapse between _verse1 and _verse2 (onset index 5 is Dox at beat 3)
+    // Verify boundary collapse between _verse1 and _verse2 (onset index 5 is boundary rest at beat 3)
     expect(onsets[4].scaleDegree).toBe('Me'); // end of _verse1 melody
-    expect(onsets[5].isRest).toBe(true);      // collapsed Dox boundary rest
-    expect(onsets[5].rhythmToken).toBe('Dox');
-    expect(onsets[5].duration).toBe('16');
+    expect(onsets[5].isRest).toBe(true);      // collapsed boundary rest
+    expect(onsets[5].rhythmToken).toBe('Do');
+    expect(onsets[5].duration).toBe('4');
     expect(onsets[7].scaleDegree).toBe('Me'); // audible melody note in _verse2
     expect(onsets[8].scaleDegree).toBe('Fa'); // interval Re relative to Me -> Fa
   });

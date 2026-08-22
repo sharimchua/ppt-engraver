@@ -114,4 +114,33 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
   - Supports metric phase shifting (`phaseOffset`) and automatic harmonic downbeat alignment via `calculateHarmonyPhaseOffset` to ensure pickup notes land on offbeat subdivisions while chord changes align with macro downbeats.
   - Evaluates rhythmic grammar complexity (counts of `Dox` delays, compound subdivision suffixes, and sub-beat offbeats) to recommend the optimal beat period length minimizing `Dox` prefixes and complex suffixes.
 
+---
+
+## Metric Grammar Engine & Pulse Timelines (`resolveMetricGrammar`, `resolveMetricPulseTimeline`)
+
+- **Macro Metric Shape / Pulse Layer**:
+  - Parallels traditional time signatures by defining macro rhythmic pulse shapes and cadential blocks.
+  - Defined exclusively using Solfège cadential chains or Solfège token arrays (e.g. `pulse: [Dox, Re, So]` or `pulse: "DoLa"`).
+  - **Single Cadential Blocks**:
+    - $N=1$: `Dox` (1 beat)
+    - $N=2$ (`DoSo`): `Dox – So` (Circle $\to$ Half Circle Right)
+    - $N=3$ (`DoRe`): `Dox – Re – So` (Circle $\to$ Square $\to$ Half Circle Right)
+    - $N=4$ (`DoLa`): `Dox – La – Re – So` (Circle $\to$ Triangle Up $\to$ Square $\to$ Half Circle Right)
+    - $N=5$ (`DoMi`): `Dox – Mi – La – Re – So`
+    - $N=6$ (`DoSi`): `Dox – Si – Mi – La – Re – So`
+    - $N=7$ (`DoFi`): `Dox – Fi – Si – Mi – La – Re – So`
+    - $N=8$ (`DoRa`): `Dox – Ra – Fi – Si – Mi – La – Re – So`
+  - **Compound Metric Chains**:
+    - `DoLaDiLa` (4/4 compound): `Dox` (primary) – `La` (weak) – `Dix` (secondary) – `So` (weak)
+    - `DoReDiRe` (6/8 compound): `Dox` (primary) – `Re` (weak) – `So` (weak) – `Dix` (secondary) – `Re` (weak) – `So` (weak)
+    - `DoReDiSo` (5/8, $3+2$): `Dox` – `Re` – `So` – `Dix` – `So`
+    - `DoSoDiRe` (5/8, $2+3$): `Dox` – `So` – `Dix` – `Re` – `So`
+  - **Pulse Phase Continuation & Pickup Alignment**:
+    - Initial non-full coils align to the tail beats of the pulse definition as pick-up measures.
+    - Consecutive coils continue the pulse phase seamlessly.
+    - Explicit mid-score pulse overrides reset downbeat tracking to `Dox` at the change point.
+  - **Geometric Shape Mappings (`solfegeToGlyphShape`)**:
+    - `Do` $\to$ `circle`, `Fi` / `Dix` $\to$ `cross`, `Re` $\to$ `square`, `Me` / `Le` $\to$ `triangleDown`, `Mi` / `La` $\to$ `triangleUp`, `So` $\to$ `halfCircleRight`, `Fa` $\to$ `halfCircleLeft`, `Te` / `Ti` $\to$ `diamond`.
+
+
 

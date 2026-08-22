@@ -66,6 +66,8 @@ export interface ResolvedOnset {
   sourceCoilId?: string;
   /** Provenance: 1-based onset index within the underlying sub-coil */
   sourceOnsetIndex?: number;
+  /** Provenance: 1-based melody array position (excludes Dox beat-skip tokens) — for click navigation to melody source */
+  melodyOnsetIndex?: number;
   /** Provenance: coil where melody was defined (local or inherited parent) */
   melodySourceCoil?: string;
   /** Provenance: coil where rhythm was defined (local or inherited parent) */
@@ -516,6 +518,7 @@ function resolveVoiceOnsets(
         duration: ro.lilypondDuration,
         sourceCoilId: coilId,
         sourceOnsetIndex: k + 1,
+        melodyOnsetIndex: isRest ? undefined : melodyIndex, // melodyIndex already incremented above for non-rest
         melodySourceCoil: resolvedLayers.melodySourceCoil || coilId,
         rhythmSourceCoil: resolvedLayers.rhythmSourceCoil || coilId,
         harmonySourceCoil: resolvedLayers.harmonySourceCoil || coilId,
@@ -1171,7 +1174,7 @@ function resolveHarmony(
     melodyRhythmOnsets &&
     melodyRhythmOnsets.length > 0
   ) {
-    const expandedRhythm = expandRhythmEntries(harmonyRhythm, expanded.length, false);
+    const expandedRhythm = expandRhythmEntries(harmonyRhythm, expanded.length);
     const harmonyTimeline = resolveRhythmTimeline(expandedRhythm);
 
     // Map non-Dox trigger events to chord tokens

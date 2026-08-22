@@ -278,7 +278,7 @@ describe('resolveCoil', () => {
       expect(onsets[3].chordRoot).toBe('So');
     });
 
-    it('inserts an initial rest onset when the first rhythm token is delayed (e.g. DoxDo)', () => {
+    it('preserves compound delayed rhythm token (e.g. DoxDo) directly on first melody onset', () => {
       const coil: Coil = {
         id: 'test',
         rhythm: ['DoxDo', 'Fi', 'Do', 1],
@@ -286,29 +286,26 @@ describe('resolveCoil', () => {
         harmony: ['So', 3],
       };
       const { onsets } = resolveCoil(coil, knotC4);
-      // 1 initial rest (1 beat from Dox) + 2 melody notes + 2 trailing rests = 5 onsets
-      expect(onsets).toHaveLength(5);
-      // Initial Dox at beat 0.0 of 1.0 beat duration aligned on downbeat grid line
-      expect(onsets[0].isRest).toBe(true);
-      expect(onsets[0].durationBeats).toBe(1.0);
-      expect(onsets[0].duration).toBe('4');
-      expect(onsets[0].rhythmToken).toBe('Dox');
+      // 2 melody notes + 2 trailing rests = 4 onsets
+      expect(onsets).toHaveLength(4);
 
-      // First melody note starts at beat 1.0 with Do rhythm token
-      expect(onsets[1].isRest).toBe(false);
-      expect(onsets[1].scaleDegree).toBe('Re');
-      expect(onsets[1].rhythmToken).toBe('Do');
-      expect(onsets[1].durationBeats).toBe(0.5);
-      expect(onsets[1].duration).toBe('8');
+      // First melody note starts at beat 1.0 with DoxDo rhythm token
+      expect(onsets[0].isRest).toBe(false);
+      expect(onsets[0].scaleDegree).toBe('Re');
+      expect(onsets[0].rhythmToken).toBe('DoxDo');
+      expect(onsets[0].startBeat).toBe(1.0);
+      expect(onsets[0].durationBeats).toBe(0.5);
+      expect(onsets[0].duration).toBe('8');
 
       // Second melody note at beat 1.5
-      expect(onsets[2].isRest).toBe(false);
-      expect(onsets[2].scaleDegree).toBe('Mi');
-      expect(onsets[2].rhythmToken).toBe('Fi');
+      expect(onsets[1].isRest).toBe(false);
+      expect(onsets[1].scaleDegree).toBe('Mi');
+      expect(onsets[1].rhythmToken).toBe('Fi');
+      expect(onsets[1].startBeat).toBe(1.5);
 
       // Trailing rests
+      expect(onsets[2].isRest).toBe(true);
       expect(onsets[3].isRest).toBe(true);
-      expect(onsets[4].isRest).toBe(true);
     });
   });
 

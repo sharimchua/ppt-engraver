@@ -113,6 +113,12 @@ export function resolveWeave(
         weaveLibrary.set(childWeaveId, childWeave);
       }
 
+      const effectiveWeavePulse = weave.pulse ?? weave.meter ?? knot.pulse ?? knot.meter;
+      if (childWeave.pulse === undefined && childWeave.meter === undefined && effectiveWeavePulse !== undefined) {
+        childWeave.pulse = effectiveWeavePulse;
+        childWeave.meter = effectiveWeavePulse;
+      }
+
       const childResult = resolveWeave(
         childWeave,
         knot,
@@ -145,7 +151,12 @@ export function resolveWeave(
         }
       }
 
-        // Cascade weave-level projection overrides to child coil if not set on coil
+        // Cascade weave/knot-level pulse and projection overrides to child coil if not set on coil
+        const effectiveCoilPulse = coil.pulse ?? coil.meter ?? weave.pulse ?? weave.meter ?? knot.pulse ?? knot.meter;
+        if (coil.pulse === undefined && coil.meter === undefined && effectiveCoilPulse !== undefined) {
+          coil.pulse = effectiveCoilPulse;
+          coil.meter = effectiveCoilPulse;
+        }
         if (coil.harmonyVoicing === undefined && weave.harmonyVoicing !== undefined) {
           coil.harmonyVoicing = weave.harmonyVoicing;
         }
@@ -203,10 +214,13 @@ export function resolveWeave(
             duration: onset.duration,
             sourceCoilId: onset.sourceCoilId || coilId,
             sourceOnsetIndex: onset.sourceOnsetIndex || onsetIndex,
+            melodyOnsetIndex: onset.melodyOnsetIndex,
             melodySourceCoil: onset.melodySourceCoil || coilId,
             rhythmSourceCoil: onset.rhythmSourceCoil || coilId,
             harmonySourceCoil: onset.harmonySourceCoil || coilId,
             melodyAugmentationNotes: onset.melodyAugmentationNotes ? [...onset.melodyAugmentationNotes] : undefined,
+            pulse: effectiveCoilPulse,
+            meter: effectiveCoilPulse,
           });
         }
       } else {

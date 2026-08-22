@@ -170,5 +170,18 @@ describe('resolveWeave', () => {
     const { onsets } = resolveWeave(parentWeave, knotC4);
     expect(onsets[0].chordRoot).toBe('So');
   });
+
+  it('cascades meter from Weave to child coils without explicit meter', () => {
+    const weave: Weave = {
+      id: 'song',
+      meter: 'DoLa',
+      children: [
+        { coil: { id: 'motif', melody: ['Do', 'Mi', 'So', 'Mi'] } },
+      ],
+    };
+    const { onsets } = resolveWeave(weave, knotC4);
+    expect(onsets).toHaveLength(4);
+  });
 });
+
 

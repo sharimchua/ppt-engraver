@@ -131,6 +131,11 @@ export function resolveTapestry(tapestry: Tapestry, selectedKnotId?: string): Re
     );
   }
   
+  if (!knot.pulse && !knot.meter && (rootWeave.pulse || rootWeave.meter)) {
+    knot.pulse = rootWeave.pulse ?? rootWeave.meter;
+    knot.meter = knot.pulse;
+  }
+
   // 5. Resolve Weave hierarchy
   const { onsets, warnings: weaveWarnings } = resolveWeave(
     rootWeave,

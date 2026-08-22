@@ -115,7 +115,6 @@ export function parseRhythmToken(token: string): ParsedRhythmToken {
 export function expandRhythmEntries(
   entries: Array<string | number>,
   targetCount?: number,
-  splitCompoundDox: boolean = true,
 ): string[] {
   const result: string[] = [];
 
@@ -138,16 +137,7 @@ export function expandRhythmEntries(
     } else {
       const tokens = String(entry).trim().split(/\s+/).filter(Boolean);
       for (const token of tokens) {
-        if (splitCompoundDox) {
-          let t = token;
-          while (t.startsWith('Dox') && t.length > 3) {
-            result.push('Dox');
-            t = t.slice(3);
-          }
-          result.push(t);
-        } else {
-          result.push(token);
-        }
+        result.push(token);
       }
     }
   }
@@ -563,3 +553,289 @@ export function suggestOptimalRhythmicPeriod(tokens: string[]): OptimalRhythmicP
   };
 }
 
+export type BeatWeight = 'primary' | 'secondary' | 'weak';
+export type GlyphShape =
+  | 'circle'
+  | 'square'
+  | 'triangleDown'
+  | 'triangleUp'
+  | 'cross'
+  | 'diamond'
+  | 'halfCircleLeft'
+  | 'halfCircleRight';
+
+export interface MetricPulseOnset {
+  beatIndex: number;
+  startBeat: number;
+  durationBeats: number;
+  syllable: string;
+  weight: BeatWeight;
+  shape: GlyphShape;
+  lilypondDuration?: string;
+}
+
+export interface ResolvedMetricGrammar {
+  label: string;
+  totalBeats: number;
+  pulses: MetricPulseOnset[];
+  timeSignature: string;
+}
+
+/**
+ * Maps a Solfège syllable to its PPT geometric notehead shape.
+ */
+export function solfegeToGlyphShape(syllable: string): GlyphShape {
+  const clean = syllable.replace(/x/g, '').replace(/[\^_]/g, '');
+  switch (clean) {
+    case 'Do':
+      return 'circle';
+    case 'Ra':
+    case 'Di':
+      return 'cross';
+    case 'Re':
+      return 'square';
+    case 'Me':
+    case 'Ri':
+      return 'triangleDown';
+    case 'Mi':
+      return 'triangleUp';
+    case 'Fa':
+    case 'Se':
+      return 'halfCircleLeft';
+    case 'Fi':
+      return 'cross';
+    case 'So':
+    case 'Si':
+      return 'halfCircleRight';
+    case 'Le':
+      return 'triangleDown';
+    case 'La':
+    case 'Li':
+      return 'triangleUp';
+    case 'Te':
+    case 'Ti':
+      return 'diamond';
+    default:
+      return 'circle';
+  }
+}
+
+/**
+ * Metric Grammar Cadential Chain single block definitions.
+ */
+const SINGLE_BLOCK_DEFINITIONS: Record<string, { pulses: string[]; timeSig: string }> = {
+  Dox: { pulses: ['Dox'], timeSig: '1/4' },
+  DoSo: { pulses: ['Dox', 'So'], timeSig: '2/4' },
+  DoRe: { pulses: ['Dox', 'Re', 'So'], timeSig: '3/4' },
+  DoLa: { pulses: ['Dox', 'La', 'Re', 'So'], timeSig: '4/4' },
+  DoMi: { pulses: ['Dox', 'Mi', 'La', 'Re', 'So'], timeSig: '5/4' },
+  DoSi: { pulses: ['Dox', 'Si', 'Mi', 'La', 'Re', 'So'], timeSig: '6/8' },
+  DoFi: { pulses: ['Dox', 'Fi', 'Si', 'Mi', 'La', 'Re', 'So'], timeSig: '7/4' },
+  DoRa: { pulses: ['Dox', 'Ra', 'Fi', 'Si', 'Mi', 'La', 'Re', 'So'], timeSig: '8/4' },
+};
+
+/**
+ * Resolves a high-level metric grammar specification into an explicit beat pulse pattern.
+ * Supports Solfège cadential chains (e.g. "DoLa", "DoRe", "DoLaDiLa", "DoReDiRe") or arrays (e.g. ["Dox", "Re", "So"]).
+ */
+export function resolveMetricGrammar(
+  pulseSpec: string | string[] | undefined,
+): ResolvedMetricGrammar {
+  if (!pulseSpec) {
+    pulseSpec = 'DoLa';
+  }
+
+  // If passed as array of pulse token strings: e.g. ["Dox", "Re", "So"] or ["Do", "Re", "So"]
+  if (Array.isArray(pulseSpec)) {
+    const rawTokens = pulseSpec;
+    const pulses: MetricPulseOnset[] = rawTokens.map((tok, idx) => {
+      const isPrimary = tok.startsWith('Do') || tok.startsWith('Dox') || idx === 0;
+      const isSecondary = tok.startsWith('Di') || tok.startsWith('Dix');
+      const weight: BeatWeight = isPrimary ? 'primary' : isSecondary ? 'secondary' : 'weak';
+      const formattedSyllable = idx === 0 && !tok.includes('x') ? `${tok}x` : tok;
+      return {
+        beatIndex: idx,
+        startBeat: idx,
+        durationBeats: 1.0,
+        syllable: formattedSyllable,
+        weight,
+        shape: solfegeToGlyphShape(tok),
+        lilypondDuration: '4',
+      };
+    });
+    return {
+      label: rawTokens.join(' '),
+      totalBeats: pulses.length,
+      pulses,
+      timeSignature: `${pulses.length}/4`,
+    };
+  }
+
+  const spec = pulseSpec.trim();
+
+  // 1. Check exact single block
+  if (SINGLE_BLOCK_DEFINITIONS[spec]) {
+    const def = SINGLE_BLOCK_DEFINITIONS[spec];
+    const pulses: MetricPulseOnset[] = def.pulses.map((tok, idx) => ({
+      beatIndex: idx,
+      startBeat: idx,
+      durationBeats: 1.0,
+      syllable: tok,
+      weight: idx === 0 ? 'primary' : 'weak',
+      shape: solfegeToGlyphShape(tok),
+      lilypondDuration: '4',
+    }));
+    return {
+      label: spec,
+      totalBeats: pulses.length,
+      pulses,
+      timeSignature: def.timeSig,
+    };
+  }
+
+  // 2. Compound metric chains
+  if (spec === 'DoLaDiLa' || spec === 'DoSoDiSo') {
+    const tokens = spec === 'DoLaDiLa'
+      ? ['Dox', 'La', 'Dix', 'So']
+      : ['Dox', 'So', 'Dix', 'So'];
+    const pulses: MetricPulseOnset[] = tokens.map((tok, idx) => ({
+      beatIndex: idx,
+      startBeat: idx,
+      durationBeats: 1.0,
+      syllable: tok,
+      weight: idx === 0 ? 'primary' : idx === 2 ? 'secondary' : 'weak',
+      shape: solfegeToGlyphShape(tok),
+      lilypondDuration: '4',
+    }));
+    return {
+      label: spec,
+      totalBeats: tokens.length,
+      pulses,
+      timeSignature: '4/4',
+    };
+  }
+
+  if (spec === 'DoReDiRe') {
+    const tokens = ['Dox', 'Re', 'So', 'Dix', 'Re', 'So'];
+    const pulses: MetricPulseOnset[] = tokens.map((tok, idx) => ({
+      beatIndex: idx,
+      startBeat: idx,
+      durationBeats: 1.0,
+      syllable: tok,
+      weight: idx === 0 ? 'primary' : idx === 3 ? 'secondary' : 'weak',
+      shape: solfegeToGlyphShape(tok),
+      lilypondDuration: '4',
+    }));
+    return {
+      label: spec,
+      totalBeats: tokens.length,
+      pulses,
+      timeSignature: '6/8',
+    };
+  }
+
+  if (spec === 'DoReDiSo') {
+    const tokens = ['Dox', 'Re', 'So', 'Dix', 'So'];
+    const pulses: MetricPulseOnset[] = tokens.map((tok, idx) => ({
+      beatIndex: idx,
+      startBeat: idx,
+      durationBeats: 1.0,
+      syllable: tok,
+      weight: idx === 0 ? 'primary' : idx === 3 ? 'secondary' : 'weak',
+      shape: solfegeToGlyphShape(tok),
+      lilypondDuration: '4',
+    }));
+    return {
+      label: spec,
+      totalBeats: 5,
+      pulses,
+      timeSignature: '5/4',
+    };
+  }
+
+  if (spec === 'DoSoDiRe') {
+    const tokens = ['Dox', 'So', 'Dix', 'Re', 'So'];
+    const pulses: MetricPulseOnset[] = tokens.map((tok, idx) => ({
+      beatIndex: idx,
+      startBeat: idx,
+      durationBeats: 1.0,
+      syllable: tok,
+      weight: idx === 0 ? 'primary' : idx === 2 ? 'secondary' : 'weak',
+      shape: solfegeToGlyphShape(tok),
+      lilypondDuration: '4',
+    }));
+    return {
+      label: spec,
+      totalBeats: 5,
+      pulses,
+      timeSignature: '5/4',
+    };
+  }
+
+  // 3. Fallback: space-separated tokens e.g. "Dox La Re So"
+  const tokens = spec.split(/\s+/).filter(Boolean);
+  if (tokens.length > 0) {
+    const pulses: MetricPulseOnset[] = tokens.map((tok, idx) => {
+      const isPrimary = tok.startsWith('Do') || tok.startsWith('Dox') || idx === 0;
+      const isSecondary = tok.startsWith('Di') || tok.startsWith('Dix');
+      const weight: BeatWeight = isPrimary ? 'primary' : isSecondary ? 'secondary' : 'weak';
+      const formattedSyllable = idx === 0 && !tok.includes('x') ? `${tok}x` : tok;
+      return {
+        beatIndex: idx,
+        startBeat: idx,
+        durationBeats: 1.0,
+        syllable: formattedSyllable,
+        weight,
+        shape: solfegeToGlyphShape(tok),
+        lilypondDuration: '4',
+      };
+    });
+    return {
+      label: spec,
+      totalBeats: pulses.length,
+      pulses,
+      timeSignature: `${pulses.length}/4`,
+    };
+  }
+
+  return resolveMetricGrammar('DoLa');
+}
+
+export const resolvePulseGrammar = resolveMetricGrammar;
+
+/**
+ * Tiled sequence of metric pulse onsets across a phrase/coil of totalBeats duration,
+ * with support for startPhaseOffset (for pickup measures / continuous pulse alignment).
+ */
+export function resolveMetricPulseTimeline(
+  pulseSpec: string | string[] | undefined,
+  totalBeats: number,
+  startPhaseOffset: number = 0,
+): MetricPulseOnset[] {
+  const grammar = resolveMetricGrammar(pulseSpec);
+  if (grammar.pulses.length === 0 || totalBeats <= 0) return [];
+
+  const result: MetricPulseOnset[] = [];
+  const barBeats = grammar.totalBeats;
+
+  let currentBeat = 0;
+  while (currentBeat < totalBeats - 1e-4) {
+    const beatInMeasure = Math.floor((currentBeat + startPhaseOffset) + 1e-5) % barBeats;
+    const pulse = grammar.pulses[beatInMeasure] ?? grammar.pulses[0];
+    const remainingCoilBeats = totalBeats - currentBeat;
+    const dur = Math.min(pulse.durationBeats, remainingCoilBeats);
+
+    result.push({
+      beatIndex: result.length,
+      startBeat: currentBeat,
+      durationBeats: dur,
+      syllable: pulse.syllable,
+      weight: pulse.weight,
+      shape: pulse.shape,
+      lilypondDuration: beatsToLilyPondDuration(dur),
+    });
+    currentBeat += dur;
+  }
+
+  return result;
+}

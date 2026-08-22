@@ -212,6 +212,26 @@ export interface ResolvedKnot {
   showMelodyCoilInterval?: boolean;
   /** Whether to show the Rhythm Coil row layer (displays Solfège rhythm tokens / glyphs) */
   showRhythmCoil?: boolean;
+  /** Whether to show the Pulse / Metric Coil row layer (displays Solfège metric pulse glyphs with 'P' clef) */
+  showPulseCoil?: boolean;
+  /** Whether to show the time signature on the traditional notation staff */
+  showTimeSignature?: boolean;
+  /** Custom time signature or metric grammar label override (e.g. "4/4", "3/4", "6/8") */
+  timeSignature?: string;
+  /** Whether to show the PPT pulse signature in the score header next to key anchor */
+  showPulseSignature?: boolean;
+  /** Custom pulse signature label override for the score header (e.g. "DoLa", "DoRe", "[Dox, Re, So]") */
+  pulseSignature?: string;
+  /** Metric pulse grammar specification for knot */
+  pulse?: string | string[];
+  /** Alias for pulse */
+  meter?: string | string[];
+  /** Whether to annotate rhythm grid lines with geometric Solfège notehead symbols */
+  gridSymbols?: boolean | 'all' | 'no-do' | 'off';
+  /** Whether to exclude circle symbol on Do/downbeats when annotating rhythm grid */
+  excludeGridDoSymbol?: boolean;
+  /** Whether to draw heavier / darker grid lines on strong beats (Do/Dix) */
+  strongBeatGridWeight?: boolean;
   /** Global zoom / staff size scaling factor (e.g. 1.2 for +20%, 0.8 for -20%) or absolute pt size (e.g. 24) */
   zoom?: number;
   /** First-line indentation in mm (default: 0 for flush alignment) */

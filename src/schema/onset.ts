@@ -48,6 +48,8 @@ export const OnsetSchema = z.object({
   sourceCoilId: z.string().optional(),
   /** Provenance: 1-based onset index within the underlying sub-coil */
   sourceOnsetIndex: z.number().int().positive().optional(),
+  /** Provenance: 1-based melody array position (excludes Dox beat-skip tokens) — used for click navigation to melody source */
+  melodyOnsetIndex: z.number().int().positive().optional(),
   /** Provenance: coil where melody was defined (local or inherited parent) */
   melodySourceCoil: z.string().optional(),
   /** Provenance: coil where rhythm was defined (local or inherited parent) */
@@ -64,6 +66,10 @@ export const OnsetSchema = z.object({
   ).optional(),
   /** Optional projected chord MIDI notes according to the active harmonyVoicing */
   projectedChordMidi: z.array(z.number().int()).optional(),
+  /** Metric pulse grammar specification active for this onset */
+  pulse: z.union([z.string(), z.array(z.string())]).optional(),
+  /** Alias for pulse */
+  meter: z.union([z.string(), z.array(z.string())]).optional(),
 });
 
 /**

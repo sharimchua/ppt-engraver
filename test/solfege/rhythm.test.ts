@@ -4,6 +4,8 @@ import {
   expandRhythmEntries,
   beatsToLilyPondDuration,
   resolveRhythmTimeline,
+  resolveMetricGrammar,
+  resolveMetricPulseTimeline,
 } from '../../src/solfege/rhythm.js';
 
 describe('Solfège Rhythmic Grammar', () => {
@@ -181,27 +183,112 @@ describe('Solfège Rhythmic Grammar', () => {
       expect(timeline[3].durationBeats).toBeCloseTo(1.0);
     });
 
-    it('expands compound Dox tokens into individual downbeat onsets', () => {
+    it('preserves compound Dox tokens like DoxDoxDo as single onsets with beat skips', () => {
       const expanded = expandRhythmEntries(['Do', 'Fi', 'Do', 'DoxDoxDo', 'Fi', 'Do']);
-      expect(expanded).toEqual(['Do', 'Fi', 'Do', 'Dox', 'Dox', 'Do', 'Fi', 'Do']);
-    });
-
-    it('resolves DoxDoxDo with single beat increments on each Dox without doubling', () => {
-      const expanded = expandRhythmEntries(['Do', 'Fi', 'Do', 'DoxDoxDo', 'Fi', 'Do']);
+      expect(expanded).toEqual(['Do', 'Fi', 'Do', 'DoxDoxDo', 'Fi', 'Do']);
       const timeline = resolveRhythmTimeline(expanded);
-      expect(timeline).toHaveLength(8);
+      expect(timeline).toHaveLength(6);
       expect(timeline[0].startBeat).toBeCloseTo(0.0); // Do
       expect(timeline[1].startBeat).toBeCloseTo(0.5); // Fi
       expect(timeline[2].startBeat).toBeCloseTo(1.0); // Do
-      expect(timeline[3].startBeat).toBeCloseTo(2.0); // Dox
-      expect(timeline[4].startBeat).toBeCloseTo(3.0); // Dox
-      expect(timeline[5].startBeat).toBeCloseTo(4.0); // Do
-      expect(timeline[6].startBeat).toBeCloseTo(4.5); // Fi
-      expect(timeline[7].startBeat).toBeCloseTo(5.0); // Do
+      expect(timeline[3].startBeat).toBeCloseTo(4.0); // DoxDoxDo (skip 2 downbeats)
+      expect(timeline[4].startBeat).toBeCloseTo(4.5); // Fi
+      expect(timeline[5].startBeat).toBeCloseTo(5.0); // Do
+    });
 
-      // Each Dox is exactly 1.0 beat (quarter note)
-      expect(timeline[3].durationBeats).toBeCloseTo(1.0);
-      expect(timeline[4].durationBeats).toBeCloseTo(1.0);
+    it('expands standalone Dox with repeat specifier [Dox, 3, Do, Fi]', () => {
+      const expanded = expandRhythmEntries(['Dox', 3, 'Do', 'Fi']);
+      expect(expanded).toEqual(['Dox', 'Dox', 'Dox', 'Dox', 'Do', 'Fi']);
+      const timeline = resolveRhythmTimeline(expanded);
+      expect(timeline).toHaveLength(6);
+      expect(timeline[0].startBeat).toBeCloseTo(0.0);
+      expect(timeline[0].durationBeats).toBeCloseTo(1.0);
+      expect(timeline[1].startBeat).toBeCloseTo(1.0);
+      expect(timeline[2].startBeat).toBeCloseTo(2.0);
+      expect(timeline[3].startBeat).toBeCloseTo(3.0);
+      expect(timeline[4].startBeat).toBeCloseTo(4.0); // Do
+      expect(timeline[4].durationBeats).toBeCloseTo(0.5);
+      expect(timeline[5].startBeat).toBeCloseTo(4.5); // Fi
+    });
+  });
+
+  describe('Metric Grammar Engine', () => {
+    it('resolves standard single cadential blocks (DoSo, DoRe, DoLa, DoMi, DoSi, DoFi, DoRa)', () => {
+      const doSo = resolveMetricGrammar('DoSo');
+      expect(doSo.totalBeats).toBe(2);
+      expect(doSo.pulses.map(p => p.syllable)).toEqual(['Dox', 'So']);
+      expect(doSo.pulses[0].weight).toBe('primary');
+      expect(doSo.pulses[0].shape).toBe('circle');
+      expect(doSo.pulses[1].weight).toBe('weak');
+      expect(doSo.timeSignature).toBe('2/4');
+
+      const doRe = resolveMetricGrammar('DoRe');
+      expect(doRe.totalBeats).toBe(3);
+      expect(doRe.pulses.map(p => p.syllable)).toEqual(['Dox', 'Re', 'So']);
+      expect(doRe.pulses[1].shape).toBe('square');
+      expect(doRe.timeSignature).toBe('3/4');
+
+      const doLa = resolveMetricGrammar('DoLa');
+      expect(doLa.totalBeats).toBe(4);
+      expect(doLa.pulses.map(p => p.syllable)).toEqual(['Dox', 'La', 'Re', 'So']);
+      expect(doLa.pulses[1].shape).toBe('triangleUp');
+      expect(doLa.timeSignature).toBe('4/4');
+
+      const doMi = resolveMetricGrammar('DoMi');
+      expect(doMi.totalBeats).toBe(5);
+      expect(doMi.pulses.map(p => p.syllable)).toEqual(['Dox', 'Mi', 'La', 'Re', 'So']);
+      expect(doMi.timeSignature).toBe('5/4');
+
+      const doFi = resolveMetricGrammar('DoFi');
+      expect(doFi.totalBeats).toBe(7);
+      expect(doFi.pulses.map(p => p.syllable)).toEqual(['Dox', 'Fi', 'Si', 'Mi', 'La', 'Re', 'So']);
+      expect(doFi.pulses[1].shape).toBe('cross');
+      expect(doFi.timeSignature).toBe('7/4');
+    });
+
+    it('resolves compound metric chains (DoLaDiLa, DoReDiRe, DoReDiSo, DoSoDiRe)', () => {
+      const doLaDiLa = resolveMetricGrammar('DoLaDiLa');
+      expect(doLaDiLa.totalBeats).toBe(4);
+      expect(doLaDiLa.pulses.map(p => p.syllable)).toEqual(['Dox', 'La', 'Dix', 'So']);
+      expect(doLaDiLa.pulses[0].weight).toBe('primary');
+      expect(doLaDiLa.pulses[2].weight).toBe('secondary');
+      expect(doLaDiLa.pulses[2].shape).toBe('cross');
+      expect(doLaDiLa.timeSignature).toBe('4/4');
+
+      const doReDiRe = resolveMetricGrammar('DoReDiRe');
+      expect(doReDiRe.totalBeats).toBe(6);
+      expect(doReDiRe.pulses.map(p => p.syllable)).toEqual(['Dox', 'Re', 'So', 'Dix', 'Re', 'So']);
+      expect(doReDiRe.pulses[0].weight).toBe('primary');
+      expect(doReDiRe.pulses[3].weight).toBe('secondary');
+      expect(doReDiRe.timeSignature).toBe('6/8');
+
+      const doReDiSo = resolveMetricGrammar('DoReDiSo');
+      expect(doReDiSo.totalBeats).toBe(5);
+      expect(doReDiSo.pulses.map(p => p.syllable)).toEqual(['Dox', 'Re', 'So', 'Dix', 'So']);
+      expect(doReDiSo.pulses[3].weight).toBe('secondary');
+      expect(doReDiSo.timeSignature).toBe('5/4');
+    });
+
+    it('resolves explicit Solfege array pulses ([Dox, Re, So])', () => {
+      const arrayPulse = resolveMetricGrammar(['Dox', 'Re', 'So']);
+      expect(arrayPulse.totalBeats).toBe(3);
+      expect(arrayPulse.pulses.map(p => p.syllable)).toEqual(['Dox', 'Re', 'So']);
+      expect(arrayPulse.pulses[0].weight).toBe('primary');
+      expect(arrayPulse.pulses[1].shape).toBe('square');
+    });
+
+    it('tiles metric pulse timelines across requested total beats and handles pickup phase offset', () => {
+      const pulses = resolveMetricPulseTimeline('DoLa', 8);
+      expect(pulses).toHaveLength(8);
+      expect(pulses[0].syllable).toBe('Dox');
+      expect(pulses[0].startBeat).toBe(0);
+      expect(pulses[4].syllable).toBe('Dox');
+      expect(pulses[4].startBeat).toBe(4);
+
+      // Pickup test: 1 beat pickup in 3-beat pulse (DoRe -> phase offset 2)
+      const pickupPulses = resolveMetricPulseTimeline('DoRe', 1, 2);
+      expect(pickupPulses).toHaveLength(1);
+      expect(pickupPulses[0].syllable).toBe('So');
     });
   });
 });

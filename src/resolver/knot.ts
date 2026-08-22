@@ -258,27 +258,51 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
   let showMelodyCoilInterval = eng.showMelodyCoilInterval ?? knotDef.showMelodyCoilInterval;
   let showMelodyCoilAbsolute = eng.showMelodyCoilAbsolute ?? knotDef.showMelodyCoilAbsolute;
   let showRhythmCoil = eng.showRhythmCoil ?? knotDef.showRhythmCoil;
+  let showPulseCoil =
+    eng.showPulseCoil ??
+    eng.showMetricCoil ??
+    knotDef.showPulseCoil ??
+    knotDef.showMetricCoil;
   let showHarmonyCoil = eng.showHarmonyCoil ?? knotDef.showHarmonyCoil;
   let showTraditionalHarmony = eng.showTraditionalHarmony ?? knotDef.showTraditionalHarmony;
   let showRhythmGrid = eng.showRhythmGrid ?? knotDef.showRhythmGrid;
   let showChordNames: boolean | undefined = undefined;
+
+  let showPulseSignature = eng.showPulseSignature ?? knotDef.showPulseSignature;
+  let pulseSignature = eng.pulseSignature ?? knotDef.pulseSignature;
+  let showTimeSignature = eng.showTimeSignature ?? knotDef.showTimeSignature;
+  let timeSignature = eng.timeSignature ?? knotDef.timeSignature;
+  let gridSymbols = eng.gridSymbols ?? knotDef.gridSymbols;
 
   if (eng.show && Array.isArray(eng.show)) {
     showMelody = eng.show.includes('melody');
     showMelodyCoilInterval = eng.show.includes('melodyCoilInterval');
     showMelodyCoilAbsolute = eng.show.includes('melodyCoilAbsolute');
     showRhythmCoil = eng.show.includes('rhythmCoil');
+    showPulseCoil = eng.show.includes('pulseCoil');
     showHarmonyCoil = eng.show.includes('harmonyCoil');
-    showTraditionalHarmony = eng.show.includes('harmony') || eng.show.includes('traditionalHarmony');
+    showTraditionalHarmony =
+      eng.show.includes('harmony') ||
+      eng.show.includes('traditionalHarmony') ||
+      eng.show.includes('harmonyStaff');
     showRhythmGrid = eng.show.includes('rhythmGrid');
     showChordNames = eng.show.includes('chordNames');
+    if (eng.show.includes('gridSymbols') && gridSymbols === undefined) {
+      gridSymbols = true;
+    }
+    if (eng.show.includes('timeSignature') && showTimeSignature === undefined) {
+      showTimeSignature = true;
+    }
+    if (eng.show.includes('pulseSignature') && showPulseSignature === undefined) {
+      showPulseSignature = true;
+    }
   }
 
   const title = eng.title ?? knotDef.title;
   const subtitle = eng.subtitle ?? knotDef.subtitle;
-  const composer = eng.composer ?? knotDef.composer ?? eng.artist ?? knotDef.artist ?? eng.author ?? knotDef.author;
+  const composer = eng.composer ?? knotDef.composer ?? (knotDef as any).artist ?? (knotDef as any).author;
   const arranger = eng.arranger ?? knotDef.arranger;
-  const poet = eng.poet ?? knotDef.poet ?? eng.lyricist ?? knotDef.lyricist;
+  const poet = eng.poet ?? knotDef.poet ?? (knotDef as any).lyricist;
   const copyright = eng.copyright ?? knotDef.copyright;
   const tagline = eng.tagline ?? knotDef.tagline;
 
@@ -304,6 +328,18 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
   let harmonyVoicing = eng.harmonyVoicing ?? knotDef.harmonyVoicing;
   let melodyAugmentation = eng.melodyAugmentation ?? knotDef.melodyAugmentation;
   let melodyAugmentationDisplay = eng.melodyAugmentationDisplay ?? knotDef.melodyAugmentationDisplay;
+  const pulse = eng.pulse ?? knotDef.pulse ?? eng.meter ?? knotDef.meter;
+  const meter = pulse;
+  const excludeGridDoSymbol =
+    eng.excludeGridDoSymbol ??
+    eng.gridSymbolExcludeDo ??
+    knotDef.excludeGridDoSymbol ??
+    knotDef.gridSymbolExcludeDo;
+  const strongBeatGridWeight =
+    eng.strongBeatGridWeight ??
+    eng.gridBeatWeights ??
+    knotDef.strongBeatGridWeight ??
+    knotDef.gridBeatWeights;
 
   // Apply Projection Presets defaults if not explicitly configured
   if (projection === 'chordMelody') {
@@ -373,6 +409,16 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
       showMelodyCoilAbsolute,
       showMelodyCoilInterval,
       showRhythmCoil,
+      showPulseCoil,
+      showTimeSignature,
+      timeSignature,
+      showPulseSignature,
+      pulseSignature,
+      pulse,
+      meter,
+      gridSymbols,
+      excludeGridDoSymbol,
+      strongBeatGridWeight,
       showChordNames,
       zoom,
       indent,

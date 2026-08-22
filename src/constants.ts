@@ -28,10 +28,18 @@ export const UNSUPPORTED_LAYOUT_MODES = ['equal-period', 'equal-beat', 'custom-m
  * Source: PPT Uniform Solfège spec, Rhythmic Grammar section.
  */
 export const RHYTHM_BLOCK_LENGTHS: Record<string, number> = {
+  Dox: 1,
   DoSo: 2,
   DoRe: 3,
   DoLa: 4,
   DoMi: 5,
   DoSi: 6,
   DoFi: 7,
+  DoRa: 8,
+  // Compound cadential chains:
+  DoSoDiSo: 4,
+  DoLaDiLa: 8,
+  DoReDiRe: 6,
+  DoReDiSo: 5,
+  DoSoDiRe: 5,
 } as const;
