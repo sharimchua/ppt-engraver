@@ -904,6 +904,21 @@ export function calculateTonicShift(
   };
 }
 
+export const BASE_OCTAVE_SYLLABLES: Record<number, string> = {
+  [-5]: 'So',
+  [-4]: 'Le',
+  [-3]: 'La',
+  [-2]: 'Te',
+  [-1]: 'Ti',
+  0: 'Do',
+  1: 'Ra',
+  2: 'Re',
+  3: 'Me',
+  4: 'Mi',
+  5: 'Fa',
+  6: 'Fi',
+};
+
 /**
  * Transposes a single solfège pitch token by a given semitone offset.
  * Preserves axis marker ('x') and octave displacement ('^' / '_').
@@ -948,22 +963,7 @@ export function transposeSolfegeToken(token: string, semitones: number): string 
   const base = ((newTotal + 5) % 12 + 12) % 12 - 5;
   const newOct = Math.round((newTotal - base) / 12);
 
-  const BASE_SYLLABLES: Record<number, string> = {
-    [-5]: 'So',
-    [-4]: 'Le',
-    [-3]: 'La',
-    [-2]: 'Te',
-    [-1]: 'Ti',
-    0: 'Do',
-    1: 'Ra',
-    2: 'Re',
-    3: 'Me',
-    4: 'Mi',
-    5: 'Fa',
-    6: 'Fi',
-  };
-
-  const newBaseSyllable = BASE_SYLLABLES[base] || 'Do';
+  const newBaseSyllable = BASE_OCTAVE_SYLLABLES[base] || 'Do';
   let result = newBaseSyllable;
   if (hasAxis) {
     result += 'x';
@@ -1029,3 +1029,161 @@ export function transposeHarmonyToken(token: string, semitones: number): string 
     return token;
   }
 }
+
+export interface ParsedMelodyToken {
+  isRest?: boolean;
+  isRepeat?: boolean;
+  isUnknown?: boolean;
+  repeatCount?: number;
+  windowSize?: number;
+  syllable?: string;
+  hasAxis?: boolean;
+  octaveShift?: number;
+  baseSemitone?: number;
+  raw: string;
+}
+
+/**
+ * Parses a melody token with support for rests, repeat lookbacks, axis markers, and octave shifts.
+ */
+export function parseMelodyToken(token: string): ParsedMelodyToken {
+  const clean = token.trim().replace(/^['"]|['"]$/g, '');
+  if (!clean || clean === 'R' || clean === '~') {
+    return { isRest: true, raw: clean };
+  }
+
+  const repeat = parseRepeatSpec(clean);
+  if (repeat !== null) {
+    return {
+      isRepeat: true,
+      repeatCount: repeat.repeatCount,
+      windowSize: repeat.windowSize,
+      raw: clean,
+    };
+  }
+
+  const m = clean.match(/^([a-zA-Z]+?)(x)?([\^_]*)(x)?$/);
+  if (!m) {
+    return { isUnknown: true, raw: clean };
+  }
+
+  let syllable = m[1];
+  let hasAxis = Boolean(m[2] || m[4]);
+  if (syllable.length > 2 && syllable.toLowerCase().endsWith('x') && !m[2] && !m[4]) {
+    syllable = syllable.slice(0, -1);
+    hasAxis = true;
+  }
+
+  const octStr = m[3] || '';
+  let octaveShift = 0;
+  for (const ch of octStr) {
+    if (ch === '^') octaveShift++;
+    else if (ch === '_') octaveShift--;
+  }
+
+  let baseSemitone: number | undefined;
+  try {
+    baseSemitone = solfegeToNearestAddress(syllable);
+  } catch {
+    return { isUnknown: true, raw: clean };
+  }
+
+  return {
+    syllable,
+    hasAxis,
+    octaveShift,
+    baseSemitone,
+    raw: clean,
+  };
+}
+
+/**
+ * Converts a signed semitone offset from Do into a canonical PPT Solfège token.
+ * Base octave runs from So (-5) to Fi (+6).
+ */
+export function semitonesToSolfege(semitones: number): string {
+  const base = ((semitones + 5) % 12 + 12) % 12 - 5;
+  const oct = Math.round((semitones - base) / 12);
+  const baseName = BASE_OCTAVE_SYLLABLES[base] || 'Do';
+
+  if (oct > 0) {
+    return baseName + '^'.repeat(oct);
+  } else if (oct < 0) {
+    return baseName + '_'.repeat(-oct);
+  }
+  return baseName;
+}
+
+/**
+ * Converts a melody token list authored in Interval mode (anchor notehead with axis 'x' + relative intervals)
+ * into absolute chromatic scale degrees.
+ */
+export function convertIntervalToAbsoluteMelody(tokenList: string[]): string[] {
+  if (!tokenList || tokenList.length === 0) return tokenList;
+
+  const result: string[] = [];
+  let currentOffset = 0;
+  let hasAnchor = false;
+
+  for (let i = 0; i < tokenList.length; i++) {
+    const rawTok = tokenList[i].trim();
+    if (!rawTok) continue;
+
+    const parsed = parseMelodyToken(rawTok);
+    if (parsed.isRest || parsed.isRepeat || parsed.isUnknown || parsed.baseSemitone === undefined) {
+      result.push(rawTok);
+      continue;
+    }
+
+    if (!hasAnchor) {
+      currentOffset = parsed.baseSemitone + (parsed.octaveShift! * 12);
+      result.push(semitonesToSolfege(currentOffset));
+      hasAnchor = true;
+    } else {
+      const interval = parsed.baseSemitone + (parsed.octaveShift! * 12);
+      currentOffset += interval;
+      result.push(semitonesToSolfege(currentOffset));
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Converts a melody token list authored in Absolute mode (chromatic scale degrees relative to Do)
+ * into Interval mode (anchor notehead with axis 'x' + relative intervals).
+ */
+export function convertAbsoluteToIntervalMelody(tokenList: string[]): string[] {
+  if (!tokenList || tokenList.length === 0) return tokenList;
+
+  const result: string[] = [];
+  let prevOffset: number | null = null;
+
+  for (let i = 0; i < tokenList.length; i++) {
+    const rawTok = tokenList[i].trim();
+    if (!rawTok) continue;
+
+    const parsed = parseMelodyToken(rawTok);
+    if (parsed.isRest || parsed.isRepeat || parsed.isUnknown || parsed.baseSemitone === undefined) {
+      result.push(rawTok);
+      continue;
+    }
+
+    const currentOffset = parsed.baseSemitone + (parsed.octaveShift! * 12);
+
+    if (prevOffset === null) {
+      const absName = semitonesToSolfege(currentOffset);
+      const withAxis = absName.replace(/^([a-zA-Z]+)([\^_]*)$/, '$1x$2');
+      result.push(withAxis);
+      prevOffset = currentOffset;
+    } else {
+      const diff = currentOffset - prevOffset;
+      const intervalTok = semitonesToSolfege(diff);
+      result.push(intervalTok);
+      prevOffset = currentOffset;
+    }
+  }
+
+  return result;
+}
+

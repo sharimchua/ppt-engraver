@@ -54,6 +54,13 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
   - Takes an integer semitone difference `(targetMidi - anchorMidi) mod 12`.
   - Maps `0` $\to$ `Do`, `1` $\to$ `Ra`, `2` $\to$ `Re`, `3` $\to$ `Me`, `4` $\to$ `Mi`, `5` $\to$ `Fa`, `6` $\to$ `Fi`, `7` $\to$ `So`, `8` $\to$ `Le`, `9` $\to$ `La`, `10` $\to$ `Te`, `11` $\to$ `Ti`.
   - In `melodyCoilInterval`, the first onset is the anchor formatted with axis (e.g. `Dox`), followed by relative interval tokens.
+- **Base Octave Semitone Mapping (`BASE_OCTAVE_SYLLABLES`)**:
+  - Maps signed semitone coordinates in $[-5, +6]$ centered on Do (0): `{-5: 'So', -4: 'Le', -3: 'La', -2: 'Te', -1: 'Ti', 0: 'Do', 1: 'Ra', 2: 'Re', 3: 'Me', 4: 'Mi', 5: 'Fa', 6: 'Fi'}`.
+- **Dual Melody Mode Conversions (`pitch.ts`)**:
+  - `parseMelodyToken(token)`: Parses rests (`R`), repeats (`2.2`), octave modifiers (`^`, `_`), and axis markers (`x`).
+  - `semitonesToSolfege(semitones)`: Converts signed semitone offsets from Do into canonical Solfège tokens with octave shifts.
+  - `convertIntervalToAbsoluteMelody(tokenList)`: Converts an Interval mode token list into chromatic scale degrees relative to Do.
+  - `convertAbsoluteToIntervalMelody(tokenList)`: Converts an Absolute mode scale degree list into an Interval mode sequence anchored on the first pitch with axis `x`.
 
 ---
 

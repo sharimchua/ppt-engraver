@@ -1,8 +1,44 @@
-# PPT Studio Frontend Web Client (`studio/public/`)
+The `studio/public/` directory contains the client-side single-page application for PPT Studio (`index.html`, `style.css`, and modular ES modules under `js/`).
 
-## Purpose & Scope
+### Modular Architecture (`js/`)
 
-The `studio/public/` directory contains the client-side single-page application for PPT Studio (`index.html`, `app.js`, `style.css`).
+- **`js/state.js`**: Centralized reactive state store, preferences persistence (`localStorage`), and event bus (`events`).
+- **`js/api.js`**: Typed asynchronous client for PPT Studio backend REST endpoints (`/api/compile`, `/api/scores`, `/api/score`, `/api/save`, `/api/delete`, `/api/rename`, `/api/snippets`, `/api/config`, `/api/export-pdf`).
+- **`js/core/`**:
+  - `solfege.js`: 12-chromatic Solfège degree definitions, canonical colors, and whole-token validators.
+  - `pitch.js`: Semitone intervals, transposition math, and Dual Melody mode conversions (Interval $\leftrightarrow$ Absolute).
+  - `rhythm.js`: PPT rhythm timeline resolution, lookback repeats, downbeat phase detection, and grammar optimization.
+  - `glyphs.js`: SVG Solfège glyph generator (geometric rotations, axis anchors, octave triangles).
+  - `ast-scanner.js`: Fast YAML structural scanner, enclosing coil/weave detectors, and LilyPond provenance tag resolvers.
+- **`js/editor/`**:
+  - `editor.js`: CodeMirror initialization, lifecycle, addons, and folding.
+  - `solfege-mode.js`: Syntax highlighting overlay for Solfège degrees and sky-cyan ID references.
+  - `shortcuts.js`: Keyboard navigation, chromatic Solfège transposition, property sibling reordering, and block duplication.
+  - `autocomplete.js`: Contextual autocomplete provider and dynamic YAML snippet hints.
+  - `definition.js`: Go-to-Definition (`Ctrl+Click` / `F12`) and ID hover highlights.
+  - `solfege-strip.js`: Text-aligned floating line preview widget with Dual Melody rows.
+  - `paired-highlights.js`: Synchronized token highlight markers across paired music layers.
+- **`js/preview/`**:
+  - `pdf-viewer.js`: Mozilla PDF.js multi-page renderer and Point-and-Click link overlays.
+  - `svg-viewer.js`: SVG sheet music renderer with Point-and-Click bindings.
+  - `score-highlighter.js`: Real-time bidirectional notehead halo highlighting.
+  - `loupe.js`: Circular magnifying glass canvas tool.
+  - `diagnostics.js`: Diagnostics onset table and LilyPond source code viewer.
+  - `preview.js`: Preview tab switcher, loading cards, and viewport coordinator.
+- **`js/modals/`**:
+  - `modal-manager.js`: Generic refactor form dialog controller.
+  - `command-palette.js`: Fuzzy searchable Command Palette (`Ctrl+Shift+P`) and Symbol Palette (`Ctrl+G`).
+  - `tapestry-modals.js`: Create, Delete, Rename Tapestry dialogs and unsaved changes safety guard.
+  - `tonic-modal.js`: Non-destructive Tonic & Mode Pitch Transposition dialog.
+  - `rhythm-modal.js`: Rhythmic Period Transposition & Grammar Optimizer dialog.
+  - `refactor-dialogs.js`: Structural refactorings (Extract Parent, Extract Inline, Inline Parent, Extract Weave, Rename Symbol).
+  - `settings-modal.js`: Studio settings and preferences modal.
+- **`js/ui/`**:
+  - `toolbar.js`: Top header bar, score picker, and knot projection dropdowns.
+  - `split-pane.js`: Draggable split pane gutter with size persistence.
+  - `zoom-controls.js`: Zoom in/out/fit/reset controls.
+  - `notifications.js`: Status badges, save indicators, and error banners.
+- **`js/main.js`**: Application bootstrap entry point wiring all components and event channels.
 
 ---
 
