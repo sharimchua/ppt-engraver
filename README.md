@@ -295,13 +295,55 @@ Suffix syllables recursively subdivide the remaining duration between the curren
 - **`LeFi`**: Starts at $Le = 8/12 = 2/3$. Suffix $Fi$ ($1/2$) subdivides the remaining $1/3$, producing $2/3 + 1/6 = 5/6$ (sextuplet offset).
 - **`MeFi`**: Starts at $Me = 3/12 = 1/4$. Suffix $Fi$ ($1/2$) subdivides the remaining $3/4$, producing $1/4 + 3/8 = 5/8$.
 
-### 3. Downbeat Skips and Delays (`Dox` Prefix)
-The `Dox` prefix acts as a downbeat delay or rest:
-- **`Dox`** (alone): Represents a 1-beat downbeat rest.
-- **`DoxDo`**: Delays the onset by 1 full beat, landing on the next downbeat ($+1.0$).
-- **`DoxFi`**: Delays by 1 beat and places the note on the 8th-note offbeat ($+1.5$).
-- **`DoxMe`**: Delays by 1 beat and places the note on the 16th-note subdivision ($+1.25$).
-- **`DoxDoxDo`**: Delays the onset by 2 full beats.
+### 3. Downbeat Skips, Delays, and Standalone Rest Padding (`Dox`)
+- **`Dox` (standalone token)**: Represents a full-beat downbeat rest (1.0 beat) that occupies rhythmic timeline space without consuming notes from the melody or harmony arrays. Can be repeated via repeat multipliers:
+  ```yaml
+  rhythm: [Dox, 3, Do, Fi] # 4 beats of downbeat rest padding, followed by 8th notes on beat 5
+  ```
+- **`Dox` Prefix**: Delays an onset by one or more downbeats before sounding:
+  - `DoxDo`: 1 downbeat skip + on the beat (lands on beat 2).
+  - `DoxFi`: 1 downbeat skip + 8th offbeat (lands at beat 1.5).
+  - `DoxDoxDo`: 2 downbeat skips (lands on beat 3).
+
+---
+
+## Metric Grammar & Pulse Layer (`pulse`, `showPulseCoil`, `timeSignature`)
+
+While `coil.rhythm` defines micro-rhythmic onsets, **Metric Grammar** defines the macro rhythmic pulse and cadential shapes (analogous to traditional time signatures). Metric grammar is declared using the `pulse` property at Knot, Weave, and Coil levels:
+
+### 1. Solfège Metric Cadential Chains & Token Arrays
+
+Metric grammar is specified exclusively via Solfège cadential chains or Solfège token arrays:
+- **Single Cadential Blocks**:
+  - $N=1$: `Dox`
+  - $N=2$ (`DoSo`): `Dox – So`
+  - $N=3$ (`DoRe`): `Dox – Re – So`
+  - $N=4$ (`DoLa`): `Dox – La – Re – So`
+  - $N=5$ (`DoMi`): `Dox – Mi – La – Re – So`
+  - $N=6$ (`DoSi`): `Dox – Si – Mi – La – Re – So`
+  - $N=7$ (`DoFi`): `Dox – Fi – Si – Mi – La – Re – So`
+  - $N=8$ (`DoRa`): `Dox – Ra – Fi – Si – Mi – La – Re – So`
+- **Compound Metric Chains**:
+  - `DoLaDiLa` (4/4 compound): `Dox` (primary) – `La` (weak) – `Dix` (secondary) – `So` (weak)
+  - `DoReDiRe` (6/8 compound): `Dox` (primary) – `Re` (weak) – `So` (weak) – `Dix` (secondary) – `Re` (weak) – `So` (weak)
+  - `DoReDiSo` (5/8, $3+2$): `Dox` – `Re` – `So` – `Dix` – `So`
+  - `DoSoDiRe` (5/8, $2+3$): `Dox` – `So` – `Dix` – `Re` – `So`
+- **Explicit Array Definitions**:
+  - `pulse: [Dox, Re, So]` or `pulse: [Dox, Mi, La, Re, So]`
+- **Pickup Measure Alignment & Mid-Score Pulse Changes**:
+  - Any initial coils that do not match the full extent of the pulse definition are automatically treated as pick-up measures aligning to the tail beats of the pulse pattern.
+  - Consecutive coils continue the pulse phase seamlessly.
+  - Mid-score pulse changes reset downbeat tracking to `Dox` at the point of change.
+
+### 2. Pulse Layer (`P` Clef / `showPulseCoil`)
+The Pulse layer renders the macro metric pulses across the timeline on a dedicated row-band staff with `P` clef.
+
+### 3. Rhythm Grid Weights & Geometric Symbol Annotations
+- **Traditional Time Signature on Staff (`showTimeSignature: true` / `timeSignature` / `show: [timeSignature]`)**: Emits standard `\time <sig>` (e.g. `\time 4/4` or `\time 3/4`) on the traditional notation staves (`melodyVoice`, `harmonyVoice`).
+- **PPT Pulse Signature in Header (`showPulseSignature: true` / `pulseSignature` / `show: [pulseSignature]`)**: Displays the PPT metric pulse chain declaration next to the key anchor (`[Do Glyph] = C  •  DoLa`).
+- **Strong Beat Weighting (`strongBeatGridWeight: true`)**: Uses a subtly darker dashed gridline (`gray65`) on primary (`Do`/`Dox`) and secondary (`Di`/`Dix`) beats, while weak beats use lighter dashed lines (`gray85`). Same style and thickness as regular grid lines — just slightly darker for visual distinction without being distracting.
+- **Geometric Symbol Annotations (`gridSymbols: true | 'no-do' | 'all'`)**: Annotates onset columns with light chromatic geometric PPT notehead shapes (Circle for `Do`, Cross for `Fi`, Triangles for `Me`/`La`/`Mi`/`Le`, Squares/Diamonds for `Re`/`Te`, etc.) positioned at the top and bottom of the coil system (or in the inter-staff gap if coils are hidden), horizontally centered directly over each note onset.
+- **Exclude Do Circle (`excludeGridDoSymbol: true` / `gridSymbols: 'no-do'`)**: Suppresses the circle symbol on `Do` downbeats since the solid vertical grid line already marks the downbeat.
 
 ### 4. Timeline Resolution & Automatic Beat Advancement
 The timeline engine automatically advances beats when:
