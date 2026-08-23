@@ -118,8 +118,8 @@ describe('TapestrySchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects empty melody array', () => {
-    const bad = {
+  it('accepts empty melody array in schema (falls back to other layers or empty error at resolver)', () => {
+    const emptyMelody = {
       tapestry: {
         weave: {
           id: 'test',
@@ -130,8 +130,8 @@ describe('TapestrySchema', () => {
         },
       },
     };
-    const result = TapestrySchema.safeParse(bad);
-    expect(result.success).toBe(false);
+    const result = TapestrySchema.safeParse(emptyMelody);
+    expect(result.success).toBe(true);
   });
 
   it('rejects empty children array', () => {
@@ -331,6 +331,57 @@ describe('TapestrySchema', () => {
                   { melody: ['Mi', 'Fa'] },
                   'another_named',
                 ],
+              },
+            },
+          ],
+        },
+      },
+    };
+    const result = TapestrySchema.safeParse(tap);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts coils defined with harmony only (no melody)', () => {
+    const tap = {
+      tapestry: {
+        weave: {
+          id: 'harm_only_weave',
+          children: [
+            { coil: { id: 'c1', harmony: ['Do', 'Fa', 'So', 'Do'] } },
+          ],
+        },
+      },
+    };
+    const result = TapestrySchema.safeParse(tap);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts coils defined with rhythm only (no melody)', () => {
+    const tap = {
+      tapestry: {
+        weave: {
+          id: 'rhythm_only_weave',
+          children: [
+            { coil: { id: 'c2', rhythm: ['Do', 'Fi', 'Do', 'Fi'] } },
+          ],
+        },
+      },
+    };
+    const result = TapestrySchema.safeParse(tap);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts coils defined with rhythm and harmony (no melody)', () => {
+    const tap = {
+      tapestry: {
+        weave: {
+          id: 'rhythm_harmony_weave',
+          children: [
+            {
+              coil: {
+                id: 'c3',
+                rhythm: ['Do', 'Fi', 'Do', 'Fi'],
+                harmony: ['Do', 'Fa'],
               },
             },
           ],

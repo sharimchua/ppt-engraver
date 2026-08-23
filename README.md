@@ -269,6 +269,45 @@ melody:
 
 ---
 
+## Flexible Layer Composition & Default Expansions
+
+You can start composing from any primary layer (**Melody**, **Harmony**, or **Rhythm**). Unspecified layers are automatically expanded:
+
+| Starting Layer(s) | Melody Resolution | Harmony Resolution | Rhythm Resolution |
+| :--- | :--- | :--- | :--- |
+| **Melody only** | Explicit pitch sequence | Defaults to tonic (`['Do']`) | 1 downbeat beat per onset (quarter note) |
+| **Melody + Rhythm** | Mapped to non-rest rhythm onsets | Defaults to tonic (`['Do']`) | Defined rhythm timeline |
+| **Melody + Harmony** | Explicit pitch sequence | Stretched or indexed across melody | 1 downbeat beat per onset |
+| **Harmony only** | Root of each harmony chord | Explicit chord progression | Strong downbeat lasting the pulse cycle (e.g. 4 beats for `DoLa`, 3 for `DoRe`), or harmony's own `rhythm` |
+| **Rhythm only** | Root of harmony (`Do`) across non-rest onsets | Defaults to tonic (`['Do']`) | Defined rhythm timeline |
+| **Rhythm + Harmony (No Melody)** | Root of the active harmony chord at each rhythm onset timestamp | Aligned to pulse cycle (e.g. every 4 beats for `DoLa`) or harmony's own `rhythm` | Defined rhythm timeline (acts as the strumming pattern) |
+
+### Examples
+
+#### 1. Harmony-Only Progression (Defaults to Pulse Cycle Whole Notes)
+```yaml
+coils:
+  intro_chords:
+    harmony: [Do, Fa, So, Do] # Each chord lasts 4 beats (under default DoLa pulse)
+```
+
+#### 2. Rhythm-Only Pattern (Defaults to Tonic Melody & Harmony)
+```yaml
+coils:
+  clapping_rhythm:
+    rhythm: [Do, Fi, Dox, Do] # Melody is Do on active onsets
+```
+
+#### 3. Rhythm + Harmony (Strumming Pattern with Chord Changes)
+```yaml
+coils:
+  guitar_strum:
+    rhythm: [Do, Fi, 7.2] # 16 eighth notes (8 beats total)
+    harmony: [Do, Fa]     # Do for beats 0..4, Fa for beats 4..8; melody plays chord roots
+```
+
+---
+
 ## Rhythmic Grammar Layer (`coil.rhythm`)
 
 PPT features a **cyclic Solfège rhythmic grammar** that subdivides beats (where 1 beat = quarter note = 1.0) into 12 equal chromatic sub-beat divisions and fractional micro-rhythms:

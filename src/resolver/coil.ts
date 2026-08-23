@@ -35,6 +35,7 @@ import {
   expandRhythmEntries,
   resolveRhythmTimeline,
   beatsToLilyPondDuration,
+  resolveMetricGrammar,
   type ResolvedRhythmOnset,
 } from '../solfege/rhythm.js';
 import { generateChordVoicing } from '../solfege/voicings.js';
@@ -87,7 +88,7 @@ export interface CoilResolutionResult {
 export interface NormalizedMelodyVoice {
   pitches: (string | number)[];
   rhythm?: RhythmLayer;
-  meter?: RhythmLabelType;
+  meter?: RhythmLabelType | string | string[];
   clef?: string;
   name?: string;
 }
@@ -96,7 +97,7 @@ export interface NormalizedMelodyVoice {
 export interface NormalizedHarmony {
   chords: (string | number)[];
   rhythm?: RhythmLayer;
-  meter?: RhythmLabelType;
+  meter?: RhythmLabelType | string | string[];
   harmonyOctave?: number;
 }
 
@@ -128,13 +129,25 @@ export function isHarmonyDefined(h: HarmonyLayer | undefined): boolean {
   return false;
 }
 
+/** Checks if a rhythm layer is defined and non-empty */
+export function isRhythmDefined(r: RhythmLayer | undefined): boolean {
+  if (!r) return false;
+  if (typeof r === 'string') return r.trim().length > 0;
+  if (Array.isArray(r)) return r.length > 0;
+  if (typeof r === 'object' && r !== null) {
+    if ('from' in r && typeof (r as any).from === 'string' && (r as any).from.trim().length > 0) return true;
+    if ('use' in r && typeof (r as any).use === 'string' && (r as any).use.trim().length > 0) return true;
+  }
+  return false;
+}
+
 /**
  * Normalizes any valid MelodyLayer representation into an array of NormalizedMelodyVoice objects.
  */
 export function normalizeMelodyLayer(
   rawMelody: MelodyLayer | undefined,
   defaultRhythm?: RhythmLayer,
-  defaultMeter?: RhythmLabelType,
+  defaultMeter?: RhythmLabelType | string | string[],
 ): NormalizedMelodyVoice[] {
   if (!rawMelody) return [];
 
@@ -207,7 +220,7 @@ export function normalizeMelodyLayer(
 export function normalizeHarmonyLayer(
   rawHarmony: HarmonyLayer | undefined,
   defaultRhythm?: RhythmLayer,
-  defaultMeter?: RhythmLabelType,
+  defaultMeter?: RhythmLabelType | string | string[],
   defaultOctave: number = 0,
 ): NormalizedHarmony {
   if (!rawHarmony) {
@@ -577,43 +590,278 @@ export function resolveCoil(
   // Resolve layers using inheritance rules
   const resolvedLayers = inheritCoilLayers(coil, coilLibrary, defaultCoil);
   
-  const normalizedVoices = normalizeMelodyLayer(
-    resolvedLayers.melody,
-    resolvedLayers.rhythm,
-    resolvedLayers.meter,
-  );
+  const hasMelody = isMelodyDefined(resolvedLayers.melody);
+  const hasHarmony = isHarmonyDefined(resolvedLayers.harmony);
+  const hasRhythm = isRhythmDefined(resolvedLayers.rhythm);
 
-  if (normalizedVoices.length === 0 || normalizedVoices.every(v => v.pitches.length === 0)) {
+  if (!hasMelody && !hasHarmony && !hasRhythm) {
     throw new Error(
-      `Coil "${coil.id}": melody layer is required (not defined locally, in parents, or in default coil)`
+      `Coil "${coil.id}": at least one layer (melody, harmony, or rhythm) must be defined (locally, in parents, or in default coil)`
     );
   }
-
-  const normalizedHarmony = normalizeHarmonyLayer(
-    resolvedLayers.harmony,
-    resolvedLayers.rhythm,
-    resolvedLayers.meter,
-    resolvedLayers.harmonyOctave ?? 0,
-  );
 
   const coilId = coil.id ?? 'anonymousCoil';
   const allOnsets: ResolvedOnset[] = [];
 
-  for (let v = 0; v < normalizedVoices.length; v++) {
-    const voiceOnsets = resolveVoiceOnsets(
-      normalizedVoices[v],
-      v + 1,
+  // Branch 1: Melody is explicitly defined
+  if (hasMelody) {
+    const normalizedVoices = normalizeMelodyLayer(
+      resolvedLayers.melody,
       resolvedLayers.rhythm,
-      resolvedLayers.meter,
-      normalizedHarmony,
-      resolvedLayers,
-      knot,
-      coilId,
-      warnings,
+      resolvedLayers.meter as RhythmLabelType | undefined,
     );
-    allOnsets.push(...voiceOnsets);
+
+    const normalizedHarmony = normalizeHarmonyLayer(
+      resolvedLayers.harmony,
+      resolvedLayers.rhythm,
+      resolvedLayers.meter as RhythmLabelType | undefined,
+      resolvedLayers.harmonyOctave ?? 0,
+    );
+
+    for (let v = 0; v < normalizedVoices.length; v++) {
+      const voiceOnsets = resolveVoiceOnsets(
+        normalizedVoices[v],
+        v + 1,
+        resolvedLayers.rhythm,
+        resolvedLayers.meter as RhythmLabelType | undefined,
+        normalizedHarmony,
+        resolvedLayers,
+        knot,
+        coilId,
+        warnings,
+      );
+      allOnsets.push(...voiceOnsets);
+    }
+    
+    return { onsets: allOnsets, warnings };
   }
-  
+
+  // Branch 2: Melody is NOT defined, starting from Rhythm and/or Harmony
+  const normalizedHarmony = normalizeHarmonyLayer(
+    resolvedLayers.harmony,
+    undefined,
+    resolvedLayers.meter as RhythmLabelType | undefined,
+    resolvedLayers.harmonyOctave ?? 0,
+  );
+  const { expanded: expandedChords } = expandHarmonyArray(normalizedHarmony.chords);
+  const activeVoicing = resolvedLayers.harmonyVoicing ?? knot.harmonyVoicing ?? 'close';
+  const activeAugmentation = resolvedLayers.melodyAugmentation ?? knot.melodyAugmentation ?? 'none';
+  const pulseSpec = (normalizedHarmony.meter as string | string[] | undefined) ?? (resolvedLayers.pulse as string | string[] | undefined) ?? (resolvedLayers.meter as string | string[] | undefined) ?? (coil.pulse ?? coil.meter) ?? knot.pulse ?? knot.meter ?? 'DoLa';
+  const pulseGrammar = resolveMetricGrammar(pulseSpec);
+  const pulseBeats = pulseGrammar.totalBeats;
+
+  // Sub-branch 2A: Rhythm is defined (Rhythm-only or Rhythm + Harmony)
+  if (hasRhythm) {
+    let rawEntries: (string | number)[];
+    if (typeof resolvedLayers.rhythm === 'string' && RHYTHM_BLOCK_LENGTHS[resolvedLayers.rhythm as RhythmLabelType] !== undefined) {
+      const count = RHYTHM_BLOCK_LENGTHS[resolvedLayers.rhythm as RhythmLabelType];
+      rawEntries = Array.from({ length: count }, () => 'Do');
+    } else {
+      rawEntries = Array.isArray(resolvedLayers.rhythm) ? resolvedLayers.rhythm : [resolvedLayers.rhythm as (string | number)];
+    }
+    const expandedRhythm = expandRhythmEntries(rawEntries);
+    const resolvedRhythmOnsets = resolveRhythmTimeline(expandedRhythm);
+
+    // Determine how harmony changes over the timeline
+    let getActiveChordToken: (startBeat: number) => string;
+
+    if (normalizedHarmony.rhythm && Array.isArray(normalizedHarmony.rhythm) && normalizedHarmony.rhythm.length > 0) {
+      const expandedHarmRhythm = expandRhythmEntries(normalizedHarmony.rhythm, expandedChords.length);
+      const harmTimeline = resolveRhythmTimeline(expandedHarmRhythm);
+      const chordEvents: Array<{ startBeat: number; chordToken: string }> = [];
+      let cIdx = 0;
+      for (const hOnset of harmTimeline) {
+        if (hOnset.token !== 'Dox' && cIdx < expandedChords.length) {
+          chordEvents.push({ startBeat: hOnset.startBeat, chordToken: expandedChords[cIdx] });
+          cIdx++;
+        }
+      }
+      if (chordEvents.length === 0 && expandedChords.length > 0) {
+        chordEvents.push({ startBeat: 0, chordToken: expandedChords[0] });
+      }
+      getActiveChordToken = (startBeat: number) => {
+        let active = chordEvents[0]?.chordToken ?? 'Do';
+        for (const ev of chordEvents) {
+          if (ev.startBeat <= startBeat + 1e-4) active = ev.chordToken;
+          else break;
+        }
+        return active;
+      };
+    } else {
+      getActiveChordToken = (startBeat: number) => {
+        const chordIndex = Math.min(Math.floor(startBeat / pulseBeats), expandedChords.length - 1);
+        return expandedChords[Math.max(0, chordIndex)] ?? 'Do';
+      };
+    }
+
+    let melodyIndex = 0;
+    for (let k = 0; k < resolvedRhythmOnsets.length; k++) {
+      const ro = resolvedRhythmOnsets[k];
+      const isRest = ro.token === 'Dox';
+      const activeChordToken = getActiveChordToken(ro.startBeat);
+      const parsedChord = parseHarmonyChord(activeChordToken);
+      const semitone = solfegeToHarmonyRootOffset(parsedChord.rootSyllable);
+      const rootMidi = knot.doMidi + semitone + ((normalizedHarmony.harmonyOctave ?? 0) * 12);
+      const chordTriad = generateChordVoicing(rootMidi, activeChordToken, {
+        voicing: activeVoicing,
+        knotDoMidi: knot.doMidi + ((normalizedHarmony.harmonyOctave ?? 0) * 12),
+      });
+
+      let melodyMidi = 0;
+      let scaleDegree = '';
+      let melodyOnsetIndex: number | undefined = undefined;
+
+      if (!isRest) {
+        melodyIndex++;
+        melodyOnsetIndex = melodyIndex;
+        const parsedRoot = parsePitch(parsedChord.rootSyllable);
+        melodyMidi = resolveAbsolutePitch(parsedRoot.syllable, parsedRoot.octaveShift, knot.doMidi);
+        scaleDegree = parsedRoot.syllable;
+      }
+
+      const augmentationNotes = (!isRest && melodyMidi && activeAugmentation !== 'none')
+        ? generateMelodyAugmentation(melodyMidi, activeChordToken, knot.doMidi, activeAugmentation)
+        : undefined;
+
+      allOnsets.push({
+        melodyMidi,
+        scaleDegree,
+        isRest,
+        chordMidi: chordTriad,
+        chordRoot: activeChordToken,
+        voiceIndex: 1,
+        rhythmToken: ro.token,
+        startBeat: ro.startBeat,
+        durationBeats: ro.durationBeats,
+        duration: ro.lilypondDuration,
+        sourceCoilId: coilId,
+        sourceOnsetIndex: k + 1,
+        melodyOnsetIndex,
+        melodySourceCoil: resolvedLayers.harmonySourceCoil || resolvedLayers.rhythmSourceCoil || coilId,
+        rhythmSourceCoil: resolvedLayers.rhythmSourceCoil || coilId,
+        harmonySourceCoil: resolvedLayers.harmonySourceCoil || coilId,
+        melodyAugmentationNotes: augmentationNotes,
+      });
+    }
+
+    return { onsets: allOnsets, warnings };
+  }
+
+  // Sub-branch 2B: Harmony only (no melody, no coil rhythm)
+  if (normalizedHarmony.rhythm && Array.isArray(normalizedHarmony.rhythm) && normalizedHarmony.rhythm.length > 0) {
+    const expandedHarmRhythm = expandRhythmEntries(normalizedHarmony.rhythm, expandedChords.length);
+    const harmTimeline = resolveRhythmTimeline(expandedHarmRhythm);
+    const chordEvents: Array<{ startBeat: number; chordToken: string }> = [];
+    let cIdx = 0;
+    for (const hOnset of harmTimeline) {
+      if (hOnset.token !== 'Dox' && cIdx < expandedChords.length) {
+        chordEvents.push({ startBeat: hOnset.startBeat, chordToken: expandedChords[cIdx] });
+        cIdx++;
+      }
+    }
+    if (chordEvents.length === 0 && expandedChords.length > 0) {
+      chordEvents.push({ startBeat: 0, chordToken: expandedChords[0] });
+    }
+
+    let melodyIndex = 0;
+    for (let k = 0; k < harmTimeline.length; k++) {
+      const ro = harmTimeline[k];
+      const isRest = ro.token === 'Dox';
+      let activeChordToken = chordEvents[0]?.chordToken ?? 'Do';
+      for (const ev of chordEvents) {
+        if (ev.startBeat <= ro.startBeat + 1e-4) activeChordToken = ev.chordToken;
+        else break;
+      }
+      const parsedChord = parseHarmonyChord(activeChordToken);
+      const semitone = solfegeToHarmonyRootOffset(parsedChord.rootSyllable);
+      const rootMidi = knot.doMidi + semitone + ((normalizedHarmony.harmonyOctave ?? 0) * 12);
+      const chordTriad = generateChordVoicing(rootMidi, activeChordToken, {
+        voicing: activeVoicing,
+        knotDoMidi: knot.doMidi + ((normalizedHarmony.harmonyOctave ?? 0) * 12),
+      });
+
+      let melodyMidi = 0;
+      let scaleDegree = '';
+      let melodyOnsetIndex: number | undefined = undefined;
+
+      if (!isRest) {
+        melodyIndex++;
+        melodyOnsetIndex = melodyIndex;
+        const parsedRoot = parsePitch(parsedChord.rootSyllable);
+        melodyMidi = resolveAbsolutePitch(parsedRoot.syllable, parsedRoot.octaveShift, knot.doMidi);
+        scaleDegree = parsedRoot.syllable;
+      }
+
+      const augmentationNotes = (!isRest && melodyMidi && activeAugmentation !== 'none')
+        ? generateMelodyAugmentation(melodyMidi, activeChordToken, knot.doMidi, activeAugmentation)
+        : undefined;
+
+      allOnsets.push({
+        melodyMidi,
+        scaleDegree,
+        isRest,
+        chordMidi: chordTriad,
+        chordRoot: activeChordToken,
+        voiceIndex: 1,
+        rhythmToken: ro.token,
+        startBeat: ro.startBeat,
+        durationBeats: ro.durationBeats,
+        duration: ro.lilypondDuration,
+        sourceCoilId: coilId,
+        sourceOnsetIndex: k + 1,
+        melodyOnsetIndex,
+        melodySourceCoil: resolvedLayers.harmonySourceCoil || coilId,
+        rhythmSourceCoil: resolvedLayers.harmonySourceCoil || coilId,
+        harmonySourceCoil: resolvedLayers.harmonySourceCoil || coilId,
+        melodyAugmentationNotes: augmentationNotes,
+      });
+    }
+
+    return { onsets: allOnsets, warnings };
+  }
+
+  // Pure harmony downbeats on the pulse cycle
+  const durationLily = beatsToLilyPondDuration(pulseBeats, true);
+  for (let i = 0; i < expandedChords.length; i++) {
+    const activeChordToken = expandedChords[i];
+    const parsedChord = parseHarmonyChord(activeChordToken);
+    const semitone = solfegeToHarmonyRootOffset(parsedChord.rootSyllable);
+    const rootMidi = knot.doMidi + semitone + ((normalizedHarmony.harmonyOctave ?? 0) * 12);
+    const chordTriad = generateChordVoicing(rootMidi, activeChordToken, {
+      voicing: activeVoicing,
+      knotDoMidi: knot.doMidi + ((normalizedHarmony.harmonyOctave ?? 0) * 12),
+    });
+
+    const parsedRoot = parsePitch(parsedChord.rootSyllable);
+    const melodyMidi = resolveAbsolutePitch(parsedRoot.syllable, parsedRoot.octaveShift, knot.doMidi);
+    const scaleDegree = parsedRoot.syllable;
+    const startBeat = i * pulseBeats;
+
+    const augmentationNotes = (activeAugmentation !== 'none')
+      ? generateMelodyAugmentation(melodyMidi, activeChordToken, knot.doMidi, activeAugmentation)
+      : undefined;
+
+    allOnsets.push({
+      melodyMidi,
+      scaleDegree,
+      isRest: false,
+      chordMidi: chordTriad,
+      chordRoot: activeChordToken,
+      voiceIndex: 1,
+      rhythmToken: undefined,
+      startBeat,
+      durationBeats: pulseBeats,
+      duration: durationLily,
+      sourceCoilId: coilId,
+      sourceOnsetIndex: i + 1,
+      melodyOnsetIndex: i + 1,
+      melodySourceCoil: resolvedLayers.harmonySourceCoil || coilId,
+      rhythmSourceCoil: resolvedLayers.harmonySourceCoil || coilId,
+      harmonySourceCoil: resolvedLayers.harmonySourceCoil || coilId,
+      melodyAugmentationNotes: augmentationNotes,
+    });
+  }
+
   return { onsets: allOnsets, warnings };
 }
 
@@ -621,7 +869,8 @@ interface ResolvedLayers {
   melody?: MelodyLayer;
   harmony?: HarmonyLayer;
   rhythm?: RhythmLayer;
-  meter?: RhythmLabelType;
+  meter?: RhythmLabelType | string | string[];
+  pulse?: string | string[];
   harmonyOctave?: number;
   harmonyVoicing?: 'close' | 'rootless' | 'rootFifth' | 'shell' | 'open' | 'smoothLead' | 'bassOnly' | 'walkingBass' | 'octaves';
   melodyAugmentation?: 'none' | 'thirdsBelow' | 'sixthsBelow' | 'triadClose' | 'drop2' | 'guideToneDyad' | 'octaves';
@@ -699,6 +948,10 @@ function extractLayerFromCoil(
       } else {
         extractedData = resolvedTarget.melody;
       }
+    } else if (resolvedTarget.harmony) {
+      // Cross-layer fallback: target coil has no explicit melody, extract harmony roots
+      const norm = normalizeHarmonyLayer(resolvedTarget.harmony);
+      extractedData = norm.chords.map(c => typeof c === 'string' ? parseHarmonyChord(c).rootSyllable : c);
     }
   } else if (sourceLayerType === 'rhythm') {
     extractedData = resolvedTarget.rhythm;
@@ -896,6 +1149,8 @@ function inheritCoilLayers(
   if (coil.melodyAugmentation !== undefined) result.melodyAugmentation = coil.melodyAugmentation;
   if (coil.melodyAugmentationDisplay !== undefined) result.melodyAugmentationDisplay = coil.melodyAugmentationDisplay;
   if (coil.projection !== undefined) result.projection = coil.projection;
+  if (coil.pulse !== undefined) result.pulse = coil.pulse;
+  if (coil.meter !== undefined) result.meter = coil.meter;
 
   // 2. Parents in priority order
   const parentIds: string[] = [];
@@ -924,6 +1179,12 @@ function inheritCoilLayers(
       if (!result.rhythm && parentLayers.rhythm) {
         result.rhythm = parentLayers.rhythm;
         result.rhythmSourceCoil = parentLayers.rhythmSourceCoil || parentId;
+      }
+      if (!result.pulse && parentLayers.pulse) {
+        result.pulse = parentLayers.pulse;
+      }
+      if (!result.meter && parentLayers.meter) {
+        result.meter = parentLayers.meter;
       }
       if (result.harmonyOctave === undefined && parentLayers.harmonyOctave !== undefined) {
         result.harmonyOctave = parentLayers.harmonyOctave;
@@ -956,6 +1217,12 @@ function inheritCoilLayers(
     if (!result.rhythm && defaultCoil.rhythm) {
       result.rhythm = defaultCoil.rhythm;
       result.rhythmSourceCoil = defaultCoil.id;
+    }
+    if (!result.pulse && defaultCoil.pulse) {
+      result.pulse = defaultCoil.pulse;
+    }
+    if (!result.meter && defaultCoil.meter) {
+      result.meter = defaultCoil.meter;
     }
     if (result.harmonyOctave === undefined && defaultCoil.harmonyOctave !== undefined) {
       result.harmonyOctave = defaultCoil.harmonyOctave;

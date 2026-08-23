@@ -427,4 +427,185 @@ describe('resolveCoil', () => {
       expect(onsets[6].chordRoot).toBe('Do');
     });
   });
+
+  describe('default layer expansions (composing from any layer)', () => {
+    it('resolves harmony-only coil with default 4-beat pulse downbeats and melody matching chord roots', () => {
+      const coil: Coil = {
+        id: 'harmony_only',
+        harmony: ['Do', 'Fa', 'So', 'Do'],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(4);
+
+      // Onset 0: Do (whole note / 4 beats)
+      expect(onsets[0].startBeat).toBe(0);
+      expect(onsets[0].durationBeats).toBe(4);
+      expect(onsets[0].duration).toBe('1');
+      expect(onsets[0].scaleDegree).toBe('Do');
+      expect(onsets[0].melodyMidi).toBe(60); // C4
+      expect(onsets[0].chordRoot).toBe('Do');
+      expect(onsets[0].chordMidi).toEqual([60, 64, 67]);
+
+      // Onset 1: Fa (beat 4)
+      expect(onsets[1].startBeat).toBe(4);
+      expect(onsets[1].durationBeats).toBe(4);
+      expect(onsets[1].scaleDegree).toBe('Fa');
+      expect(onsets[1].melodyMidi).toBe(65); // F4
+      expect(onsets[1].chordRoot).toBe('Fa');
+
+      // Onset 2: So (beat 8)
+      expect(onsets[2].startBeat).toBe(8);
+      expect(onsets[2].durationBeats).toBe(4);
+      expect(onsets[2].scaleDegree).toBe('So');
+      expect(onsets[2].melodyMidi).toBe(55); // G3
+      expect(onsets[2].chordRoot).toBe('So');
+
+      // Onset 3: Do (beat 12)
+      expect(onsets[3].startBeat).toBe(12);
+      expect(onsets[3].durationBeats).toBe(4);
+      expect(onsets[3].scaleDegree).toBe('Do');
+      expect(onsets[3].melodyMidi).toBe(60); // C4
+      expect(onsets[3].chordRoot).toBe('Do');
+    });
+
+    it('resolves harmony-only coil with custom 3-beat pulse (DoRe)', () => {
+      const knot34: ResolvedKnot = { doMidi: 60, tempo: 120, pulse: 'DoRe' };
+      const coil: Coil = {
+        id: 'harmony_34',
+        harmony: ['Do', 'Fa'],
+      };
+      const { onsets } = resolveCoil(coil, knot34);
+      expect(onsets).toHaveLength(2);
+      expect(onsets[0].startBeat).toBe(0);
+      expect(onsets[0].durationBeats).toBe(3);
+      expect(onsets[0].duration).toBe('2.');
+      expect(onsets[0].scaleDegree).toBe('Do');
+
+      expect(onsets[1].startBeat).toBe(3);
+      expect(onsets[1].durationBeats).toBe(3);
+      expect(onsets[1].duration).toBe('2.');
+      expect(onsets[1].scaleDegree).toBe('Fa');
+    });
+
+    it('resolves harmony-only coil with its own explicit rhythm layer', () => {
+      const coil: Coil = {
+        id: 'harmony_with_own_rhythm',
+        harmony: {
+          chords: ['Do', 'Fa'],
+          rhythm: ['Do', 'DoxDo'], // Do at beat 0 (lasts 2 beats), Fa at beat 2 (lasts 2 beats)
+        },
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(2);
+      expect(onsets[0].startBeat).toBe(0);
+      expect(onsets[0].durationBeats).toBe(2);
+      expect(onsets[0].scaleDegree).toBe('Do');
+      expect(onsets[0].chordRoot).toBe('Do');
+
+      expect(onsets[1].startBeat).toBe(2);
+      expect(onsets[1].durationBeats).toBe(1);
+      expect(onsets[1].scaleDegree).toBe('Fa');
+      expect(onsets[1].chordRoot).toBe('Fa');
+    });
+
+    it('resolves rhythm-only coil defaulting harmony to tonic Do and melody to Do', () => {
+      const coil: Coil = {
+        id: 'rhythm_only',
+        rhythm: ['Do', 'Fi', 'Dox', 'Do'],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(4);
+
+      // Onset 0: Do (beat 0)
+      expect(onsets[0].isRest).toBe(false);
+      expect(onsets[0].scaleDegree).toBe('Do');
+      expect(onsets[0].melodyMidi).toBe(60);
+      expect(onsets[0].chordRoot).toBe('Do');
+      expect(onsets[0].startBeat).toBe(0);
+      expect(onsets[0].durationBeats).toBe(0.5);
+
+      // Onset 1: Fi (beat 0.5)
+      expect(onsets[1].isRest).toBe(false);
+      expect(onsets[1].scaleDegree).toBe('Do');
+      expect(onsets[1].melodyMidi).toBe(60);
+      expect(onsets[1].chordRoot).toBe('Do');
+      expect(onsets[1].startBeat).toBe(0.5);
+      expect(onsets[1].durationBeats).toBe(0.5);
+
+      // Onset 2: Dox (beat 1.0, rest)
+      expect(onsets[2].isRest).toBe(true);
+      expect(onsets[2].scaleDegree).toBe('');
+      expect(onsets[2].startBeat).toBe(1.0);
+      expect(onsets[2].durationBeats).toBe(1.0);
+
+      // Onset 3: Do (beat 2.0)
+      expect(onsets[3].isRest).toBe(false);
+      expect(onsets[3].scaleDegree).toBe('Do');
+      expect(onsets[3].melodyMidi).toBe(60);
+      expect(onsets[3].startBeat).toBe(2.0);
+    });
+
+    it('resolves rhythm + harmony coil with strumming pattern and multi-measure chord progression', () => {
+      // 8 beats of 8th notes across 2 measures of 4/4 (DoLa):
+      // Measure 1 (beats 0..4): Do chord
+      // Measure 2 (beats 4..8): Fa chord
+      const coil: Coil = {
+        id: 'rhythm_and_harmony_strum',
+        rhythm: ['Do', 'Fi', 7.2], // 8 beats total = 16 eighth notes
+        harmony: ['Do', 'Fa'],     // Pulse is DoLa (4 beats per chord)
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(16);
+
+      // First 8 eighth notes (beats 0 to 3.5) belong to 'Do' chord
+      for (let i = 0; i < 8; i++) {
+        expect(onsets[i].chordRoot).toBe('Do');
+        expect(onsets[i].scaleDegree).toBe('Do');
+        expect(onsets[i].melodyMidi).toBe(60);
+        expect(onsets[i].startBeat).toBe(i * 0.5);
+      }
+
+      // Second 8 eighth notes (beats 4.0 to 7.5) belong to 'Fa' chord
+      for (let i = 8; i < 16; i++) {
+        expect(onsets[i].chordRoot).toBe('Fa');
+        expect(onsets[i].scaleDegree).toBe('Fa');
+        expect(onsets[i].melodyMidi).toBe(65);
+        expect(onsets[i].startBeat).toBe(i * 0.5);
+      }
+    });
+
+    it('resolves rhythm + harmony with explicit harmony rhythm', () => {
+      const coil: Coil = {
+        id: 'rhythm_and_harmony_custom_change',
+        rhythm: ['Do', 'Fi', 3.2], // 4 beats = 8 eighth notes
+        harmony: {
+          chords: ['Do', 'So'],
+          rhythm: ['Do', 'DoxDoxDo'], // Do chord at beat 0, So chord at beat 3
+        },
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(8);
+
+      // Beats 0.0, 0.5, 1.0, 1.5, 2.0, 2.5 belong to Do chord
+      for (let i = 0; i < 6; i++) {
+        expect(onsets[i].chordRoot).toBe('Do');
+        expect(onsets[i].scaleDegree).toBe('Do');
+      }
+
+      // Beats 3.0, 3.5 belong to So chord
+      for (let i = 6; i < 8; i++) {
+        expect(onsets[i].chordRoot).toBe('So');
+        expect(onsets[i].scaleDegree).toBe('So');
+      }
+    });
+
+    it('throws when no layers are defined anywhere on the coil', () => {
+      const emptyCoil: Coil = {
+        id: 'empty_coil',
+      };
+      expect(() => resolveCoil(emptyCoil, knotC4)).toThrow(
+        /at least one layer \(melody, harmony, or rhythm\) must be defined/
+      );
+    });
+  });
 });

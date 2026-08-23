@@ -436,6 +436,84 @@ tapestry:
     expect(result.onsets[1].rhythmToken).toBe('Do');
     expect(result.onsets[1].startBeat).toBe(2);
   });
+
+  it('compiles score with harmony-only coils (defaults to pulse downbeats and chord root melody)', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: C4
+    pulse: DoLa
+  weaves:
+    song:
+      children:
+        - coil:
+            id: chord_progression
+            harmony: [Do, Fa, So, Do]
+`;
+
+    const result = compileYamlString(yaml);
+    expect(result.warnings).toHaveLength(0);
+    expect(result.onsets).toHaveLength(4);
+
+    // Melody notes are chord roots (Do, Fa, So, Do)
+    expect(result.onsets[0].scaleDegree).toBe('Do');
+    expect(result.onsets[0].midiNote).toBe(60); // C4
+    expect(result.onsets[0].pitch).toBe('C4');
+    expect(result.onsets[0].durationBeats).toBe(4);
+    expect(result.onsets[1].scaleDegree).toBe('Fa');
+    expect(result.onsets[1].midiNote).toBe(65); // F4
+    expect(result.onsets[1].pitch).toBe('F4');
+    expect(result.onsets[1].durationBeats).toBe(4);
+    expect(result.onsets[2].scaleDegree).toBe('So');
+    expect(result.onsets[2].midiNote).toBe(55); // G3
+    expect(result.onsets[2].pitch).toBe('G3');
+    expect(result.onsets[2].durationBeats).toBe(4);
+    expect(result.onsets[3].scaleDegree).toBe('Do');
+    expect(result.onsets[3].midiNote).toBe(60); // C4
+    expect(result.onsets[3].pitch).toBe('C4');
+
+    // LilyPond markup contains chord notes and melody notes
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_chord_progression_melody_1 c'1");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_chord_progression_melody_2 f'1");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_chord_progression_melody_3 g1");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_chord_progression_melody_4 c'1");
+  });
+
+  it('compiles score with rhythm + harmony coil (strumming pattern over harmonic progression)', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: C4
+    pulse: DoLa
+  weaves:
+    song:
+      children:
+        - coil:
+            id: strum_pattern
+            rhythm: [Do, Fi, 7.2] # 16 eighth notes = 8 beats
+            harmony: [Do, Fa]     # Do for first 4 beats, Fa for next 4 beats
+`;
+
+    const result = compileYamlString(yaml);
+    expect(result.warnings).toHaveLength(0);
+    expect(result.onsets).toHaveLength(16);
+
+    // First 8 eighth notes have Do melody and Do chord
+    for (let i = 0; i < 8; i++) {
+      expect(result.onsets[i].scaleDegree).toBe('Do');
+      expect(result.onsets[i].chordRoot).toBe('Do');
+    }
+
+    // Next 8 eighth notes have Fa melody and Fa chord
+    for (let i = 8; i < 16; i++) {
+      expect(result.onsets[i].scaleDegree).toBe('Fa');
+      expect(result.onsets[i].chordRoot).toBe('Fa');
+    }
+
+    // Check LilyPond output has eighth notes
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_strum_pattern_melody_1 c'8");
+    expect(result.lilypondSource).toContain("\\tag #'ppt_song_strum_pattern_melody_9 f'8");
+  });
 });
 
 

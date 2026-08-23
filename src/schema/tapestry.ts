@@ -389,9 +389,9 @@ export const MelodyVoiceObjectSchema = z.object({
   /** Alias for from */
   use: z.string().min(1).optional(),
   /** Pitch tokens for this voice (e.g. ["Dox", "Do", "Me"]), or a coil ID reference */
-  pitches: z.union([z.string().min(1), z.array(MelodyEntrySchema).min(1)]).optional(),
+  pitches: z.union([z.string().min(1), z.array(MelodyEntrySchema)]).optional(),
   /** Alias for pitches */
-  melody: z.union([z.string().min(1), z.array(MelodyEntrySchema).min(1)]).optional(),
+  melody: z.union([z.string().min(1), z.array(MelodyEntrySchema)]).optional(),
   /** Rhythm layer for this voice */
   rhythm: z.union([RhythmLabel, z.array(RhythmEntrySchema), z.string()]).optional(),
   /** Metric block-length label for this voice */
@@ -415,11 +415,11 @@ export const MelodyLayerSchema = z.union([
   // String shorthand referencing a named coil ID
   z.string().min(1),
   // Flat pitch array (single voice)
-  z.array(MelodyEntrySchema).min(1),
+  z.array(MelodyEntrySchema),
   // Structured single voice object
   MelodyVoiceObjectSchema,
   // Polyphonic array of voices (either pitch arrays or structured voice objects)
-  z.array(z.union([z.array(MelodyEntrySchema).min(1), MelodyVoiceObjectSchema])).min(1),
+  z.array(z.union([z.array(MelodyEntrySchema), MelodyVoiceObjectSchema])),
 ]);
 
 export type MelodyLayer =
@@ -464,9 +464,9 @@ export const HarmonyObjectSchema = z.object({
   /** Alias for from */
   use: z.string().min(1).optional(),
   /** Chord root solfège syllables and/or repeat padding counts, or a string coil ID reference */
-  chords: z.union([z.string().min(1), z.array(HarmonyEntrySchema).min(1)]).optional(),
+  chords: z.union([z.string().min(1), z.array(HarmonyEntrySchema)]).optional(),
   /** Alias for chords */
-  harmony: z.union([z.string().min(1), z.array(HarmonyEntrySchema).min(1)]).optional(),
+  harmony: z.union([z.string().min(1), z.array(HarmonyEntrySchema)]).optional(),
   /** Rhythm layer for harmony */
   rhythm: z.union([RhythmLabel, z.array(RhythmEntrySchema), z.string()]).optional(),
   /** Metric block-length label for harmony */
@@ -489,7 +489,7 @@ export const HarmonyLayerSchema = z.union([
   // String shorthand referencing a named coil ID
   z.string().min(1),
   // Flat array of chord tokens
-  z.array(HarmonyEntrySchema).min(1),
+  z.array(HarmonyEntrySchema),
   // Structured harmony object
   HarmonyObjectSchema,
 ]);
@@ -572,7 +572,7 @@ export const CoilSchema: z.ZodType<Coil> = z.lazy(() =>
     melody: MelodyLayerSchema.optional(),
     /** Harmony layer: flat array, structured harmony object, or coil ref */
     harmony: HarmonyLayerSchema.optional(),
-    /** Optional octave shift for this coil's harmony layer (e.g. 0, -1, 1) */
+    /** Optional octave shift for this harmony layer (e.g. 0, -1, 1) */
     harmonyOctave: z.number().int().optional(),
     /** Optional harmony voicing style override for this coil */
     harmonyVoicing: HarmonyVoicingEnum.optional(),
