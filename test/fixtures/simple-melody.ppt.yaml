@@ -6,7 +6,7 @@ tapestry:
   weave:
     id: demo
     layout: concatenate
-    children:
+    stitch:
       - coil:
           id: simpleMelody
           melody: [Do, Re, Mi]

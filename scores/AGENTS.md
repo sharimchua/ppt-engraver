@@ -25,7 +25,7 @@ tapestry:
         - rhythmGrid
   weaves:
     mainSong:
-      children:
+      stitch:
         - coil:
             id: introMotif
             melody: [Do, Re, Mi, Fa, So]

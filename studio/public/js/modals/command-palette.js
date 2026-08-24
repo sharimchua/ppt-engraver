@@ -11,7 +11,7 @@ let paletteActiveIndex = 0;
 let paletteFilteredCommands = [];
 
 const RESERVED_SCHEMA_KEYS = new Set([
-  'tapestry', 'knot', 'knots', 'weaves', 'coils', 'children', 'melody',
+  'tapestry', 'knot', 'knots', 'weaves', 'coils', 'children', 'stitch', 'stitches', 'melody',
   'rhythm', 'harmony', 'chords', 'pitches', 'concat', 'parents', 'show',
   'song', 'title', 'composer', 'arranger', 'tempo', 'tonic', 'colorNotes',
   'omitStem', 'octave', 'meter', 'duration', 'harmonyOctave', 'harmonyClef',
@@ -60,7 +60,7 @@ export function scanAllSymbolsInDocument(editor) {
         let preview = '';
         if (l + 1 < lines.length) {
           const nextL = lines[l + 1].trim();
-          if (nextL.startsWith('melody:') || nextL.startsWith('children:') || nextL.startsWith('weave:') || nextL.startsWith('tonic:')) {
+          if (nextL.startsWith('melody:') || nextL.startsWith('stitch:') || nextL.startsWith('children:') || nextL.startsWith('weave:') || nextL.startsWith('tonic:')) {
             preview = nextL.slice(0, 40);
           }
         }

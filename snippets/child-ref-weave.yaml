@@ -1,10 +1,11 @@
-id: snip-child-ref-weave
-label: Add Child Weave Reference
-displayText: Add Child Weave Reference (- weave: ...)
+id: snip-stitch-ref-weave
+label: Add Stitch Weave Reference
+displayText: Add Stitch Weave Reference (- weave: ...)
 desc: Reference to child weave
 category: Snippets
 icon: 🧶
 context:
+  - stitch
   - children
 snippet: |
   - weave: 

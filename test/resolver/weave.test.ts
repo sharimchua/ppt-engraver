@@ -138,14 +138,241 @@ describe('resolveWeave', () => {
   it('throws an informative error when referencing an unknown weave ID', () => {
     const brokenWeave: Weave = {
       id: 'song',
-      children: [
+      stitch: [
         { weave: 'nonExistentSection' },
       ],
     };
 
     expect(() => resolveWeave(brokenWeave, knotC4)).toThrow(
-      'Weave "song" child references unknown weave "nonExistentSection"'
+      /references unknown weave "nonExistentSection"/
     );
+  });
+
+  it('resolves weaves declared with stitch: [...] syntax', () => {
+    const weave: Weave = {
+      id: 'verse',
+      layout: 'concatenate',
+      stitch: [
+        { coil: { id: 'first', melody: ['Do', 'Re'] } },
+        { coil: { id: 'second', melody: ['Mi', 'Fa'] } },
+      ],
+    };
+    const { onsets } = resolveWeave(weave, knotC4);
+    expect(onsets).toHaveLength(4);
+    expect(onsets[0].tag).toBe('ppt_verse_first_1');
+    expect(onsets[2].tag).toBe('ppt_verse_second_1');
+  });
+
+  it('resolves weaves with layout: parallel merging separate melody and harmony coils', () => {
+    const parallelWeave: Weave = {
+      id: 'song',
+      layout: 'parallel',
+      stitch: [
+        {
+          coil: {
+            id: 'melody_part',
+            melody: ['Do', 'Me', 'So', 'Do^'],
+            rhythm: ['Do', 'Fi', 'Do', 'Fi', 'Do', 'Fi', 'Do', 'Fi'], // 8 eighth notes across 4 beats
+          },
+        },
+        {
+          coil: {
+            id: 'harmony_part',
+            pulse: 'Do', // 1 beat per chord: beat 0 = Do, beat 1 = Fa, beat 2 = So, beat 3 = Do
+            harmony: ['Do', 'Fa', 'So', 'Do'],
+          },
+        },
+      ],
+    };
+
+    const { onsets } = resolveWeave(parallelWeave, knotC4);
+    expect(onsets).toHaveLength(8);
+
+    // Check that melody onsets received chords from the parallel harmony coil at their timestamps
+    expect(onsets[0].scaleDegree).toBe('Do');
+    expect(onsets[0].chordRoot).toBe('Do');
+
+    expect(onsets[1].scaleDegree).toBe('Me');
+    expect(onsets[1].chordRoot).toBe('Do');
+
+    expect(onsets[2].scaleDegree).toBe('So');
+    expect(onsets[2].chordRoot).toBe('Fa');
+
+    expect(onsets[3].scaleDegree).toBe('Do');
+    expect(onsets[3].chordRoot).toBe('Fa');
+
+    expect(onsets[4].chordRoot).toBe('So');
+    expect(onsets[6].chordRoot).toBe('Do');
+  });
+
+  it('resolves nested concatenated weaves stitched in parallel with harmony coils', () => {
+    const parallelWeave: Weave = {
+      id: 'song',
+      layout: 'parallel',
+      pulse: 'DoRe', // 3 beats per bar
+      stitch: [
+        {
+          weave: {
+            id: 'melody_section',
+            layout: 'concatenate',
+            stitch: [
+              {
+                coil: {
+                  id: 'tune1',
+                  melody: ['Do', 'Re', 'Mi'],
+                  rhythm: ['Do', 'Do', 'Do'], // 3 beats: beats 0..3
+                },
+              },
+              {
+                coil: {
+                  id: 'tune2',
+                  melody: ['Fa', 'So', 'La'],
+                  rhythm: ['Do', 'Do', 'Do'], // 3 beats: beats 3..6
+                },
+              },
+            ],
+          },
+        },
+        {
+          coil: {
+            id: 'changes',
+            pulse: 'DoRe', // 3 beats per chord: beats 0, 3, 6, 9 -> total 12 beats
+            harmony: ['Do', 'Fa', 'LaMe', 'So'],
+          },
+        },
+      ],
+    };
+
+    const { onsets } = resolveWeave(parallelWeave, knotC4);
+    // tune1 (3 onsets) + tune2 (3 onsets) + 6 padded rest onsets for remaining 6 beats = 12 onsets
+    expect(onsets).toHaveLength(12);
+
+    // tune1 onsets (beats 0, 1, 2) match chord 1 'Do'
+    expect(onsets[0].scaleDegree).toBe('Do');
+    expect(onsets[0].chordRoot).toBe('Do');
+    expect(onsets[0].startBeat).toBe(0);
+
+    expect(onsets[2].scaleDegree).toBe('Mi');
+    expect(onsets[2].chordRoot).toBe('Do');
+    expect(onsets[2].startBeat).toBe(2);
+
+    // tune2 onsets (beats 3, 4, 5) match chord 2 'Fa'
+    expect(onsets[3].scaleDegree).toBe('Fa');
+    expect(onsets[3].chordRoot).toBe('Fa');
+    expect(onsets[3].startBeat).toBe(3);
+
+    expect(onsets[5].scaleDegree).toBe('La');
+    expect(onsets[5].chordRoot).toBe('Fa');
+    expect(onsets[5].startBeat).toBe(5);
+
+    // Padded rest onsets at beats 6..8 match chord 3 'LaMe'
+    expect(onsets[6].isRest).toBe(true);
+    expect(onsets[6].chordRoot).toBe('LaMe');
+    expect(onsets[6].startBeat).toBe(6);
+
+    // Padded rest onsets at beats 9..11 match chord 4 'So'
+    expect(onsets[9].isRest).toBe(true);
+    expect(onsets[9].chordRoot).toBe('So');
+    expect(onsets[9].startBeat).toBe(9);
+  });
+
+  it('resolves weaves with layout: parallel merging multiple melodic coils into polyphonic voices', () => {
+    const polyphonicWeave: Weave = {
+      id: 'poly_weave',
+      layout: 'parallel',
+      stitch: [
+        {
+          coil: {
+            id: 'soprano',
+            melody: ['Do', 'Re', 'Mi', 'Fa'],
+            rhythm: ['Do', 'Do', 'Do', 'Do'],
+          },
+        },
+        {
+          coil: {
+            id: 'bass',
+            melody: ['Do_', 'So_', 'Do', 'Fa_'],
+            rhythm: ['Do', 'Do', 'Do', 'Do'],
+          },
+        },
+      ],
+    };
+
+    const { onsets } = resolveWeave(polyphonicWeave, knotC4);
+    expect(onsets).toHaveLength(8);
+
+    // Voice 1 (soprano)
+    const v1Onsets = onsets.filter(o => o.voiceIndex === 1);
+    expect(v1Onsets).toHaveLength(4);
+    expect(v1Onsets[0].tag).toBe('ppt_poly_weave_soprano_v1_1');
+    expect(v1Onsets[0].scaleDegree).toBe('Do');
+
+    // Voice 2 (bass)
+    const v2Onsets = onsets.filter(o => o.voiceIndex === 2);
+    expect(v2Onsets).toHaveLength(4);
+    expect(v2Onsets[0].tag).toBe('ppt_poly_weave_bass_v2_1');
+    expect(v2Onsets[0].scaleDegree).toBe('Do');
+    expect(v2Onsets[0].pitch).toBe('C3');
+  });
+
+  it('resolves multiple melody coils (including stitch coils) merged in parallel with harmony', () => {
+    const complexParallelWeave: Weave = {
+      id: 'song',
+      layout: 'parallel',
+      pulse: 'DoRe',
+      stitch: [
+        {
+          coil: {
+            id: 'lead',
+            melody: ['So^', 'Mi', 'So^'],
+            rhythm: ['Do', 'Do', 'Do'],
+          },
+        },
+        {
+          coil: {
+            id: 'counter',
+            stitch: [
+              {
+                coil: {
+                  melody: ['Do', 'Re', 'Mi'],
+                  rhythm: ['Do', 'Do', 'Do'],
+                },
+              },
+              {
+                coil: {
+                  melody: ['Fa', 'So', 'La'],
+                  rhythm: ['Do', 'Do', 'Do'],
+                },
+              },
+            ],
+          },
+        },
+        {
+          coil: {
+            id: 'changes',
+            pulse: 'DoRe',
+            harmony: ['Do', 'Fa'],
+          },
+        },
+      ],
+    };
+
+    const { onsets } = resolveWeave(complexParallelWeave, knotC4);
+    // Voice 1 (lead: 3 notes + 3 rests = 6 onsets)
+    const v1Onsets = onsets.filter(o => o.voiceIndex === 1);
+    expect(v1Onsets).toHaveLength(6);
+    expect(v1Onsets[0].scaleDegree).toBe('So');
+    expect(v1Onsets[0].chordRoot).toBe('Do');
+    expect(v1Onsets[3].isRest).toBe(true);
+    expect(v1Onsets[3].chordRoot).toBe('Fa');
+
+    // Voice 2 (counter: 3 notes + 3 notes = 6 onsets)
+    const v2Onsets = onsets.filter(o => o.voiceIndex === 2);
+    expect(v2Onsets).toHaveLength(6);
+    expect(v2Onsets[0].scaleDegree).toBe('Do');
+    expect(v2Onsets[0].chordRoot).toBe('Do');
+    expect(v2Onsets[3].scaleDegree).toBe('Fa');
+    expect(v2Onsets[3].chordRoot).toBe('Fa');
   });
 
   it('inherits defaultCoil down nested weave hierarchy', () => {
@@ -155,11 +382,11 @@ describe('resolveWeave', () => {
         id: 'default',
         harmony: ['So'],
       },
-      children: [
+      stitch: [
         {
           weave: {
             id: 'verse',
-            children: [
+            stitch: [
               { coil: { id: 'motif', melody: ['Do'] } },
             ],
           },
@@ -175,7 +402,7 @@ describe('resolveWeave', () => {
     const weave: Weave = {
       id: 'song',
       meter: 'DoLa',
-      children: [
+      stitch: [
         { coil: { id: 'motif', melody: ['Do', 'Mi', 'So', 'Mi'] } },
       ],
     };

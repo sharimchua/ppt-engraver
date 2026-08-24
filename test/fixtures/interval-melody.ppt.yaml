@@ -7,7 +7,7 @@ tapestry:
   weave:
     id: intervals
     layout: concatenate
-    children:
+    stitch:
       - coil:
           id: intervalMelody
           rhythm: DoLa

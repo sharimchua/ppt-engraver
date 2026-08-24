@@ -8,7 +8,7 @@ tapestry:
   weave:
     id: verse
     layout: concatenate
-    children:
+    stitch:
       - coil:
           id: introMotif
           rhythm: DoLa

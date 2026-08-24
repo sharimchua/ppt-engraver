@@ -1,6 +1,6 @@
 id: snip-weave-with-coils
-label: New Weave (with Coils & Children)
-displayText: New Weave (with Coils & Children)
+label: New Weave (with Coils & Stitches)
+displayText: New Weave (with Coils & Stitches)
 desc: Weave with local coil dictionary
 category: Snippets
 icon: 🧶
@@ -16,5 +16,5 @@ snippet: |
         parents: _base_harm
         melody: [Dox, Do, Me, La]
         rhythm: [Do, Fi, Do, Fi]
-    children:
+    stitch:
       - coil: _part1

@@ -524,8 +524,12 @@ export interface Coil {
   parent?: string;
   /** Ordered list or single parent Coil ID to inherit layers from */
   parents?: string | string[];
-  /** Sub-coils to concatenate into a single continuous phrase */
+  /** Sub-coils to concatenate / stitch into a single continuous phrase */
   concat?: ConcatEntry[];
+  /** Alias for concat: sub-coils to stitch into a single continuous phrase */
+  stitch?: ConcatEntry[];
+  /** Alias for stitch */
+  stitches?: ConcatEntry[];
   /** Rhythm layer: micro Solfège rhythm tokens array, macro metric block-length label, or coil reference */
   rhythm?: RhythmLayer;
   /** Metric pulse grammar specification for this coil */
@@ -562,6 +566,10 @@ export const CoilSchema: z.ZodType<Coil> = z.lazy(() =>
     parents: z.union([z.string(), z.array(z.string())]).optional(),
     /** Sub-coils to concatenate into a single continuous phrase */
     concat: z.array(ConcatEntrySchema).min(1).optional(),
+    /** Alias for concat: sub-coils to stitch into a single continuous phrase */
+    stitch: z.array(ConcatEntrySchema).min(1).optional(),
+    /** Alias for stitch */
+    stitches: z.array(ConcatEntrySchema).min(1).optional(),
     /** Rhythm layer: either micro Solfège rhythm tokens array, macro metric block-length label, or coil ref */
     rhythm: RhythmLayerSchema.optional(),
     /** Metric pulse grammar specification for this coil */
@@ -586,13 +594,13 @@ export const CoilSchema: z.ZodType<Coil> = z.lazy(() =>
 );
 
 /**
- * Weave interface for TypeScript typing with recursive children.
+ * Weave interface for TypeScript typing with recursive stitches.
  */
 export interface Weave {
   /** Unique identifier for this weave (camelCase, optional when in dictionary or anonymous) */
   id?: string;
-  /** Layout mode — v1 supports only 'concatenate' */
-  layout?: 'concatenate';
+  /** Layout mode: 'concatenate' for sequential playback, 'parallel' for concurrent layering / polyphony */
+  layout?: 'concatenate' | 'parallel';
   /** Local/in-place library of reusable named Coils */
   coils?: Record<string, Coil | { coil: Coil }> | Array<Coil | { coil: Coil }>;
   /** Default coil ID or inline Coil providing fallback layers for child coils */
@@ -601,8 +609,12 @@ export interface Weave {
   pulse?: Pulse;
   /** Alias for pulse */
   meter?: Pulse;
-  /** Ordered list of child coils and/or child weaves */
-  children: WeaveChild[];
+  /** Ordered list of stitches (coils and/or child weaves) */
+  stitch?: WeaveStitch[];
+  /** Plural alias for stitch */
+  stitches?: WeaveStitch[];
+  /** Legacy alias for stitch */
+  children?: WeaveStitch[];
   /** Optional harmony voicing style override for this weave */
   harmonyVoicing?: HarmonyVoicing;
   /** Optional melody harmonic augmentation style override for this weave */
@@ -614,16 +626,19 @@ export interface Weave {
 }
 
 /**
- * A child entry within a Weave — wraps an inline Coil/Weave or references one by ID.
+ * A stitch entry within a Weave — wraps an inline Coil/Weave or references one by ID.
  */
-export type WeaveChild =
+export type WeaveStitch =
   | { coil: Coil | string; weave?: never }
   | { weave: Weave | string; coil?: never };
 
+/** Backward-compatible alias for WeaveStitch */
+export type WeaveChild = WeaveStitch;
+
 /**
- * Zod schema for WeaveChild (supports both coil and nested weave).
+ * Zod schema for WeaveStitch (supports both coil and nested weave).
  */
-export const WeaveChildSchema: z.ZodType<WeaveChild> = z.lazy(() =>
+export const WeaveStitchSchema: z.ZodType<WeaveStitch> = z.lazy(() =>
   z.union([
     z.object({
       coil: CoilSchema.or(z.string()),
@@ -634,16 +649,19 @@ export const WeaveChildSchema: z.ZodType<WeaveChild> = z.lazy(() =>
   ])
 );
 
+/** Backward-compatible alias for WeaveStitchSchema */
+export const WeaveChildSchema = WeaveStitchSchema;
+
 /**
- * Weave: ordered sequence container for Coils and nested Weaves.
- * V1: concatenate layout only, supports Default-Coil injection and recursive composition.
+ * Weave: sequence/parallel container for Coils and nested Weaves.
+ * Supports 'concatenate' (sequential) and 'parallel' (simultaneous) layouts.
  */
 export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
   z.object({
     /** Unique identifier for this weave (camelCase, optional when in dictionary or anonymous) */
     id: z.string().min(1).optional(),
-    /** Layout mode — v1 supports only 'concatenate' */
-    layout: z.enum(['concatenate']).default('concatenate'),
+    /** Layout mode: 'concatenate' for sequential playback, 'parallel' for concurrent layering */
+    layout: z.enum(['concatenate', 'parallel']).default('concatenate'),
     /** Local/in-place library of reusable named Coils */
     coils: z.record(z.string(), CoilSchema.or(z.object({ coil: CoilSchema }))).or(z.array(CoilSchema.or(z.object({ coil: CoilSchema })))).optional(),
     /** Default coil ID or inline Coil providing fallback layers for child coils */
@@ -652,8 +670,12 @@ export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
     pulse: PulseSchema.optional(),
     /** Alias for pulse */
     meter: PulseSchema.optional(),
-    /** Ordered list of child coils and/or child weaves */
-    children: z.array(WeaveChildSchema).min(1),
+    /** Ordered list of stitches (coils and/or child weaves) */
+    stitch: z.array(WeaveStitchSchema).min(1).optional(),
+    /** Plural alias for stitch */
+    stitches: z.array(WeaveStitchSchema).min(1).optional(),
+    /** Legacy alias for stitch */
+    children: z.array(WeaveStitchSchema).min(1).optional(),
     /** Optional harmony voicing style override for this weave */
     harmonyVoicing: HarmonyVoicingEnum.optional(),
     /** Optional melody harmonic augmentation style override for this weave */
@@ -662,7 +684,10 @@ export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
     melodyAugmentationDisplay: MelodyAugmentationDisplayEnum.optional(),
     /** Optional projection preset override for this weave */
     projection: ProjectionPresetEnum.optional(),
-  })
+  }).refine(
+    data => (data.stitch && data.stitch.length > 0) || (data.stitches && data.stitches.length > 0) || (data.children && data.children.length > 0),
+    { message: 'Weave must contain at least one stitch entry (stitch: [...])', path: ['stitch'] }
+  )
 );
 
 /**

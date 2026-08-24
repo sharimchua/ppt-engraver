@@ -4,7 +4,7 @@ tapestry:
   weave:
     id: fallback
     layout: concatenate
-    children:
+    stitch:
       - coil:
           id: motif
           melody: [Do, Mi, So]

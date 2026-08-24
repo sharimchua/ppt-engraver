@@ -1,10 +1,11 @@
-id: snip-child-coil-inline
-label: Add Inline Coil (Melody + Rhythm + Harmony)
+id: snip-stitch-coil-inline
+label: Add Inline Stitch Coil (Melody + Rhythm + Harmony)
 displayText: Add Inline Coil
-desc: 3-layer inline child coil
+desc: 3-layer inline stitch coil
 category: Snippets
 icon: 🎵
 context:
+  - stitch
   - children
 snippet: |
   - coil:

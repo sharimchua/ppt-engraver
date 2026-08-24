@@ -112,7 +112,7 @@ The `studio/public/` directory contains the client-side single-page application 
   - Detects enclosing coil under cursor, prompts for new Parent ID, layer selection (`melody`, `rhythm`, `harmony`), and destination (`coils:` in current weave or top-level `tapestry.coils:`).
   - Automatically creates the parent definition and replaces extracted layers with `parents: <parentId>`.
 - **Extract Inline Coil to Named Coil (`Ctrl+Alt+C` / `Cmd+Alt+C`)**:
-  - Converts an inline child coil (`- coil:\n  id: ...`) in `children:` to a named entry in `coils:` and replaces the inline block with `- coil: <coilId>`.
+  - Converts an inline stitch coil (`- coil:\n  id: ...`) in `stitch:` to a named entry in `coils:` and replaces the inline block with `- coil: <coilId>`.
 - **Inline / Flatten Parent Coil (`Ctrl+Alt+I` / `Cmd+Alt+I`)**:
   - Pulls inherited layers from `parents: <parentId>` directly into the current coil and removes the `parents:` reference.
 - **Group Selection into Weave (`Ctrl+Alt+W` / `Cmd+Alt+W`)**:
@@ -125,7 +125,7 @@ The `studio/public/` directory contains the client-side single-page application 
 ### 4. Contextual Autocomplete, Snippets & Command Palette
 - **Rich Context Autocomplete (`Ctrl+Space`)**:
   - Custom hint renderer in elevated dark popup (`.CodeMirror-hints`, `.cm-ppt-hint-item`) displaying high-contrast typography, descriptions, and category badges: `[SNIP]` (Cyan), `[COIL]` (Green), `[WEAVE]` (Purple), `[KNOT]` (Pink), `[NOTE]` (Solfège Pill with PPT color swatch and SVG glyph), `[ENUM]` (Amber), `[PROP]` (Slate).
-  - **Precision Scope & Property Enums**: Accurately scopes suggestions based on YAML block hierarchy and active property (`harmonyVoicing:`, `melodyAugmentation:`, `melodyAugmentationDisplay:`, `projection:`, `melodyClef:`, `harmonyClef:`, `noteheadStyle:`, `show:`, inside brackets `[...]`, or inside `engraving:`, `coils:`, `weaves:`, `children:`).
+  - **Precision Scope & Property Enums**: Accurately scopes suggestions based on YAML block hierarchy and active property (`harmonyVoicing:`, `melodyAugmentation:`, `melodyAugmentationDisplay:`, `projection:`, `layout:`, `melodyClef:`, `harmonyClef:`, `noteheadStyle:`, `show:`, inside brackets `[...]`, or inside `engraving:`, `coils:`, `weaves:`, `stitch:`).
 - **Dynamic YAML Snippets Library (`snippets/*.yaml`)**:
   - Automatically loads and watches modular snippet files from `snippets/*.yaml` via `/api/snippets`.
   - Seamlessly injected into CodeMirror contextual autocomplete (`Ctrl+Space`) and registered into the Command Palette (`Ctrl+Shift+P`) dynamically.
@@ -157,7 +157,7 @@ The `studio/public/` directory contains the client-side single-page application 
   - Non-HTTP links are decoded via `resolveTagFromLyLine` to bind full provenance metadata (`dataset.coilId`, `dataset.sourceCoilId`, `dataset.melodySourceCoil`, `dataset.rhythmSourceCoil`, `dataset.harmonySourceCoil`, `dataset.weaveId`, `dataset.layer`, `dataset.voiceIndex`, `dataset.onsetIndex`, `dataset.sourceOnsetIndex`).
   - Renders transparent clickable overlays (`.pdf-point-click-link`) over every notehead.
 - **Line-to-Score Real-Time Highlighting (Editor $\to$ Preview, 1-to-Many)**:
-  - Scoped strictly to declarative music lines (`melody:`, `harmony:`, `rhythm:`, `chords:`, `pitches:`), polyphonic voice bullet items, and compositional/structural lines (`coil:`, `weave:`, `concat:`, `parents:`, `children:`, structure definition headers).
+  - Scoped strictly to declarative music lines (`melody:`, `harmony:`, `rhythm:`, `chords:`, `pitches:`), polyphonic voice bullet items, and compositional/structural lines (`coil:`, `weave:`, `concat:`, `parents:`, `stitch:`, structure definition headers).
   - When focused on a specific melody voice line (e.g. voice 2 in a polyphonic melody array), only noteheads in that specific voice receive highlights (`dataset.voiceIndex === targetVoiceIndex`), ignoring other parallel melody voices and other layers.
   - When focused on a specific token on that line, the matching onset in that layer receives `.score-highlight-primary` (gold halo), while the remaining noteheads in that layer/voice receive `.score-highlight-active` (blue halo).
   - On non-declarative lines (metadata, titles, tempos, settings, comments), preview highlighting is automatically deactivated.

@@ -29,7 +29,7 @@ The repository consists of:
 ---
 
 - **Tapestry / Knot(s)**: The global musical piece and root metadata (title, composer, tonic, tempo, engraving visibility toggles, arrangement projections). Supports single `knot:` or multiple named `knots:` (ordered arrays or dictionaries) with single/multi-parent inheritance (`parent`, `parents`), abstract base templates (`abstract: true` / `hidden: true` excluded from dropdown and un-inherited), custom per-knot weave selections, transpositions, and projection switching via dropdown or CLI `-k`.
-- **Weave**: A structural container representing a voice, part, or section composed of hierarchical children or concatenated coils.
+- **Weave**: A structural container representing a voice, part, or section composed of hierarchical stitches (`stitch: [...]`) organized via `layout: concatenate` (sequential) or `layout: parallel` (simultaneous layering / polyphony).
 - **Coil**: The fundamental musical motif containing:
   - `melody: [...]`: Solfège pitch degree array relative to reference root.
   - `rhythm: [...]`: Duration / rhythm token array.

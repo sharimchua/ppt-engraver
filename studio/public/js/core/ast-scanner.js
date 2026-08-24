@@ -5,7 +5,7 @@
 import { isValidSolfegeToken } from './solfege.js';
 
 export const RESERVED_SCHEMA_KEYS = new Set([
-  'tapestry', 'knot', 'knots', 'weaves', 'coils', 'children',
+  'tapestry', 'knot', 'knots', 'weaves', 'coils', 'children', 'stitch', 'stitches',
   'melody', 'rhythm', 'harmony', 'chords', 'pitches', 'parent', 'parents',
   'concat', 'root', 'repeat', 'title', 'composer', 'arranger', 'tagline', 'tonic',
   'tempo', 'engraving', 'clef', 'harmonyclef', 'show', 'colornotes', 'omitstem',
@@ -46,7 +46,7 @@ export function scanDeclaredCoilsAndWeaves(cm) {
     }
     const currentContext = sectionStack.length > 0 ? sectionStack[sectionStack.length - 1].section : null;
 
-    const sectionMatch = line.match(/^(\s*)(weaves|coils|knots|engraving|children|concat)\s*:/i);
+    const sectionMatch = line.match(/^(\s*)(weaves|coils|knots|engraving|children|stitch|stitches|concat)\s*:/i);
     if (sectionMatch) {
       const secName = sectionMatch[2].toLowerCase();
       sectionStack.push({ section: secName, indent });
@@ -122,7 +122,7 @@ export function findParentSection(cm, lineNum) {
         if (key === 'show') return 'show';
         if (key === 'coils') return 'coils';
         if (key === 'weaves') return 'weaves';
-        if (key === 'children') return 'children';
+        if (key === 'stitch' || key === 'stitches' || key === 'children') return 'stitch';
         if (key === 'concat') return 'concat';
         if (key === 'parents' || key === 'parent') return 'parents';
 

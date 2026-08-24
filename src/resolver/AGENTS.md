@@ -22,11 +22,16 @@ The `src/resolver/` directory resolves high-level declarative PPT constructs int
      - *Harmony-only coils*: Rhythm defaults to pulse cycle downbeats (e.g. 4 beats for `DoLa`, 3 for `DoRe`), melody pitch defaults to the chord root.
      - *Rhythm-only coils*: Harmony defaults to tonic `Do`, melody defaults to chord root `Do`.
      - *Rhythm + Harmony coils (No Melody)*: Rhythm defines the strumming pattern / timing; harmony changes occur on pulse boundaries (or via `harmony.rhythm`); melody pitch dynamically matches each active chord root.
-3. **`resolveConcat()` (`resolveConcatCoil()`)**:
+3. **`resolveWeave()`**:
+   - Traverses a Weave's `stitch: [...]` list (coils and nested weaves) and evaluates onset streams according to `layout: 'concatenate'` (sequential) or `layout: 'parallel'` (concurrent / simultaneous).
+   - In `parallel` mode:
+     - Merges separate harmony and melody/rhythm coils into unified onsets across matching timestamps.
+     - Merges multiple melodic coils into distinct polyphonic voices (`voiceIndex: 1`, `voiceIndex: 2`).
+4. **`resolveConcat()` (`resolveConcatCoil()`)**:
    - Combines multiple sub-coils into a single continuous weave structure, ensuring timing offsets and voice alignment remain continuous.
    - Accepts string coil IDs (`part1`), wrapped coil references (`- coil: part1`), standard indented inline coils (`- coil:\n    melody: [...]`), and raw inline coils (`- melody: [...]`).
    - Fully inherits and resolves composite-level layers (such as phrase-wide harmony changes or augmentation) via `inheritCoilLayers()`, allowing `concat` coils to use `harmony: changes` or `parents: changes`.
-4. **`resolveInheritance()` (`inheritCoilLayers()`) & Layer Injection**:
+5. **`resolveInheritance()` (`inheritCoilLayers()`) & Layer Injection**:
    - Explicit Layer Injection: Directly injects specific layers from other coils (`harmony: changes`, `rhythm: { from: 'groove_1' }`, cross-layer `melody: { from: 'changes.harmony' }`) with local property overrides.
    - Priority Parent Inheritance: Merges attributes from parent coils (`parents: [...]`) into child coils, allowing reusable templates (e.g. base rhythm templates inherited by melodic variations).
 

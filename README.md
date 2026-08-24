@@ -84,7 +84,7 @@ tapestry:
 
   weaves:
     song:
-      children:
+      stitch:
         - weave: verse
 
     verse:
@@ -105,7 +105,7 @@ tapestry:
         verse1:
           concat: [_v1, _v2, _v3]
 
-      children:
+      stitch:
         - coil: verse1
 ```
 
@@ -575,11 +575,36 @@ tapestry:
     id: song
     defaultCoil:
       rhythm: [Do, 3]
-    children:
+    stitch:
       - coil:
           id: motif1
           parents: [verseBase]
           melody: [Dox, Me, Re, Do] # Inherits harmony: [DoMe, SoxDo] & rhythm: [Do, Fi, 3.2]
+```
+
+### 4. Weave Stitches & Layout Modes (`layout: concatenate | parallel`)
+Weaves organize musical structures through **`stitch: [...]`** entries containing referenced or inline coils and nested child weaves.
+
+- **`layout: concatenate` (Default / Sequential)**:
+  - Stitches are evaluated sequentially in time, one after another across the timeline.
+- **`layout: parallel` (Concurrent / Simultaneous)**:
+  - Stitches run simultaneously starting at $t = 0$.
+  - **Multi-Layer Merging**: Define chord changes and melody in separate coils. The melody/rhythm onsets automatically receive the active chord progression at matching timestamps across the timeline.
+  - **Multi-Voice Polyphony**: Stitch multiple melodic coils in parallel. Each voice is assigned an independent voice track (`\voiceOne`, `\voiceTwo`, `M1`, `M2`), producing clean polyphonic LilyPond notation and coil rows.
+
+```yaml
+weaves:
+  polyphonic_section:
+    layout: parallel
+    stitch:
+      - coil:
+          id: lead
+          melody: [Do, Me, So, Do^]
+          rhythm: [Do, Fi, Do, Fi, Do, Fi, Do, Fi]
+      - coil:
+          id: accompaniment
+          pulse: Do
+          harmony: [Do, Fa, So, Do]
 ```
 
 ---

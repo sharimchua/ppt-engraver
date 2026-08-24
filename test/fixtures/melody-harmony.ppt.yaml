@@ -6,7 +6,7 @@ tapestry:
   weave:
     id: aligned
     layout: concatenate
-    children:
+    stitch:
       - coil:
           id: crossLayer
           rhythm: DoLa

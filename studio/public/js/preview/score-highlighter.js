@@ -7,7 +7,7 @@ import { extractTokensFromLine } from '../core/ast-scanner.js';
 let highlightAnimFrame = null;
 
 const EXCLUDED_KEYS = new Set([
-  'tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children',
+  'tapestry', 'knot', 'engraving', 'weaves', 'coils', 'children', 'stitch', 'stitches',
   'melody', 'rhythm', 'harmony', 'chords', 'pitches', 'concat',
   'parents', 'show', 'song', 'title', 'composer', 'arranger',
   'tempo', 'tonic', 'colorNotes', 'omitStem', 'octave', 'meter',
@@ -131,7 +131,7 @@ export function updateScoreHighlights(cm) {
             }
           }
           inlineSubIndex = subCount || 1;
-        } else if (/^\s*children\s*:/i.test(lText) && lIndent < currentLineIndent) {
+        } else if (/^\s*(children|stitch|stitches)\s*:/i.test(lText) && lIndent < currentLineIndent) {
           isInsideChildren = true;
           let childCount = 0;
           for (let cL = l + 1; cL <= currentLineNum; cL++) {

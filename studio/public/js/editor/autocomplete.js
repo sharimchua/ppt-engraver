@@ -295,14 +295,21 @@ export const COIL_KEYS = [
   { text: 'projection:', displayText: 'projection: ...', type: 'prop', desc: 'Coil-level projection preset' }
 ];
 
+export const ENUMS_LAYOUT = [
+  { text: 'concatenate', displayText: 'concatenate', type: 'enum', desc: 'Sequential concatenation of stitches across time' },
+  { text: 'parallel', displayText: 'parallel', type: 'enum', desc: 'Concurrent / simultaneous layering of stitches' }
+];
+
 export const WEAVE_KEYS = [
   { text: 'id:', displayText: 'id: ...', type: 'prop', desc: 'Weave identifier' },
-  { text: 'layout:', displayText: 'layout: concatenate', type: 'prop', desc: 'Child sequencing layout' },
+  { text: 'layout:', displayText: 'layout: concatenate', type: 'prop', desc: 'Stitch sequencing layout (concatenate or parallel)' },
   { text: 'defaultCoil:', displayText: 'defaultCoil: ...', type: 'prop', desc: 'Default fallback coil' },
   { text: 'pulse:', displayText: 'pulse: ...', type: 'prop', desc: 'Weave-level metric pulse pattern' },
   { text: 'meter:', displayText: 'meter: ...', type: 'prop', desc: 'Alias for pulse' },
   { text: 'coils:', displayText: 'coils:', type: 'prop', desc: 'In-place coils map' },
-  { text: 'children:', displayText: 'children:', type: 'prop', desc: 'List of child coils & weaves' },
+  { text: 'stitch:', displayText: 'stitch:', type: 'prop', desc: 'List of stitches (coils & nested weaves)' },
+  { text: 'stitches:', displayText: 'stitches:', type: 'prop', desc: 'Plural alias for stitch list' },
+  { text: 'children:', displayText: 'children:', type: 'prop', desc: 'Legacy alias for stitch list' },
   { text: 'harmonyVoicing:', displayText: 'harmonyVoicing: ...', type: 'prop', desc: 'Weave-level voicing override' },
   { text: 'melodyAugmentation:', displayText: 'melodyAugmentation: ...', type: 'prop', desc: 'Weave-level augmentation' },
   { text: 'melodyAugmentationDisplay:', displayText: 'melodyAugmentationDisplay: ...', type: 'prop', desc: 'Weave-level augmentation display' },
@@ -349,7 +356,7 @@ export function getContextSuggestions(cm, cursor) {
     if (/^(melodyClef|harmonyClef|clef)$/i.test(propName)) return ENUMS_CLEF;
     if (/^noteheadStyle$/i.test(propName)) return ENUMS_NOTEHEAD_STYLE;
     if (/^harmonyStaffStyle$/i.test(propName)) return ENUMS_HARMONY_STAFF_STYLE;
-    if (/^layout$/i.test(propName)) return [{ text: 'concatenate', displayText: 'concatenate', type: 'enum', desc: 'Sequential concatenation' }];
+    if (/^layout$/i.test(propName)) return ENUMS_LAYOUT;
     if (/^(abstract|hidden|visible|colorNotes|noteheadOutline|omitStem|traditionalRhythms|traditionalDurations|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil|showPulseCoil|showTimeSignature|showPulseSignature|excludeGridDoSymbol|gridSymbolExcludeDo|strongBeatGridWeight|gridBeatWeights|showChordNames)$/i.test(propName)) {
       return [
         { text: 'true', displayText: 'true', type: 'enum', desc: 'Enable' },
@@ -410,12 +417,12 @@ export function getContextSuggestions(cm, cursor) {
     if (parentSection === 'concat' || parentSection === 'parents') {
       return coils.map(id => ({ text: id, displayText: id, type: 'coil', desc: 'Coil reference' }));
     }
-    if (parentSection === 'children') {
-      const snippets = (state.snippets || []).filter(s => s.context && s.context.includes('children'));
+    if (parentSection === 'stitch' || parentSection === 'stitches' || parentSection === 'children') {
+      const snippets = (state.snippets || []).filter(s => s.context && (s.context.includes('stitch') || s.context.includes('children')));
       return [
         ...snippets,
-        ...coils.map(id => ({ text: `coil: ${id}`, displayText: `- coil: ${id}`, type: 'coil', desc: 'Child coil reference' })),
-        ...weaves.map(id => ({ text: `weave: ${id}`, displayText: `- weave: ${id}`, type: 'weave', desc: 'Child weave reference' })),
+        ...coils.map(id => ({ text: `coil: ${id}`, displayText: `- coil: ${id}`, type: 'coil', desc: 'Stitch coil reference' })),
+        ...weaves.map(id => ({ text: `weave: ${id}`, displayText: `- weave: ${id}`, type: 'weave', desc: 'Stitch weave reference' })),
       ];
     }
   }

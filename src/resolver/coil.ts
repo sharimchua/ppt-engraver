@@ -271,7 +271,7 @@ export function resolveConcatCoil(
   defaultCoil?: Coil,
 ): CoilResolutionResult {
   const warnings: string[] = [];
-  const concatEntries = coil.concat!;
+  const concatEntries = coil.stitch ?? coil.stitches ?? coil.concat ?? [];
   const rawSubCoilOnsets: ResolvedOnset[][] = [];
 
   for (let i = 0; i < concatEntries.length; i++) {
@@ -381,18 +381,18 @@ export function resolveConcatCoil(
   if (maxVoices <= 1) {
     let currentBeat = 0;
     for (let i = 0; i < mergedOnsets.length; i++) {
-      mergedOnsets[i].startBeat = currentBeat;
+      mergedOnsets[i].startBeat = Math.round(currentBeat * 9600) / 9600;
       const dur = mergedOnsets[i].durationBeats ?? 1.0;
-      currentBeat += dur;
+      currentBeat = Math.round((currentBeat + dur) * 9600) / 9600;
     }
   } else {
     for (let v = 1; v <= maxVoices; v++) {
       let currentBeat = 0;
       for (let i = 0; i < mergedOnsets.length; i++) {
         if ((mergedOnsets[i].voiceIndex ?? 1) === v) {
-          mergedOnsets[i].startBeat = currentBeat;
+          mergedOnsets[i].startBeat = Math.round(currentBeat * 9600) / 9600;
           const dur = mergedOnsets[i].durationBeats ?? 1.0;
-          currentBeat += dur;
+          currentBeat = Math.round((currentBeat + dur) * 9600) / 9600;
         }
       }
     }
@@ -582,8 +582,9 @@ export function resolveCoil(
 ): CoilResolutionResult {
   const warnings: string[] = [];
 
-  // If this coil is a composite concatenation of sub-coils, resolve via resolveConcatCoil
-  if (coil.concat && coil.concat.length > 0) {
+  // If this coil is a composite concatenation / stitch of sub-coils, resolve via resolveConcatCoil
+  const coilStitches = coil.stitch ?? coil.stitches ?? coil.concat;
+  if (coilStitches && coilStitches.length > 0) {
     return resolveConcatCoil(coil, knot, coilLibrary, defaultCoil);
   }
   

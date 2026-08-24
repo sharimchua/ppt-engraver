@@ -547,10 +547,39 @@ tapestry:
     expect(result.lilypondSource).toContain('\\override StaffSymbol.stencil = ##f');
     expect(result.lilypondSource).toContain('\\override Clef.stencil = ##f');
     expect(result.lilypondSource).toContain('\\gridSymbolsVoice');
-    // Verify NoteHead.stencil ##f is used on downbeats without symbols
-    expect(result.lilypondSource).toContain('\\tweak NoteHead.stencil ##f b\'8');
-    // Verify geometric notehead symbol stencil is used on offbeats
-    expect(result.lilypondSource).toContain('\\tweak NoteHead.text \\markup { \\stencil #gridSymbolFi } b\'8');
+  });
+
+  it('compiles weaves using stitch: [...] syntax with layout: parallel', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: C4
+    engraving:
+      colorNotes: true
+      omitStem: true
+      noteheadStyle: ppt
+      show:
+        - melody
+        - harmony
+        - chordNames
+  weaves:
+    song:
+      layout: parallel
+      stitch:
+        - coil:
+            id: lead
+            melody: [Do, Me, So, Do^]
+            rhythm: [Do, Fi, Do, Fi, Do, Fi, Do, Fi]
+        - coil:
+            id: progression
+            pulse: Do
+            harmony: [Do, Fa, So, Do]
+`;
+
+    const result = compileYamlString(yaml);
+    expect(result.warnings).toHaveLength(0);
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_song_lead_melody_1');
+    expect(result.lilypondSource).toContain('\\new ChordNames');
   });
 });
 

@@ -1,0 +1,20 @@
+﻿id: snip-weave-parallel
+label: New Parallel Weave (Polyphony / Layering)
+displayText: New Parallel Weave (Parallel)
+desc: Concurrent / simultaneous stitch layering
+category: Snippets
+icon: 🧶
+context:
+  - weaves
+  - weave-body
+snippet: |
+  section:
+    layout: parallel
+    stitch:
+      - coil:
+          id: melody_part
+          melody: [Do, Me, So, Do^]
+          rhythm: [Do, Fi, Do, Fi, Do, Fi, Do, Fi]
+      - coil:
+          id: chords_part
+          harmony: [Do, Fa, So, Do]

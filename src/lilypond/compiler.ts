@@ -1355,6 +1355,10 @@ export function compileToLilyPond(
     "  \\cadenzaOn",
   ];
 
+  function roundBeat(b: number): number {
+    return Math.round(b * 9600) / 9600;
+  }
+
   if (showRhythmCoil) {
     for (let g = 0; g < coilGroups.length; g++) {
       const group = coilGroups[g];
@@ -1367,9 +1371,9 @@ export function compileToLilyPond(
       let maxEndBeat = 0;
 
       for (const o of group.onsets) {
-        const start = o.startBeat ?? (o.onsetIndex - 1);
-        const durB = o.durationBeats ?? 1.0;
-        const end = start + durB;
+        const start = roundBeat(o.startBeat ?? (o.onsetIndex - 1));
+        const durB = o.durationBeats !== undefined ? roundBeat(o.durationBeats) : 1.0;
+        const end = roundBeat(start + durB);
         if (end > maxEndBeat) {
           maxEndBeat = end;
         }
@@ -2003,9 +2007,9 @@ export function compileToLilyPond(
         let maxEndBeat = 0;
 
         for (const o of group.onsets) {
-          const start = o.startBeat ?? (o.onsetIndex - 1);
-          const durB = o.durationBeats !== undefined ? o.durationBeats : 1.0;
-          const end = start + durB;
+          const start = roundBeat(o.startBeat ?? (o.onsetIndex - 1));
+          const durB = o.durationBeats !== undefined ? roundBeat(o.durationBeats) : 1.0;
+          const end = roundBeat(start + durB);
           if (end > maxEndBeat) {
             maxEndBeat = end;
           }
@@ -2070,25 +2074,71 @@ export function compileToLilyPond(
       // When coil staves are shown, top & bottom grid symbols frame the coil stack
       for (let c = 0; c < coilGroups.length; c++) {
         const group = coilGroups[c];
-        const pOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
+        const timestampMap = new Map<number, { rhythmToken?: string; isRest?: boolean }>();
+        let maxEndBeat = 0;
+
+        for (const o of group.onsets) {
+          const start = roundBeat(o.startBeat ?? (o.onsetIndex - 1));
+          const durB = o.durationBeats !== undefined ? roundBeat(o.durationBeats) : 1.0;
+          const end = roundBeat(start + durB);
+          if (end > maxEndBeat) {
+            maxEndBeat = end;
+          }
+
+          const existing = timestampMap.get(start);
+          if (!existing) {
+            timestampMap.set(start, { rhythmToken: o.rhythmToken, isRest: o.isRest });
+          } else {
+            if (existing.isRest && !o.isRest) {
+              existing.isRest = false;
+              existing.rhythmToken = o.rhythmToken;
+            } else if (!existing.rhythmToken && o.rhythmToken) {
+              existing.rhythmToken = o.rhythmToken;
+            }
+          }
+        }
+
+        const sortedTimes = Array.from(timestampMap.keys()).sort((a, b) => a - b);
+        if (sortedTimes.length === 0) {
+          sortedTimes.push(0);
+          maxEndBeat = 1.0;
+        }
+
         const topSpacers: string[] = [];
         const bottomSpacers: string[] = [];
 
-        for (let idx = 0; idx < pOnsets.length; idx++) {
-          const onset = pOnsets[idx];
-          const onsetDur =
-            traditionalRhythms && onset.durationBeats !== undefined
-              ? beatsToLilyPondDuration(onset.durationBeats, true)
-              : (onset.duration ?? dur);
-          const schemeVar = getGridSymbolSchemeVar(onset, excludeDo);
+        for (let tIdx = 0; tIdx < sortedTimes.length; tIdx++) {
+          const startBeat = sortedTimes[tIdx];
+          const nextBeat = tIdx < sortedTimes.length - 1 ? sortedTimes[tIdx + 1] : maxEndBeat;
+          const durationBeats = Math.max(0.125, nextBeat - startBeat);
+          const durationStr = beatsToLilyPondDuration(durationBeats);
+
+          const entry = timestampMap.get(startBeat);
+          let rhythmToken = entry?.rhythmToken;
+          if (!rhythmToken) {
+            const f = startBeat - Math.floor(startBeat);
+            const s = Math.round(f * 12) % 12;
+            rhythmToken = SOLFEGE_POSITIONS[s] ?? "Do";
+          }
+
+          const schemeVar = getGridSymbolSchemeVar(
+            {
+              rhythmToken,
+              startBeat,
+              isRest: entry?.isRest,
+            } as any,
+            excludeDo,
+          );
+
           if (schemeVar) {
-            topSpacers.push(`s${onsetDur}^\\markup { \\stencil #${schemeVar} }`);
-            bottomSpacers.push(`s${onsetDur}_\\markup { \\stencil #${schemeVar} }`);
+            topSpacers.push(`s${durationStr}^\\markup { \\stencil #${schemeVar} }`);
+            bottomSpacers.push(`s${durationStr}_\\markup { \\stencil #${schemeVar} }`);
           } else {
-            topSpacers.push(`s${onsetDur}`);
-            bottomSpacers.push(`s${onsetDur}`);
+            topSpacers.push(`s${durationStr}`);
+            bottomSpacers.push(`s${durationStr}`);
           }
         }
+
         gridSymbolsTopLines.push(`  ${topSpacers.join(" ")}`);
         gridSymbolsBottomLines.push(`  ${bottomSpacers.join(" ")}`);
         if (c < coilGroups.length - 1) {

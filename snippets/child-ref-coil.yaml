@@ -1,10 +1,11 @@
-id: snip-child-ref-coil
-label: Add Child Coil Reference
-displayText: Add Child Coil Reference (- coil: ...)
+id: snip-stitch-ref-coil
+label: Add Stitch Coil Reference
+displayText: Add Stitch Coil Reference (- coil: ...)
 desc: Reference to declared coil
 category: Snippets
 icon: 🎵
 context:
+  - stitch
   - children
 snippet: |
   - coil: 

@@ -23,7 +23,7 @@ export async function extractParentCoil(cm, options = {}) {
   const coil = getEnclosingCoilAtPos(cm, cur);
 
   if (!coil) {
-    alert('Please place the cursor inside a coil (in coils: or children:) to extract a parent.');
+    alert('Please place the cursor inside a coil (in coils: or stitch:) to extract a parent.');
     return;
   }
 
@@ -120,7 +120,7 @@ export async function extractInlineCoil(cm, options = {}) {
   const coil = getEnclosingCoilAtPos(cm, cur);
 
   if (!coil || coil.type !== 'inline-child') {
-    alert('Please place cursor inside an inline child coil (- coil:) within a children block.');
+    alert('Please place cursor inside an inline stitch coil (- coil:) within a stitch block.');
     return;
   }
 
@@ -278,7 +278,7 @@ export async function extractWeave(cm, options = {}) {
     ? selectedText.split('\n').map(l => `      ${l.trim()}`).join('\n')
     : `      - coil: verse`;
 
-  const newWeaveYaml = `    ${weaveId}:\n      children:\n${childrenContent}`;
+  const newWeaveYaml = `    ${weaveId}:\n      stitch:\n${childrenContent}`;
 
   let insertLine = -1;
   for (let l = 0; l < lines.length; l++) {

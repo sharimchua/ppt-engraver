@@ -28,7 +28,7 @@ snippet: |
 
     weaves:
       song:
-        children:
+        stitch:
           - coil:
               # melody: [Dox, Do, Me, So, Me, Do]
               # rhythm: [Do, Fi, Do, Fi, Do, 2]

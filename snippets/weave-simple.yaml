@@ -1,7 +1,7 @@
 id: snip-weave-simple
-label: New Weave (Children only)
-displayText: New Weave (Children only)
-desc: Weave container for child coils
+label: New Weave (Stitches only)
+displayText: New Weave (Stitches only)
+desc: Weave container for stitches
 category: Snippets
 icon: 🧶
 context:
@@ -9,6 +9,6 @@ context:
   - weave-body
 snippet: |
   section:
-    children:
+    stitch:
       - coil: verse
       - coil: chorus

@@ -250,7 +250,7 @@ export function resolveRhythmTimeline(
       }
     }
 
-    const startBeat = currentBeat + p.offsetInBeat;
+    const startBeat = Math.round((currentBeat + p.offsetInBeat) * 9600) / 9600;
     timestamps.push(startBeat);
     prevOffsetInBeat = p.offsetInBeat;
   }
@@ -262,12 +262,12 @@ export function resolveRhythmTimeline(
     let durationBeats: number;
 
     if (i < timestamps.length - 1) {
-      durationBeats = timestamps[i + 1] - startBeat;
+      durationBeats = Math.round((timestamps[i + 1] - startBeat) * 9600) / 9600;
     } else {
       // Final note: extend to the next beat boundary (at least 1.0 beat if starting on downbeat)
-      const nextBeatBoundary = Math.floor(startBeat + 1e-5) + 1;
+      const nextBeatBoundary = Math.floor(startBeat + 1e-4) + 1;
       durationBeats = nextBeatBoundary > startBeat
-        ? nextBeatBoundary - startBeat
+        ? Math.round((nextBeatBoundary - startBeat) * 9600) / 9600
         : 1.0;
     }
 
