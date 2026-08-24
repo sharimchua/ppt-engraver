@@ -10,6 +10,7 @@ The `studio/public/` directory contains the client-side single-page application 
   - `rhythm.js`: PPT rhythm timeline resolution, lookback repeats, downbeat phase detection, and grammar optimization.
   - `glyphs.js`: SVG Solfège glyph generator (geometric rotations, axis anchors, octave triangles).
   - `ast-scanner.js`: Fast YAML structural scanner, enclosing coil/weave detectors, and LilyPond provenance tag resolvers.
+  - `midi-input.js`: Web MIDI API input engine, contextual array detection, chord voicing analyzer with confirmation key, and additive token inserter.
 - **`js/editor/`**:
   - `editor.js`: CodeMirror initialization, lifecycle, addons, and folding.
   - `solfege-mode.js`: Syntax highlighting overlay for Solfège degrees and sky-cyan ID references.
@@ -134,7 +135,31 @@ The `studio/public/` directory contains the client-side single-page application 
   - Filterable command list with instant fuzzy search across all project operations, refactorings, score metadata, dynamically registered snippets, folding, navigation, and compilation tools with full keyboard navigation (`↑`/`↓`/`Enter`/`Esc`).
   - **Quick Preference Toggles**: Directly toggle Auto-Compile, Solfège Highlighting, Melody Previews, Autocompletion, Coil Suggestions, or open Settings without leaving the keyboard.
 
-### 5. Lightweight Text-Aligned Solfège Preview Strip & Paired Layer Highlighting
+### 5. Contextual MIDI Solfège Typing (`core/midi-input.js`)
+- **Context-Aware Editor Input**:
+  - Automatically activates when the editor cursor is located on or inside an array containing Solfège tokens (`melody`, `harmony`, `chords`, `rhythm`, `pitches`, `pulse`).
+  - Automatically appends or inserts tokens additively at or after the cursor position and advances the cursor to the newly inserted token for continuous entry.
+- **Rhythm Layer (`rhythm: [...]`)**:
+  - Uses universal reference pitch `midiRhythmDo` configured in Settings (default `C4` = MIDI 60).
+  - Playing the reference note enters `Do`.
+  - Playing the reference note one octave down (e.g. `C3`) enters `Dox` (beat skip).
+  - Single keys map to chromatic Solfège rhythm tokens (`Do`, `Ra`, `Re`, `Me`, `Mi`, `Fa`, `Fi`, `So`, `Le`, `La`, `Te`, `Ti`).
+- **Harmony Layer (`harmony: [...]` / `chords: [...]`)**:
+  - Absolute pitch voicing translated to Solfège relative to the active Knot's tonic.
+  - **Octave-Down Confirmation Key Protocol**: Holds chord tones (single note, dyad, triad, 7th) and strikes the lowest held note one octave down ($N_{\min} - 12$) to submit the chord:
+    - Single note held + confirmation key $\to$ default Major triad denoted by root (e.g. `Do`, `La`, `Fa`, `So`).
+    - Multiple notes held + confirmation key $\to$ evaluated against PPT harmonic grammar (e.g. `C4-E4-G4-B4` + `C3` $\to$ `DoTi`, `C4-B4` + `C3` $\to$ `DoTi`, `A4-C5-E5` + `A3` $\to$ `LaMe`, `G4-B4-D5-F5` + `G3` $\to$ `SoTe`, `D4-F4-A4-C5` + `D3` $\to$ `ReMeTe`).
+- **Melody Layer (`melody: [...]` / `pitches: [...]`)**:
+  - Absolute pitch translated relative to the active Knot's tonic.
+  - Automatically detects **Interval Mode** (when array starts with axis anchor `x`, e.g. `[Dox, ...]`) vs **Absolute Mode** (default).
+  - In Absolute Mode: emits scale degrees with octave modifiers (`Do`, `Re`, `Mi`, `So^`, `Do_`).
+  - In Interval Mode: 1st token enters with axis `x` (`Dox`, `Rex`), subsequent notes compute signed semitone interval from the previous note (`diff = note - prevNote`) and emit interval Solfège tokens (`Do`, `Re`, `Ti`, `So^`).
+- **Device Management & UI Controls**:
+  - Live toolbar status pill/button (`#btn-midi-toggle`, `.btn-midi-badge`) displaying connection state (`MIDI: On`, `MIDI: Off`, `MIDI: <DeviceName>`).
+  - Quick toggle via keyboard shortcut (`Ctrl+Shift+M` / `Cmd+Shift+M`) or Command Palette (`Toggle MIDI Solfège Input`).
+  - Multi-device selector in Settings modal allowing listening to all controllers or locking onto a specific hardware interface.
+
+### 6. Lightweight Text-Aligned Solfège Preview Strip & Paired Layer Highlighting
 - **Line Widget (`.cm-token-solfege-strip`)**:
   - Active on `melody:`, `harmony:`, `rhythm:`, `chords:`, `pitches:` lines, and nested polyphonic voice arrays (`- [...]`, `- pitches:`).
   - Floats directly above the line being edited with pixel-accurate token alignment.

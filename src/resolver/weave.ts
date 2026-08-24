@@ -105,6 +105,7 @@ export function resolveWeave(
     hasExplicitMelody: boolean;
     hasExplicitHarmony: boolean;
     hasExplicitRhythm: boolean;
+    hasEmptyMelody?: boolean;
   }
 
   const resolvedStitches: ResolvedStitchItem[] = [];

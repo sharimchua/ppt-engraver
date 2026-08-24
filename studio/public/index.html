@@ -56,6 +56,9 @@
       </div>
 
       <div class="header-right">
+        <button id="btn-midi-toggle" class="btn btn-secondary btn-midi-badge" title="Toggle MIDI Solfège Typing (Ctrl+Shift+M)">
+          <span class="midi-icon">🎹</span> <span id="midi-status-text">MIDI: On</span>
+        </button>
         <button id="btn-command-palette" class="btn btn-secondary" title="Command Palette (Ctrl+Shift+P / F1)">
           <span>⌨</span> Commands
         </button>
@@ -273,6 +276,30 @@
               <span id="label-loupe-power" style="font-family: var(--font-mono); font-size: 11px; color: var(--primary);">2.5x</span>
             </div>
             <input type="range" id="setting-loupe-power" min="1.5" max="5.0" step="0.25" value="2.5" style="cursor: pointer;">
+          </div>
+
+          <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+            <div style="font-weight: 600; font-size: 12px; margin-bottom: 10px; color: var(--text-main);">MIDI Solfège Typing</div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
+                <input type="checkbox" id="setting-enable-midi" checked>
+                <span>Enable MIDI Solfège Typing</span>
+              </label>
+              
+              <div class="form-group" style="margin-top: 4px;">
+                <label for="setting-midi-rhythm-do" style="font-size: 11px;">Universal Rhythm Do Reference Pitch:</label>
+                <input type="text" id="setting-midi-rhythm-do" class="input-text" placeholder="e.g. C4, C3, D4" value="C4" style="padding: 4px 8px; font-size: 12px;">
+                <small class="hint-text" style="font-size: 10px; color: var(--text-muted);">Defines Do for rhythm input (Dox = 1 octave down, e.g. C3 when Do is C4).</small>
+              </div>
+
+              <div class="form-group" style="margin-top: 4px;">
+                <label for="setting-midi-device" style="font-size: 11px;">MIDI Input Device:</label>
+                <select id="setting-midi-device" class="input-text" style="padding: 4px 8px; font-size: 12px; background: var(--bg-card); color: var(--text-main);">
+                  <option value="all">All Connected MIDI Devices</option>
+                </select>
+                <small id="setting-midi-device-hint" class="hint-text" style="font-size: 10px; color: var(--text-muted);">Select a specific controller or listen to all inputs.</small>
+              </div>
+            </div>
           </div>
 
           <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">

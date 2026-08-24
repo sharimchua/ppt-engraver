@@ -677,10 +677,19 @@ PPT Studio includes a suite of musical transposition modals, structural AST help
   - Features an automated **Grammar Optimization Suggester** that analyzes onset timestamps and recommends the period length that minimizes `Dox` delays and compound suffixes (`LeFi`, `MeFi`).
   - Optional tempo compensation to preserve real-time playback duration.
 
+### Contextual MIDI Solfège Typing (`Ctrl+Shift+M`)
+PPT Studio supports direct "typing" of Solfège tokens into the CodeMirror editor using connected MIDI keyboards and controllers. Entry is contextual and activates when the editor cursor is located on or inside a Solfège array:
+- **Rhythm Layer (`rhythm: [...]`)**: Maps key strikes relative to a universal Rhythm Do reference pitch (default `C4`). Playing Do an octave down (e.g. `C3`) enters `Dox` (beat skip). Single keys enter chromatic rhythm degrees (`Do`, `Ra`, `Re`, `Me`, `Mi`, `Fa`, `Fi`, `So`, `Le`, `La`, `Te`, `Ti`).
+- **Harmony Layer (`harmony: [...]` / `chords: [...]`)**: Realizes absolute chord voicings relative to the active knot tonic using an **octave-down confirmation key** ($N_{\min} - 12$). Holding chord tones and striking the root 1 octave down translates the chord against PPT harmonic grammar (e.g. `C4-E4-G4-B4` + `C3` $\to$ `DoTi`, `C4-B4` + `C3` $\to$ `DoTi`, `A4-C5-E5` + `A3` $\to$ `LaMe`, `G4-B4-D5-F5` + `G3` $\to$ `SoTe`, `D4-F4-A4-C5` + `D3` $\to$ `ReMeTe`).
+- **Melody Layer (`melody: [...]` / `pitches: [...]`)**: Converts played notes into Solfège based on active Knot tonic. Automatically infers **Interval Mode** (when array starts with axis anchor `x`, e.g. `[Dox, ...]`) vs **Absolute Mode** (default). In interval mode, computes relative signed semitone intervals against the preceding note.
+- **Additive & Progressive**: Tokens are inserted cleanly at or after the cursor position, and the cursor advances automatically to the newly added token for seamless continuous playing.
+- **Hardware Selection & Toggle**: Toggle with `Ctrl+Shift+M`, the toolbar button, or Command Palette. Select individual MIDI devices or listen to all inputs simultaneously in Settings (⚙).
+
 ### Keyboard Shortcuts Reference
 
 | Shortcut | Context | Action |
 |---|---|---|
+| `Ctrl+Shift+M` / `Cmd+Shift+M` | Global | **Toggle MIDI Solfège Typing** On / Off |
 | `Ctrl+Up` / `Ctrl+Down` | On Solfège note | Transpose active note chromatically (+1 / -1 semitone) |
 | `Ctrl+Up` / `Ctrl+Down` | On property line | Navigate cursor to previous / next **property sibling** at same indentation |
 | `Ctrl+Alt+Up` / `Ctrl+Alt+Down` | On Solfège note | Shift active note octave (+1 / -1 octave with `^` / `_`) |

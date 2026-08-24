@@ -22,6 +22,31 @@ export function setupSettingsModal() {
   const settingEnableSolfegeColors = document.getElementById('setting-enable-solfege-colors');
   const settingEnableCoilSuggestions = document.getElementById('setting-enable-coil-suggestions');
   const settingEnableSolfegeContext = document.getElementById('setting-enable-solfege-context');
+  const settingEnableMidi = document.getElementById('setting-enable-midi');
+  const settingMidiRhythmDo = document.getElementById('setting-midi-rhythm-do');
+  const settingMidiDevice = document.getElementById('setting-midi-device');
+  const settingMidiDeviceHint = document.getElementById('setting-midi-device-hint');
+
+  function populateMidiDevices(devices, selectedId) {
+    if (!settingMidiDevice) return;
+    settingMidiDevice.innerHTML = '<option value="all">All Connected MIDI Devices</option>';
+    if (devices && devices.length > 0) {
+      devices.forEach(dev => {
+        const opt = document.createElement('option');
+        opt.value = dev.id;
+        opt.textContent = `${dev.name}${dev.manufacturer ? ` (${dev.manufacturer})` : ''}`;
+        if (dev.id === selectedId) opt.selected = true;
+        settingMidiDevice.appendChild(opt);
+      });
+      if (settingMidiDeviceHint) {
+        settingMidiDeviceHint.textContent = `Found ${devices.length} MIDI device(s).`;
+      }
+    } else {
+      if (settingMidiDeviceHint) {
+        settingMidiDeviceHint.textContent = 'No hardware MIDI devices detected. Connect a controller and refresh.';
+      }
+    }
+  }
 
   if (settingLoupeSize && labelLoupeSize) {
     settingLoupeSize.addEventListener('input', (e) => {
@@ -60,6 +85,10 @@ export function setupSettingsModal() {
         if (settingEnableCoilSuggestions) settingEnableCoilSuggestions.checked = state.preferences.coilSuggestions;
         if (settingEnableSolfegeContext) settingEnableSolfegeContext.checked = state.preferences.solfegeContext;
 
+        if (settingEnableMidi) settingEnableMidi.checked = Boolean(state.preferences.midiEnabled);
+        if (settingMidiRhythmDo) settingMidiRhythmDo.value = state.preferences.midiRhythmDo || 'C4';
+        populateMidiDevices(state.midiDevices || [], state.preferences.midiDeviceId || 'all');
+
         if (settingsModal) settingsModal.classList.remove('hidden');
       } catch (err) {
         console.error('Failed to load settings:', err);
@@ -97,6 +126,16 @@ export function setupSettingsModal() {
       }
       if (settingEnableSolfegeContext) {
         setPreference('solfegeContext', settingEnableSolfegeContext.checked);
+      }
+
+      if (settingEnableMidi) {
+        setPreference('midiEnabled', settingEnableMidi.checked);
+      }
+      if (settingMidiRhythmDo) {
+        setPreference('midiRhythmDo', settingMidiRhythmDo.value.trim() || 'C4');
+      }
+      if (settingMidiDevice) {
+        setPreference('midiDeviceId', settingMidiDevice.value || 'all');
       }
 
       try {

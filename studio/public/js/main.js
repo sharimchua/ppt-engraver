@@ -2,7 +2,8 @@
  * Prime Period Theory Studio - Main Application Bootstrap
  */
 
-import { state, setDirty, events } from './state.js';
+import { state, setDirty, setPreference, events } from './state.js';
+import { midiManager } from './core/midi-input.js';
 import {
   apiGetScores,
   apiGetScore,
@@ -303,6 +304,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         action: () => triggerCompile(),
       },
       {
+        id: 'midi-toggle-input',
+        title: 'Toggle MIDI Solfège Input',
+        category: 'MIDI & Input',
+        icon: '🎹',
+        shortcut: 'Ctrl+Shift+M',
+        action: () => toggleMidiInput(),
+      },
+      {
         id: 'refactor-transpose-tonic',
         title: 'Transpose Tonic & Mode (Preserve Pitch)...',
         category: 'Music Theory & Pitch',
@@ -420,6 +429,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     onLoadScore: (path) => loadScore(path),
   });
 
+  function toggleMidiInput() {
+    const nextState = !state.preferences.midiEnabled;
+    setPreference('midiEnabled', nextState);
+    toolbar.updateMidiButtonUi?.();
+    notifications.setMetrics(nextState ? '🎹 MIDI Typing Enabled' : '🎹 MIDI Typing Disabled');
+  }
+
   // --- Initialize CodeMirror Editor ---
   const editorContainer = document.getElementById('editor-container');
   editor = initEditor(editorContainer, {
@@ -433,6 +449,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       getEditor: () => editor,
     }),
     triggerCompile,
+    toggleMidi: () => toggleMidiInput(),
     openCommandPalette: () => commandPalette.openCommandPalette(),
     renameSymbol: (cm) => renameSymbol(cm, { onTriggerCompile: triggerCompile, onSetStatus: notifications.setStatus }),
     openGotoReferencePalette: () => commandPalette.openGotoReferencePalette(),
@@ -444,7 +461,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // --- Setup UI Subsystems ---
-  setupToolbar({
+  const toolbar = setupToolbar({
     onLoadScore: (path) => loadScore(path),
     onSaveScore: saveScore,
     onTriggerCompile: triggerCompile,
@@ -462,6 +479,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       getEditor: () => editor,
     }),
     onKnotChanged: (knotId) => updateUrlAndStorage(state.currentScoreFile, knotId),
+  });
+
+  // Initialize Web MIDI Manager
+  midiManager.init(() => editor);
+
+  events.on('midi:status', (statusInfo) => {
+    state.midiStatus = statusInfo.status;
+    if (statusInfo.devices) {
+      state.midiDevices = statusInfo.devices;
+    }
+    toolbar.updateMidiButtonUi?.();
+  });
+
+  events.on('midi:devices', (devices) => {
+    state.midiDevices = devices || [];
+    toolbar.updateMidiButtonUi?.();
+  });
+
+  events.on('preference:changed', ({ key }) => {
+    if (key === 'midiEnabled' || key === 'midiDeviceId') {
+      toolbar.updateMidiButtonUi?.();
+    }
   });
 
   setupSplitPane(() => {

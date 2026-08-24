@@ -37,6 +37,7 @@ class EventEmitter {
 export const events = new EventEmitter();
 
 function getStoredPref(key, defaultValue) {
+  if (typeof localStorage === 'undefined') return defaultValue;
   const variations = [
     `ppt_${key}`,
     `ppt_enable_${key}`,
@@ -79,10 +80,16 @@ const internalState = {
     solfegeColors: getStoredPref('solfegeColors', true),
     coilSuggestions: getStoredPref('coilSuggestions', true),
     solfegeContext: getStoredPref('solfegeContext', true),
+    midiEnabled: getStoredPref('midiEnabled', true),
+    midiRhythmDo: getStoredPref('midiRhythmDo', 'C4'),
+    midiDeviceId: getStoredPref('midiDeviceId', 'all'),
     loupeSize: getStoredPref('loupeSize', 220),
     loupePower: getStoredPref('loupePower', 2.5),
     lilypondPath: getStoredPref('lilypondPath', ''),
   },
+  midiStatus: 'disconnected',
+  midiDevices: [],
+  midiDeviceName: '',
 };
 
 export const state = new Proxy(internalState, {
@@ -112,10 +119,12 @@ export const state = new Proxy(internalState, {
 
 export function setPreference(key, value) {
   state.preferences[key] = value;
-  localStorage.setItem(`ppt_${key}`, String(value));
-  const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-  localStorage.setItem(`ppt_enable_${snakeKey}`, String(value));
-  localStorage.setItem(`ppt_${snakeKey}`, String(value));
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(`ppt_${key}`, String(value));
+    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    localStorage.setItem(`ppt_enable_${snakeKey}`, String(value));
+    localStorage.setItem(`ppt_${snakeKey}`, String(value));
+  }
   events.emit('preference:changed', { key, value });
 }
 export const updatePreference = setPreference;
