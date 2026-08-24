@@ -578,7 +578,8 @@ tapestry:
 
     const result = compileYamlString(yaml);
     expect(result.warnings).toHaveLength(0);
-    expect(result.lilypondSource).toContain('\\tag #\'ppt_song_lead_melody_1');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_song_song_melody_v1_1');
+    expect(result.lilypondSource).toContain('\\tag #\'ppt_song_song_melody_v2_1');
     expect(result.lilypondSource).toContain('\\new ChordNames');
   });
 });

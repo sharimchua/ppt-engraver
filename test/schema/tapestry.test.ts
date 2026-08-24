@@ -391,6 +391,26 @@ describe('TapestrySchema', () => {
     const result = TapestrySchema.safeParse(tap);
     expect(result.success).toBe(true);
   });
+
+  it('accepts weaves configured with layout: parallelPeriod', () => {
+    const tap = {
+      tapestry: {
+        weave: {
+          id: 'polyrhythm_weave',
+          layout: 'parallelPeriod',
+          stitch: [
+            { coil: { id: 'c1', melody: ['Do', 'Re', 'Mi'], rhythm: ['Do', 'Do', 'Do'] } },
+            { coil: { id: 'c2', melody: ['Do', 'Re', 'Me', 'Fa'], rhythm: ['Do', 'Do', 'Do', 'Do'] } },
+          ],
+        },
+      },
+    };
+    const result = TapestrySchema.safeParse(tap);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tapestry.weave.layout).toBe('parallelPeriod');
+    }
+  });
 });
 
 

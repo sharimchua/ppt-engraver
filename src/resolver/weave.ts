@@ -13,7 +13,8 @@ import type { Weave, Coil, WeaveStitch } from '../schema/tapestry.js';
 import type { ResolvedKnot } from '../solfege/pitch.js';
 import type { Onset } from '../schema/onset.js';
 import { midiToPitchName } from '../solfege/pitch.js';
-import { resolveCoil, isMelodyDefined, isHarmonyDefined, isRhythmDefined } from './coil.js';
+import { resolveCoil, isMelodyDefined, isHarmonyDefined, isRhythmDefined, isMelodyExplicitlyEmpty } from './coil.js';
+import { beatsToLilyPondDuration, resolveMetricGrammar } from '../solfege/rhythm.js';
 
 export interface WeaveResolutionResult {
   onsets: Onset[];
@@ -151,6 +152,7 @@ export function resolveWeave(
         hasExplicitMelody: childResult.onsets.some(o => o.scaleDegree !== 'Do' || !o.isRest),
         hasExplicitHarmony: childResult.onsets.some(o => o.chordRoot !== 'Do'),
         hasExplicitRhythm: true,
+        hasEmptyMelody: childResult.onsets.every(o => o.isRest),
       });
     } else if ('coil' in stitch && stitch.coil !== undefined) {
       // --- Stitch is a Coil ---
@@ -256,6 +258,7 @@ export function resolveWeave(
         Boolean(coil.concat?.length) ||
         Boolean((coil as any).stitch?.length) ||
         Boolean((coil as any).stitches?.length);
+      const hasEmptyMelody = isMelodyExplicitlyEmpty(coil.melody);
 
       resolvedStitches.push({
         type: 'coil',
@@ -265,6 +268,7 @@ export function resolveWeave(
         hasExplicitMelody,
         hasExplicitHarmony,
         hasExplicitRhythm,
+        hasEmptyMelody,
       });
     } else {
       throw new Error(`Invalid Weave stitch in weave "${effectiveWeaveId}"`);
@@ -293,30 +297,61 @@ export function resolveWeave(
       }
       currentTimelineBeat = roundBeat(currentTimelineBeat + itemDuration);
     }
-  } else if (layout === 'parallel') {
-    // Parallel Layout:
-    // Case 1: Separate Harmony Coil(s) + Melody/Rhythm Coil(s)
-    // If some stitches provide harmony without explicit melody, and others provide melody,
-    // merge the chord progression into the melody onsets at matching timestamps.
-    const melodyStitches = resolvedStitches.filter(s => s.hasExplicitMelody);
-    const harmonyStitches = resolvedStitches.filter(s => s.hasExplicitHarmony && !s.hasExplicitMelody);
-
-    if (harmonyStitches.length > 0 && melodyStitches.length > 0) {
-      // Calculate max duration across all stitches
-      let maxParallelDuration = 0;
+  } else if (layout === 'parallel' || layout === 'parallelPeriod') {
+    // If layout is parallelPeriod, scale all stitches so their total duration matches the target period
+    if (layout === 'parallelPeriod') {
+      let targetDuration = 0;
       for (const s of resolvedStitches) {
+        let stitchDur = 0;
         for (const o of s.onsets) {
           const endBeat = roundBeat((o.startBeat ?? 0) + (o.durationBeats ?? 1.0));
-          if (endBeat > maxParallelDuration) {
-            maxParallelDuration = endBeat;
+          if (endBeat > stitchDur) {
+            stitchDur = endBeat;
           }
+        }
+        if (stitchDur > targetDuration) {
+          targetDuration = stitchDur;
         }
       }
 
-      // Build chronological chord timeline from harmonyStitches
-      const chordTimeline: Array<{ startBeat: number; endBeat: number; chordRoot: string; chordTones: string[]; chordMidi: number[]; projectedChordMidi: number[]; sourceCoil: string }> = [];
-      for (const hs of harmonyStitches) {
-        for (const o of hs.onsets) {
+      const explicitPulse = weave.pulse ?? weave.meter;
+      if (explicitPulse) {
+        const grammar = resolveMetricGrammar(explicitPulse);
+        if (grammar.totalBeats > 0) {
+          targetDuration = Math.max(targetDuration, grammar.totalBeats);
+        }
+      }
+
+      if (targetDuration > 0) {
+        for (const s of resolvedStitches) {
+          let stitchDur = 0;
+          for (const o of s.onsets) {
+            const endBeat = roundBeat((o.startBeat ?? 0) + (o.durationBeats ?? 1.0));
+            if (endBeat > stitchDur) {
+              stitchDur = endBeat;
+            }
+          }
+
+          if (stitchDur > 0 && Math.abs(stitchDur - targetDuration) > 1e-4) {
+            const scaleFactor = targetDuration / stitchDur;
+            for (const o of s.onsets) {
+              const rawStart = o.startBeat ?? 0;
+              const rawDur = o.durationBeats ?? 1.0;
+              o.startBeat = roundBeat(rawStart * scaleFactor);
+              o.durationBeats = roundBeat(rawDur * scaleFactor);
+              o.duration = beatsToLilyPondDuration(o.durationBeats);
+            }
+          }
+        }
+      }
+    }
+
+    // Parallel Layout (standard parallel or period-matched parallelPeriod):
+    // 1. Build chronological chord timeline from all stitches with explicit harmony
+    const chordTimeline: Array<{ startBeat: number; endBeat: number; chordRoot: string; chordTones: string[]; chordMidi: number[]; projectedChordMidi: number[]; sourceCoil: string }> = [];
+    for (const s of resolvedStitches) {
+      if (s.hasExplicitHarmony) {
+        for (const o of s.onsets) {
           const start = o.startBeat ?? 0;
           const dur = o.durationBeats ?? 1.0;
           chordTimeline.push({
@@ -330,35 +365,54 @@ export function resolveWeave(
           });
         }
       }
-      chordTimeline.sort((a, b) => a.startBeat - b.startBeat);
+    }
+    chordTimeline.sort((a, b) => a.startBeat - b.startBeat);
 
-      const getActiveChord = (beat: number) => {
-        let active = chordTimeline[0];
-        for (const ev of chordTimeline) {
-          if (ev.startBeat <= beat + 1e-4) {
-            active = ev;
-          } else {
-            break;
-          }
+    const getActiveChord = (beat: number) => {
+      if (chordTimeline.length === 0) return null;
+      let active = chordTimeline[0];
+      for (const ev of chordTimeline) {
+        if (ev.startBeat <= beat + 1e-4) {
+          active = ev;
+        } else {
+          break;
         }
-        return active;
-      };
+      }
+      return active;
+    };
 
-      // Assign voiceIndex if multiple melody stitches are parallel
-      let nextVoiceIndex = 1;
-      for (let sIdx = 0; sIdx < melodyStitches.length; sIdx++) {
-        const ms = melodyStitches[sIdx];
-        const assignedVoice = melodyStitches.length > 1 ? nextVoiceIndex++ : undefined;
+    const activeMelodyStitches = resolvedStitches.filter(s => !s.hasEmptyMelody && s.onsets.some(o => !o.isRest));
+    const stitchesToProcess = activeMelodyStitches.length > 0 ? activeMelodyStitches : resolvedStitches;
 
-        let maxMelodyBeat = 0;
-        let lastOnsetIndex = 0;
+    let maxParallelDuration = 0;
+    for (const s of resolvedStitches) {
+      for (const o of s.onsets) {
+        const endBeat = roundBeat((o.startBeat ?? 0) + (o.durationBeats ?? 1.0));
+        if (endBeat > maxParallelDuration) {
+          maxParallelDuration = endBeat;
+        }
+      }
+    }
 
-        for (const o of ms.onsets) {
-          const beat = o.startBeat ?? 0;
-          const endBeat = beat + (o.durationBeats ?? 1.0);
-          if (endBeat > maxMelodyBeat) maxMelodyBeat = endBeat;
-          if (o.onsetIndex > lastOnsetIndex) lastOnsetIndex = o.onsetIndex;
+    const isMultiStitch = stitchesToProcess.length > 1;
+    let nextVoiceIndex = 1;
 
+    for (const s of stitchesToProcess) {
+      const distinctVoicesInStitch = Array.from(new Set(s.onsets.map(o => o.voiceIndex ?? 1))).sort((a, b) => a - b);
+      const voiceOffset = isMultiStitch ? (nextVoiceIndex - 1) : 0;
+      const numVoicesInStitch = Math.max(1, distinctVoicesInStitch.length);
+
+      let maxStitchBeat = 0;
+      let lastOnsetIndex = 0;
+
+      for (const o of s.onsets) {
+        const beat = o.startBeat ?? 0;
+        const endBeat = beat + (o.durationBeats ?? 1.0);
+        if (endBeat > maxStitchBeat) maxStitchBeat = endBeat;
+        if (o.onsetIndex > lastOnsetIndex) lastOnsetIndex = o.onsetIndex;
+
+        // If stitch didn't have its own explicit harmony, harmonize it with the parallel chord timeline
+        if (!s.hasExplicitHarmony && chordTimeline.length > 0) {
           const activeChord = getActiveChord(beat);
           if (activeChord) {
             o.chordRoot = activeChord.chordRoot;
@@ -367,71 +421,64 @@ export function resolveWeave(
             o.projectedChordMidi = [...activeChord.projectedChordMidi];
             o.harmonySourceCoil = activeChord.sourceCoil;
           }
-          if (assignedVoice !== undefined) {
-            o.voiceIndex = assignedVoice;
-            o.tag = `ppt_${effectiveWeaveId}_${ms.id}_v${assignedVoice}_${o.onsetIndex}`;
-            // Unify coilId so LilyPond groups parallel voices in the same CoilGroup for simultaneous polyphony
-            o.coilId = effectiveWeaveId;
-          }
-          allOnsets.push(o);
         }
 
-        // If melody is shorter than the full parallel timeline (e.g. chord changes span more beats),
-        // pad with rest onsets up to maxParallelDuration so the full harmony progression and grid are rendered.
-        if (maxMelodyBeat < maxParallelDuration - 1e-4) {
-          for (let beat = maxMelodyBeat; beat < maxParallelDuration - 1e-4; beat += 1.0) {
-            lastOnsetIndex++;
-            const activeChord = getActiveChord(beat);
-            const voiceIndex = assignedVoice ?? 1;
-            const tag = assignedVoice !== undefined
-              ? `ppt_${effectiveWeaveId}_${ms.id}_v${assignedVoice}_${lastOnsetIndex}`
-              : `ppt_${effectiveWeaveId}_${ms.id}_${lastOnsetIndex}`;
-
-            allOnsets.push({
-              tag,
-              pitch: 'r',
-              midiNote: knot.doMidi ?? 60,
-              scaleDegree: 'Do',
-              isRest: true,
-              chordTones: activeChord ? [...activeChord.chordTones] : ['C4', 'E4', 'G4'],
-              chordMidi: activeChord ? [...activeChord.chordMidi] : [60, 64, 67],
-              projectedChordMidi: activeChord ? [...activeChord.projectedChordMidi] : [60, 64, 67],
-              chordRoot: activeChord ? activeChord.chordRoot : 'Do',
-              coilId: effectiveWeaveId,
-              weaveId: effectiveWeaveId,
-              onsetIndex: lastOnsetIndex,
-              voiceIndex,
-              rhythmToken: 'Do',
-              startBeat: beat,
-              durationBeats: 1.0,
-              duration: '4',
-              sourceCoilId: ms.id,
-              sourceOnsetIndex: lastOnsetIndex,
-              melodySourceCoil: ms.id,
-              rhythmSourceCoil: ms.id,
-              harmonySourceCoil: activeChord ? activeChord.sourceCoil : ms.id,
-              pulse: ms.coil?.pulse ?? weave.pulse ?? knot.pulse,
-              meter: ms.coil?.meter ?? weave.meter ?? knot.meter,
-            });
-          }
-        }
-      }
-    } else if (melodyStitches.length > 1) {
-      // Multiple parallel melody streams (polyphonic voices)
-      let nextVoiceIndex = 1;
-      for (const ms of melodyStitches) {
-        const assignedVoice = nextVoiceIndex++;
-        for (const o of ms.onsets) {
+        if (isMultiStitch) {
+          const currentVoice = o.voiceIndex ?? 1;
+          const assignedVoice = currentVoice + voiceOffset;
           o.voiceIndex = assignedVoice;
-          o.tag = `ppt_${effectiveWeaveId}_${ms.id}_v${assignedVoice}_${o.onsetIndex}`;
+          o.tag = `ppt_${effectiveWeaveId}_${s.id}_v${assignedVoice}_${o.onsetIndex}`;
           o.coilId = effectiveWeaveId;
-          allOnsets.push(o);
+        } else {
+          o.voiceIndex = 1;
+          o.tag = `ppt_${effectiveWeaveId}_${s.id}_${o.onsetIndex}`;
+        }
+
+        allOnsets.push(o);
+      }
+
+      // If this stitch ends earlier than maxParallelDuration in standard parallel mode (and not parallelPeriod where durations already match),
+      // pad with rests up to maxParallelDuration
+      if (layout === 'parallel' && maxStitchBeat < maxParallelDuration - 1e-4) {
+        const primaryVoice = isMultiStitch ? (1 + voiceOffset) : 1;
+        for (let beat = maxStitchBeat; beat < maxParallelDuration - 1e-4; beat += 1.0) {
+          lastOnsetIndex++;
+          const activeChord = getActiveChord(beat);
+          const tag = isMultiStitch
+            ? `ppt_${effectiveWeaveId}_${s.id}_v${primaryVoice}_${lastOnsetIndex}`
+            : `ppt_${effectiveWeaveId}_${s.id}_${lastOnsetIndex}`;
+
+          allOnsets.push({
+            tag,
+            pitch: 'r',
+            midiNote: knot.doMidi ?? 60,
+            scaleDegree: 'Do',
+            isRest: true,
+            chordTones: activeChord ? [...activeChord.chordTones] : ['C4', 'E4', 'G4'],
+            chordMidi: activeChord ? [...activeChord.chordMidi] : [60, 64, 67],
+            projectedChordMidi: activeChord ? [...activeChord.projectedChordMidi] : [60, 64, 67],
+            chordRoot: activeChord ? activeChord.chordRoot : 'Do',
+            coilId: isMultiStitch ? effectiveWeaveId : s.id,
+            weaveId: effectiveWeaveId,
+            onsetIndex: lastOnsetIndex,
+            voiceIndex: isMultiStitch ? primaryVoice : undefined,
+            rhythmToken: 'Do',
+            startBeat: beat,
+            durationBeats: 1.0,
+            duration: '4',
+            sourceCoilId: s.id,
+            sourceOnsetIndex: lastOnsetIndex,
+            melodySourceCoil: s.id,
+            rhythmSourceCoil: s.id,
+            harmonySourceCoil: activeChord ? activeChord.sourceCoil : s.id,
+            pulse: s.coil?.pulse ?? weave.pulse ?? knot.pulse,
+            meter: s.coil?.meter ?? weave.meter ?? knot.meter,
+          });
         }
       }
-    } else {
-      // General parallel merge of all stitches
-      for (const s of resolvedStitches) {
-        allOnsets.push(...s.onsets);
+
+      if (isMultiStitch) {
+        nextVoiceIndex += numVoicesInStitch;
       }
     }
   }

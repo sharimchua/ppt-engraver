@@ -186,23 +186,37 @@ describe('resolveWeave', () => {
     };
 
     const { onsets } = resolveWeave(parallelWeave, knotC4);
-    expect(onsets).toHaveLength(8);
+    // 8 onsets in voice 1 (melody_part) + 4 onsets in voice 2 (harmony_part with implicit roots)
+    expect(onsets).toHaveLength(12);
 
+    const v1 = onsets.filter(o => o.voiceIndex === 1);
+    expect(v1).toHaveLength(8);
     // Check that melody onsets received chords from the parallel harmony coil at their timestamps
-    expect(onsets[0].scaleDegree).toBe('Do');
-    expect(onsets[0].chordRoot).toBe('Do');
+    expect(v1[0].scaleDegree).toBe('Do');
+    expect(v1[0].chordRoot).toBe('Do');
 
-    expect(onsets[1].scaleDegree).toBe('Me');
-    expect(onsets[1].chordRoot).toBe('Do');
+    expect(v1[1].scaleDegree).toBe('Me');
+    expect(v1[1].chordRoot).toBe('Do');
 
-    expect(onsets[2].scaleDegree).toBe('So');
-    expect(onsets[2].chordRoot).toBe('Fa');
+    expect(v1[2].scaleDegree).toBe('So');
+    expect(v1[2].chordRoot).toBe('Fa');
 
-    expect(onsets[3].scaleDegree).toBe('Do');
-    expect(onsets[3].chordRoot).toBe('Fa');
+    expect(v1[3].scaleDegree).toBe('Do');
+    expect(v1[3].chordRoot).toBe('Fa');
 
-    expect(onsets[4].chordRoot).toBe('So');
-    expect(onsets[6].chordRoot).toBe('Do');
+    expect(v1[4].chordRoot).toBe('So');
+    expect(v1[6].chordRoot).toBe('Do');
+
+    const v2 = onsets.filter(o => o.voiceIndex === 2);
+    expect(v2).toHaveLength(4);
+    expect(v2[0].scaleDegree).toBe('Do');
+    expect(v2[0].chordRoot).toBe('Do');
+    expect(v2[1].scaleDegree).toBe('Fa');
+    expect(v2[1].chordRoot).toBe('Fa');
+    expect(v2[2].scaleDegree).toBe('So');
+    expect(v2[2].chordRoot).toBe('So');
+    expect(v2[3].scaleDegree).toBe('Do');
+    expect(v2[3].chordRoot).toBe('Do');
   });
 
   it('resolves nested concatenated weaves stitched in parallel with harmony coils', () => {
@@ -244,36 +258,46 @@ describe('resolveWeave', () => {
     };
 
     const { onsets } = resolveWeave(parallelWeave, knotC4);
-    // tune1 (3 onsets) + tune2 (3 onsets) + 6 padded rest onsets for remaining 6 beats = 12 onsets
-    expect(onsets).toHaveLength(12);
+    // tune1 (3 onsets) + tune2 (3 onsets) + 6 padded rest onsets for voice 1 (12 onsets) + 4 onsets for voice 2 (changes) = 16 onsets
+    expect(onsets).toHaveLength(16);
+
+    const v1 = onsets.filter(o => o.voiceIndex === 1);
+    expect(v1).toHaveLength(12);
 
     // tune1 onsets (beats 0, 1, 2) match chord 1 'Do'
-    expect(onsets[0].scaleDegree).toBe('Do');
-    expect(onsets[0].chordRoot).toBe('Do');
-    expect(onsets[0].startBeat).toBe(0);
+    expect(v1[0].scaleDegree).toBe('Do');
+    expect(v1[0].chordRoot).toBe('Do');
+    expect(v1[0].startBeat).toBe(0);
 
-    expect(onsets[2].scaleDegree).toBe('Mi');
-    expect(onsets[2].chordRoot).toBe('Do');
-    expect(onsets[2].startBeat).toBe(2);
+    expect(v1[2].scaleDegree).toBe('Mi');
+    expect(v1[2].chordRoot).toBe('Do');
+    expect(v1[2].startBeat).toBe(2);
 
     // tune2 onsets (beats 3, 4, 5) match chord 2 'Fa'
-    expect(onsets[3].scaleDegree).toBe('Fa');
-    expect(onsets[3].chordRoot).toBe('Fa');
-    expect(onsets[3].startBeat).toBe(3);
+    expect(v1[3].scaleDegree).toBe('Fa');
+    expect(v1[3].chordRoot).toBe('Fa');
+    expect(v1[3].startBeat).toBe(3);
 
-    expect(onsets[5].scaleDegree).toBe('La');
-    expect(onsets[5].chordRoot).toBe('Fa');
-    expect(onsets[5].startBeat).toBe(5);
+    expect(v1[5].scaleDegree).toBe('La');
+    expect(v1[5].chordRoot).toBe('Fa');
+    expect(v1[5].startBeat).toBe(5);
 
     // Padded rest onsets at beats 6..8 match chord 3 'LaMe'
-    expect(onsets[6].isRest).toBe(true);
-    expect(onsets[6].chordRoot).toBe('LaMe');
-    expect(onsets[6].startBeat).toBe(6);
+    expect(v1[6].isRest).toBe(true);
+    expect(v1[6].chordRoot).toBe('LaMe');
+    expect(v1[6].startBeat).toBe(6);
 
     // Padded rest onsets at beats 9..11 match chord 4 'So'
-    expect(onsets[9].isRest).toBe(true);
-    expect(onsets[9].chordRoot).toBe('So');
-    expect(onsets[9].startBeat).toBe(9);
+    expect(v1[9].isRest).toBe(true);
+    expect(v1[9].chordRoot).toBe('So');
+    expect(v1[9].startBeat).toBe(9);
+
+    const v2 = onsets.filter(o => o.voiceIndex === 2);
+    expect(v2).toHaveLength(4);
+    expect(v2[0].scaleDegree).toBe('Do');
+    expect(v2[1].scaleDegree).toBe('Fa');
+    expect(v2[2].scaleDegree).toBe('La');
+    expect(v2[3].scaleDegree).toBe('So');
   });
 
   it('resolves weaves with layout: parallel merging multiple melodic coils into polyphonic voices', () => {
@@ -408,6 +432,222 @@ describe('resolveWeave', () => {
     };
     const { onsets } = resolveWeave(weave, knotC4);
     expect(onsets).toHaveLength(4);
+  });
+
+  it('resolves layout: parallelPeriod scaling 3-against-4 polyrhythms to match overall duration', () => {
+    const polyrhythmWeave: Weave = {
+      id: 'polyrhythm',
+      layout: 'parallelPeriod',
+      stitch: [
+        {
+          coil: {
+            id: 'voice_triplet',
+            melody: ['Do', 'Mi', 'So'],
+            rhythm: ['Do', 'Do', 'Do'], // 3 quarter notes (3 beats)
+          },
+        },
+        {
+          coil: {
+            id: 'voice_four',
+            melody: ['Do', 'Re', 'Me', 'Fa'],
+            rhythm: ['Do', 'Do', 'Do', 'Do'], // 4 quarter notes (4 beats)
+          },
+        },
+      ],
+    };
+
+    const { onsets } = resolveWeave(polyrhythmWeave, knotC4);
+    expect(onsets).toHaveLength(7);
+
+    // Voice 1 (voice_triplet: scaled from 3 beats to 4 beats -> scaleFactor = 4/3)
+    const v1 = onsets.filter(o => o.voiceIndex === 1);
+    expect(v1).toHaveLength(3);
+    expect(v1[0].startBeat).toBeCloseTo(0.0);
+    expect(v1[0].durationBeats).toBeCloseTo(4 / 3);
+    expect(v1[0].duration).toBe('4*4/3');
+
+    expect(v1[1].startBeat).toBeCloseTo(4 / 3);
+    expect(v1[1].durationBeats).toBeCloseTo(4 / 3);
+    expect(v1[1].duration).toBe('4*4/3');
+
+    expect(v1[2].startBeat).toBeCloseTo(8 / 3);
+    expect(v1[2].durationBeats).toBeCloseTo(4 / 3);
+    expect(v1[2].duration).toBe('4*4/3');
+
+    // Voice 2 (voice_four: stays 4 beats -> scaleFactor = 1.0)
+    const v2 = onsets.filter(o => o.voiceIndex === 2);
+    expect(v2).toHaveLength(4);
+    expect(v2[0].startBeat).toBeCloseTo(0.0);
+    expect(v2[0].durationBeats).toBeCloseTo(1.0);
+    expect(v2[0].duration).toBe('4');
+
+    expect(v2[1].startBeat).toBeCloseTo(1.0);
+    expect(v2[2].startBeat).toBeCloseTo(2.0);
+    expect(v2[3].startBeat).toBeCloseTo(3.0);
+    expect(v2[3].durationBeats).toBeCloseTo(1.0);
+  });
+
+  it('resolves layout: parallelPeriod scaling 5-against-4 polyrhythm and emitting exact LilyPond duration fractions', () => {
+    const quintupletWeave: Weave = {
+      id: 'quintuplet',
+      layout: 'parallelPeriod',
+      stitch: [
+        {
+          coil: {
+            id: 'voice_quintuplet',
+            melody: ['Do', 'Re', 'Mi', 'Fa', 'So'],
+            rhythm: ['Do', 'Do', 'Do', 'Do', 'Do'], // 5 beats
+          },
+        },
+        {
+          coil: {
+            id: 'voice_four',
+            melody: ['Do', 'Mi', 'So', 'Do^'],
+            rhythm: ['Do', 'Do', 'Do', 'Do'], // 4 beats
+          },
+        },
+      ],
+    };
+
+    const { onsets } = resolveWeave(quintupletWeave, knotC4);
+    expect(onsets).toHaveLength(9);
+
+    // Target duration is 5 beats (max of 5 and 4)
+    // Voice 1 stays 5 beats
+    const v1 = onsets.filter(o => o.voiceIndex === 1);
+    expect(v1).toHaveLength(5);
+    expect(v1[0].durationBeats).toBeCloseTo(1.0);
+    expect(v1[0].duration).toBe('4');
+
+    // Voice 2 scaled from 4 to 5 beats (scaleFactor = 5/4 = 1.25)
+    const v2 = onsets.filter(o => o.voiceIndex === 2);
+    expect(v2).toHaveLength(4);
+    expect(v2[0].startBeat).toBeCloseTo(0.0);
+    expect(v2[0].durationBeats).toBeCloseTo(1.25);
+    expect(v2[0].duration).toBe('4*5/4');
+    expect(v2[1].startBeat).toBeCloseTo(1.25);
+    expect(v2[2].startBeat).toBeCloseTo(2.5);
+    expect(v2[3].startBeat).toBeCloseTo(3.75);
+  });
+
+  it('resolves layout: parallelPeriod with harmony changes stretched across period', () => {
+    const polyWithHarmony: Weave = {
+      id: 'song',
+      layout: 'parallelPeriod',
+      stitch: [
+        {
+          coil: {
+            id: 'melody_triplet',
+            melody: ['Do', 'Mi', 'So'],
+            rhythm: ['Do', 'Do', 'Do'], // 3 quarter notes
+          },
+        },
+        {
+          coil: {
+            id: 'changes',
+            pulse: 'Do', // 1 beat per chord -> 4 chords = 4 beats
+            harmony: ['Do', 'Fa', 'So', 'Do'],
+          },
+        },
+      ],
+    };
+
+    const { onsets } = resolveWeave(polyWithHarmony, knotC4);
+    // 3 onsets in voice 1 (melody_triplet) + 4 onsets in voice 2 (changes with implicit roots)
+    expect(onsets).toHaveLength(7);
+
+    const v1 = onsets.filter(o => o.voiceIndex === 1);
+    expect(v1).toHaveLength(3);
+    // Melody scaled to 4 beats: note 1 at beat 0 (chord Do), note 2 at beat 4/3 = 1.33 (chord Fa), note 3 at beat 8/3 = 2.66 (chord So)
+    expect(v1[0].scaleDegree).toBe('Do');
+    expect(v1[0].chordRoot).toBe('Do');
+    expect(v1[0].duration).toBe('4*4/3');
+
+    expect(v1[1].scaleDegree).toBe('Mi');
+    expect(v1[1].chordRoot).toBe('Fa');
+
+    expect(v1[2].scaleDegree).toBe('So');
+    expect(v1[2].chordRoot).toBe('So');
+
+    const v2 = onsets.filter(o => o.voiceIndex === 2);
+    expect(v2).toHaveLength(4);
+    expect(v2[0].scaleDegree).toBe('Do');
+    expect(v2[0].chordRoot).toBe('Do');
+    expect(v2[1].scaleDegree).toBe('Fa');
+    expect(v2[1].chordRoot).toBe('Fa');
+    expect(v2[2].scaleDegree).toBe('So');
+    expect(v2[2].chordRoot).toBe('So');
+    expect(v2[3].scaleDegree).toBe('Do');
+    expect(v2[3].chordRoot).toBe('Do');
+  });
+
+  it('excludes implicit melody when melody: [] is defined on harmony coil in parallelPeriod layout', () => {
+    const polyWithSuppressedMelody: Weave = {
+      id: 'song',
+      layout: 'parallelPeriod',
+      stitch: [
+        {
+          coil: {
+            id: 'melody_triplet',
+            melody: ['Do', 'Mi', 'So'],
+            rhythm: ['Do', 'Do', 'Do'], // 3 quarter notes
+          },
+        },
+        {
+          coil: {
+            id: 'changes',
+            melody: [], // Explicitly empty: no implicit melody generated
+            pulse: 'Do', // 1 beat per chord -> 4 chords = 4 beats
+            harmony: ['Do', 'Fa', 'So', 'Do'],
+          },
+        },
+      ],
+    };
+
+    const { onsets } = resolveWeave(polyWithSuppressedMelody, knotC4);
+    // Only 3 melody onsets emitted (from melody_triplet), no Voice 2
+    expect(onsets).toHaveLength(3);
+    expect(onsets[0].scaleDegree).toBe('Do');
+    expect(onsets[0].chordRoot).toBe('Do');
+    expect(onsets[0].duration).toBe('4*4/3');
+
+    expect(onsets[1].scaleDegree).toBe('Mi');
+    expect(onsets[1].chordRoot).toBe('Fa');
+
+    expect(onsets[2].scaleDegree).toBe('So');
+    expect(onsets[2].chordRoot).toBe('So');
+  });
+
+  it('excludes implicit melody when melody: [] is defined on harmony coil in standard parallel layout', () => {
+    const parallelWithSuppressedMelody: Weave = {
+      id: 'song',
+      layout: 'parallel',
+      stitch: [
+        {
+          coil: {
+            id: 'melody_part',
+            melody: ['Do', 'Me', 'So', 'Do^'],
+            rhythm: ['Do', 'Fi', 'Do', 'Fi', 'Do', 'Fi', 'Do', 'Fi'], // 8 eighth notes
+          },
+        },
+        {
+          coil: {
+            id: 'changes',
+            melody: [], // Explicitly empty
+            pulse: 'Do',
+            harmony: ['Do', 'Fa', 'So', 'Do'],
+          },
+        },
+      ],
+    };
+
+    const { onsets } = resolveWeave(parallelWithSuppressedMelody, knotC4);
+    // Only 8 melody onsets emitted (from melody_part), no Voice 2
+    expect(onsets).toHaveLength(8);
+    expect(onsets[0].scaleDegree).toBe('Do');
+    expect(onsets[0].chordRoot).toBe('Do');
+    expect(onsets[2].scaleDegree).toBe('So');
+    expect(onsets[2].chordRoot).toBe('Fa');
   });
 });
 

@@ -156,6 +156,43 @@ export function expandRhythmEntries(
 }
 
 /**
+ * Finds the simplest rational fraction (num/den) approximating a positive float value.
+ */
+export function floatToFraction(val: number, maxDenom: number = 960): { num: number; den: number } {
+  if (val <= 0) return { num: 1, den: 1 };
+  let bestNum = Math.round(val);
+  let bestDen = 1;
+  let bestErr = Math.abs(val - bestNum);
+
+  if (bestErr < 1e-6) {
+    return { num: bestNum, den: 1 };
+  }
+
+  let h1 = 1, h0 = 0, k1 = 0, k0 = 1;
+  let b = val;
+  while (isFinite(b)) {
+    const a = Math.floor(b);
+    const h = a * h1 + h0;
+    const k = a * k1 + k0;
+    if (k > maxDenom) break;
+    h0 = h1; h1 = h;
+    k0 = k1; k1 = k;
+    const err = Math.abs(val - h / k);
+    if (err < bestErr) {
+      bestErr = err;
+      bestNum = h;
+      bestDen = k;
+    }
+    if (err < 1e-6) break;
+    const rem = b - a;
+    if (rem < 1e-6) break;
+    b = 1 / rem;
+  }
+
+  return { num: bestNum, den: bestDen };
+}
+
+/**
  * Converts a duration in beats (where 1.0 = quarter note) into a clean LilyPond duration string.
  * @param durationBeats Duration in beats (1.0 = quarter note)
  * @param traditional When true, uses standard traditional dotted note tokens (e.g. "2.", "4.", "8.", "1.")
@@ -164,45 +201,49 @@ export function beatsToLilyPondDuration(
   durationBeats: number,
   traditional: boolean = false,
 ): string {
-  // Round to nearest fraction of 48 (subdivision resolution for 16ths and triplets)
-  const ticks = Math.round(durationBeats * 48);
-  if (ticks <= 0) return '4';
+  if (durationBeats <= 0) return '4';
+
+  const EPS = 1e-4;
 
   if (traditional) {
     // Standard traditional note values and dotted durations
-    if (ticks === 384) return '\\breve'; // 8 beats
-    if (ticks === 288) return '1.';      // 6 beats (dotted whole)
-    if (ticks === 192) return '1';       // 4 beats (whole)
-    if (ticks === 144) return '2.';      // 3 beats (dotted half)
-    if (ticks === 96)  return '2';       // 2 beats (half)
-    if (ticks === 72)  return '4.';      // 1.5 beats (dotted quarter)
-    if (ticks === 48)  return '4';       // 1 beat (quarter)
-    if (ticks === 36)  return '8.';      // 0.75 beats (dotted 8th)
-    if (ticks === 24)  return '8';       // 0.5 beats (8th)
-    if (ticks === 18)  return '16.';     // 0.375 beats (dotted 16th)
-    if (ticks === 12)  return '16';      // 0.25 beats (16th)
-    if (ticks === 6)   return '32';      // 0.125 beats (32nd)
+    if (Math.abs(durationBeats - 8.0) < EPS) return '\\breve'; // 8 beats
+    if (Math.abs(durationBeats - 6.0) < EPS) return '1.';      // 6 beats (dotted whole)
+    if (Math.abs(durationBeats - 4.0) < EPS) return '1';       // 4 beats (whole)
+    if (Math.abs(durationBeats - 3.0) < EPS) return '2.';      // 3 beats (dotted half)
+    if (Math.abs(durationBeats - 2.0) < EPS) return '2';       // 2 beats (half)
+    if (Math.abs(durationBeats - 1.5) < EPS) return '4.';      // 1.5 beats (dotted quarter)
+    if (Math.abs(durationBeats - 1.0) < EPS) return '4';       // 1 beat (quarter)
+    if (Math.abs(durationBeats - 0.75) < EPS) return '8.';     // 0.75 beats (dotted 8th)
+    if (Math.abs(durationBeats - 0.5) < EPS) return '8';       // 0.5 beats (8th)
+    if (Math.abs(durationBeats - 0.375) < EPS) return '16.';   // 0.375 beats (dotted 16th)
+    if (Math.abs(durationBeats - 0.25) < EPS) return '16';     // 0.25 beats (16th)
+    if (Math.abs(durationBeats - 0.125) < EPS) return '32';    // 0.125 beats (32nd)
   }
 
   // Common exact powers of 2
-  if (ticks === 192) return '1';       // Whole note (4 beats)
-  if (ticks === 96)  return '2';       // Half note (2 beats)
-  if (ticks === 48)  return '4';       // Quarter note (1 beat)
-  if (ticks === 24)  return '8';       // 8th note (0.5 beats)
-  if (ticks === 12)  return '16';      // 16th note (0.25 beats)
-  if (ticks === 6)   return '32';      // 32nd note (0.125 beats)
+  if (Math.abs(durationBeats - 4.0) < EPS) return '1';       // Whole note (4 beats)
+  if (Math.abs(durationBeats - 2.0) < EPS) return '2';       // Half note (2 beats)
+  if (Math.abs(durationBeats - 1.0) < EPS) return '4';       // Quarter note (1 beat)
+  if (Math.abs(durationBeats - 0.5) < EPS) return '8';       // 8th note (0.5 beats)
+  if (Math.abs(durationBeats - 0.25) < EPS) return '16';     // 16th note (0.25 beats)
+  if (Math.abs(durationBeats - 0.125) < EPS) return '32';    // 32nd note (0.125 beats)
 
-  // General rational scaling of quarter note (e.g. 4*3/4 for 0.75 beats, 4*3/2 for 1.5 beats)
-  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-  const g = gcd(ticks, 48);
-  const num = ticks / g;
-  const den = 48 / g;
+  // General rational scaling of quarter note (e.g. 4*3/4 for 0.75 beats, 4*4/3 for 1.33 beats, 4*4/5 for 0.8 beats)
+  const { num, den } = floatToFraction(durationBeats);
 
   if (den === 1) {
     if (num === 4) return '1';
     if (num === 2) return '2';
     if (num === 1) return '4';
     return `4*${num}`;
+  }
+
+  if (num === 1) {
+    if (den === 2) return '8';
+    if (den === 4) return '16';
+    if (den === 8) return '32';
+    if (den === 16) return '64';
   }
 
   return `4*${num}/${den}`;

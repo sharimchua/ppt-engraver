@@ -20,11 +20,13 @@ The `src/resolver/` directory resolves high-level declarative PPT constructs int
      - `harmony`: Chords applied across the coil, structured `{ chords: [...], rhythm: [...] }`, or named coil injection (`harmony: changes` / `harmony: { from: 'changes', harmonyOctave: -1, harmonyVoicing: 'shell' }`) with optional `X.Y` lookback repetitions.
    - **Default Layer Expansions**:
      - *Harmony-only coils*: Rhythm defaults to pulse cycle downbeats (e.g. 4 beats for `DoLa`, 3 for `DoRe`), melody pitch defaults to the chord root.
+     - *Harmony-only with `melody: []`*: Implicit root melody is suppressed (onsets are rests/silent on the melody staff), allowing pure accompaniment tracks in parallel/parallelPeriod weaves.
      - *Rhythm-only coils*: Harmony defaults to tonic `Do`, melody defaults to chord root `Do`.
      - *Rhythm + Harmony coils (No Melody)*: Rhythm defines the strumming pattern / timing; harmony changes occur on pulse boundaries (or via `harmony.rhythm`); melody pitch dynamically matches each active chord root.
 3. **`resolveWeave()`**:
-   - Traverses a Weave's `stitch: [...]` list (coils and nested weaves) and evaluates onset streams according to `layout: 'concatenate'` (sequential) or `layout: 'parallel'` (concurrent / simultaneous).
-   - In `parallel` mode:
+   - Traverses a Weave's `stitch: [...]` list (coils and nested weaves) and evaluates onset streams according to `layout: 'concatenate'` (sequential), `layout: 'parallel'` (concurrent / simultaneous), or `layout: 'parallelPeriod'` (period-matched polyrhythms).
+   - In `parallel` and `parallelPeriod` modes:
+     - In `parallelPeriod`: scales each stitch's onsets so their total duration matches the target overall period duration, allowing natural-meter polyrhythm definitions.
      - Merges separate harmony and melody/rhythm coils into unified onsets across matching timestamps.
      - Merges multiple melodic coils into distinct polyphonic voices (`voiceIndex: 1`, `voiceIndex: 2`).
 4. **`resolveConcat()` (`resolveConcatCoil()`)**:

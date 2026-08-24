@@ -599,6 +599,27 @@ describe('resolveCoil', () => {
       }
     });
 
+    it('suppresses implicit melody when melody: [] is explicitly defined on harmony coil', () => {
+      const coil: Coil = {
+        id: 'changes_only',
+        melody: [],
+        harmony: ['Do', 'Fa', 'So', 'Do'],
+      };
+      const { onsets } = resolveCoil(coil, knotC4);
+      expect(onsets).toHaveLength(4);
+
+      for (let i = 0; i < 4; i++) {
+        expect(onsets[i].isRest).toBe(true);
+        expect(onsets[i].scaleDegree).toBe('');
+        expect(onsets[i].melodyMidi).toBe(0);
+        expect(onsets[i].melodyOnsetIndex).toBeUndefined();
+      }
+      expect(onsets[0].chordRoot).toBe('Do');
+      expect(onsets[1].chordRoot).toBe('Fa');
+      expect(onsets[2].chordRoot).toBe('So');
+      expect(onsets[3].chordRoot).toBe('Do');
+    });
+
     it('throws when no layers are defined anywhere on the coil', () => {
       const emptyCoil: Coil = {
         id: 'empty_coil',

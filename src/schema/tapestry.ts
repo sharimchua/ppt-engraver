@@ -599,8 +599,8 @@ export const CoilSchema: z.ZodType<Coil> = z.lazy(() =>
 export interface Weave {
   /** Unique identifier for this weave (camelCase, optional when in dictionary or anonymous) */
   id?: string;
-  /** Layout mode: 'concatenate' for sequential playback, 'parallel' for concurrent layering / polyphony */
-  layout?: 'concatenate' | 'parallel';
+  /** Layout mode: 'concatenate' for sequential playback, 'parallel' for concurrent layering, 'parallelPeriod' for period-matched polyrhythms */
+  layout?: 'concatenate' | 'parallel' | 'parallelPeriod';
   /** Local/in-place library of reusable named Coils */
   coils?: Record<string, Coil | { coil: Coil }> | Array<Coil | { coil: Coil }>;
   /** Default coil ID or inline Coil providing fallback layers for child coils */
@@ -654,14 +654,14 @@ export const WeaveChildSchema = WeaveStitchSchema;
 
 /**
  * Weave: sequence/parallel container for Coils and nested Weaves.
- * Supports 'concatenate' (sequential) and 'parallel' (simultaneous) layouts.
+ * Supports 'concatenate' (sequential), 'parallel' (simultaneous), and 'parallelPeriod' (period-matched polyrhythms).
  */
 export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
   z.object({
     /** Unique identifier for this weave (camelCase, optional when in dictionary or anonymous) */
     id: z.string().min(1).optional(),
-    /** Layout mode: 'concatenate' for sequential playback, 'parallel' for concurrent layering */
-    layout: z.enum(['concatenate', 'parallel']).default('concatenate'),
+    /** Layout mode: 'concatenate' for sequential playback, 'parallel' for concurrent layering, 'parallelPeriod' for period-matched polyrhythms */
+    layout: z.enum(['concatenate', 'parallel', 'parallelPeriod']).default('concatenate'),
     /** Local/in-place library of reusable named Coils */
     coils: z.record(z.string(), CoilSchema.or(z.object({ coil: CoilSchema }))).or(z.array(CoilSchema.or(z.object({ coil: CoilSchema })))).optional(),
     /** Default coil ID or inline Coil providing fallback layers for child coils */

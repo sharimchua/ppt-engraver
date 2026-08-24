@@ -279,8 +279,12 @@ You can start composing from any primary layer (**Melody**, **Harmony**, or **Rh
 | **Melody + Rhythm** | Mapped to non-rest rhythm onsets | Defaults to tonic (`['Do']`) | Defined rhythm timeline |
 | **Melody + Harmony** | Explicit pitch sequence | Stretched or indexed across melody | 1 downbeat beat per onset |
 | **Harmony only** | Root of each harmony chord | Explicit chord progression | Strong downbeat lasting the pulse cycle (e.g. 4 beats for `DoLa`, 3 for `DoRe`), or harmony's own `rhythm` |
+| **Harmony only (`melody: []`)** | Suppressed / Rests (no implicit melody) | Explicit chord progression | Strong downbeat lasting the pulse cycle, or harmony's own `rhythm` |
 | **Rhythm only** | Root of harmony (`Do`) across non-rest onsets | Defaults to tonic (`['Do']`) | Defined rhythm timeline |
 | **Rhythm + Harmony (No Melody)** | Root of the active harmony chord at each rhythm onset timestamp | Aligned to pulse cycle (e.g. every 4 beats for `DoLa`) or harmony's own `rhythm` | Defined rhythm timeline (acts as the strumming pattern) |
+
+> [!TIP]
+> **Excluding Implicit Melody**: If a coil defines `melody: []` alongside `harmony: [...]`, the implicit melody from the chord roots is suppressed. In parallel/parallelPeriod weaves, this allows using a coil purely as an accompaniment harmony track without creating an extra melody voice.
 
 ### Examples
 
@@ -289,6 +293,14 @@ You can start composing from any primary layer (**Melody**, **Harmony**, or **Rh
 coils:
   intro_chords:
     harmony: [Do, Fa, So, Do] # Each chord lasts 4 beats (under default DoLa pulse)
+```
+
+#### 2. Harmony-Only Accompaniment Track (No Implicit Melody)
+```yaml
+coils:
+  changes:
+    melody: []                # Explicitly empty: suppresses root melody in score/staff
+    harmony: [Do, Fa, So, Do]
 ```
 
 #### 2. Rhythm-Only Pattern (Defaults to Tonic Melody & Harmony)
@@ -582,7 +594,7 @@ tapestry:
           melody: [Dox, Me, Re, Do] # Inherits harmony: [DoMe, SoxDo] & rhythm: [Do, Fi, 3.2]
 ```
 
-### 4. Weave Stitches & Layout Modes (`layout: concatenate | parallel`)
+### 4. Weave Stitches & Layout Modes (`layout: concatenate | parallel | parallelPeriod`)
 Weaves organize musical structures through **`stitch: [...]`** entries containing referenced or inline coils and nested child weaves.
 
 - **`layout: concatenate` (Default / Sequential)**:
@@ -591,6 +603,9 @@ Weaves organize musical structures through **`stitch: [...]`** entries containin
   - Stitches run simultaneously starting at $t = 0$.
   - **Multi-Layer Merging**: Define chord changes and melody in separate coils. The melody/rhythm onsets automatically receive the active chord progression at matching timestamps across the timeline.
   - **Multi-Voice Polyphony**: Stitch multiple melodic coils in parallel. Each voice is assigned an independent voice track (`\voiceOne`, `\voiceTwo`, `M1`, `M2`), producing clean polyphonic LilyPond notation and coil rows.
+- **`layout: parallelPeriod` (Period-Matched Polyrhythms)**:
+  - Stitches run concurrently and are automatically stretched/scaled to span the **same overall period duration** ($T = \max(D_s)$ or weave `pulse`/`meter`).
+  - **Natural-Meter Polyrhythms**: Write each voice in its natural meter or rhythm (e.g. Voice 1 in 3 beats, Voice 2 in 4 beats, Voice 3 in 5 beats). The compiler calculates exact rational time scalings (emitting LilyPond duration fractions like `4*4/3`, `4*5/4`) and aligns polyphonic voices and harmony seamlessly.
 
 ```yaml
 weaves:
@@ -605,6 +620,18 @@ weaves:
           id: accompaniment
           pulse: Do
           harmony: [Do, Fa, So, Do]
+
+  polyrhythm_section:
+    layout: parallelPeriod
+    stitch:
+      - coil:
+          id: triplet_voice
+          melody: [Do, Mi, So]
+          rhythm: [Do, Do, Do]      # 3 beats (stretched to 4 beats)
+      - coil:
+          id: four_voice
+          melody: [Do, Re, Me, Fa]
+          rhythm: [Do, Do, Do, Do]  # 4 beats
 ```
 
 ---

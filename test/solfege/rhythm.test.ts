@@ -110,6 +110,14 @@ describe('Solfège Rhythmic Grammar', () => {
     it('converts triplet durations', () => {
       expect(beatsToLilyPondDuration(1 / 3)).toBe('4*1/3');
       expect(beatsToLilyPondDuration(2 / 3)).toBe('4*2/3');
+      expect(beatsToLilyPondDuration(4 / 3)).toBe('4*4/3');
+    });
+
+    it('converts complex polyrhythmic durations (quintuplets, septuplets)', () => {
+      expect(beatsToLilyPondDuration(4 / 5)).toBe('4*4/5');
+      expect(beatsToLilyPondDuration(5 / 4)).toBe('4*5/4');
+      expect(beatsToLilyPondDuration(4 / 7)).toBe('4*4/7');
+      expect(beatsToLilyPondDuration(3 / 5)).toBe('4*3/5');
     });
 
     it('converts traditional dotted and extended durations when traditional: true', () => {

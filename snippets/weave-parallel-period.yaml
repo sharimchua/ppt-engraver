@@ -1,0 +1,21 @@
+id: snip-weave-parallel-period
+label: New Period-Matched Polyrhythm Weave (parallelPeriod)
+displayText: New Polyrhythm Weave (parallelPeriod)
+desc: Concurrent polyrhythm stretching stitches to match duration
+category: Snippets
+icon: ⏱️
+context:
+  - weaves
+  - weave-body
+snippet: |
+  polyrhythm_section:
+    layout: parallelPeriod
+    stitch:
+      - coil:
+          id: triplet_voice
+          melody: [Do, Mi, So]
+          rhythm: [Do, Do, Do]
+      - coil:
+          id: four_voice
+          melody: [Do, Re, Me, Fa]
+          rhythm: [Do, Do, Do, Do]

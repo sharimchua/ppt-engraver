@@ -297,12 +297,13 @@ export const COIL_KEYS = [
 
 export const ENUMS_LAYOUT = [
   { text: 'concatenate', displayText: 'concatenate', type: 'enum', desc: 'Sequential concatenation of stitches across time' },
-  { text: 'parallel', displayText: 'parallel', type: 'enum', desc: 'Concurrent / simultaneous layering of stitches' }
+  { text: 'parallel', displayText: 'parallel', type: 'enum', desc: 'Concurrent / simultaneous layering of stitches' },
+  { text: 'parallelPeriod', displayText: 'parallelPeriod', type: 'enum', desc: 'Polyrhythmic parallel layout stretching all stitches to match the same overall period duration' }
 ];
 
 export const WEAVE_KEYS = [
   { text: 'id:', displayText: 'id: ...', type: 'prop', desc: 'Weave identifier' },
-  { text: 'layout:', displayText: 'layout: concatenate', type: 'prop', desc: 'Stitch sequencing layout (concatenate or parallel)' },
+  { text: 'layout:', displayText: 'layout: concatenate', type: 'prop', desc: 'Stitch sequencing layout (concatenate, parallel, or parallelPeriod)' },
   { text: 'defaultCoil:', displayText: 'defaultCoil: ...', type: 'prop', desc: 'Default fallback coil' },
   { text: 'pulse:', displayText: 'pulse: ...', type: 'prop', desc: 'Weave-level metric pulse pattern' },
   { text: 'meter:', displayText: 'meter: ...', type: 'prop', desc: 'Alias for pulse' },

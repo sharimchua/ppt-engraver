@@ -101,6 +101,17 @@ export interface NormalizedHarmony {
   harmonyOctave?: number;
 }
 
+/** Checks if a melody layer was explicitly defined as an empty array */
+export function isMelodyExplicitlyEmpty(m: MelodyLayer | undefined): boolean {
+  if (m === undefined || m === null) return false;
+  if (Array.isArray(m) && m.length === 0) return true;
+  if (typeof m === 'object' && m !== null) {
+    const pitches = (m as any).pitches ?? (m as any).melody;
+    if (Array.isArray(pitches) && pitches.length === 0) return true;
+  }
+  return false;
+}
+
 /** Checks if a melody layer is defined and non-empty */
 export function isMelodyDefined(m: MelodyLayer | undefined): boolean {
   if (!m) return false;
@@ -637,7 +648,8 @@ export function resolveCoil(
     return { onsets: allOnsets, warnings };
   }
 
-  // Branch 2: Melody is NOT defined, starting from Rhythm and/or Harmony
+  // Branch 2: Melody is NOT defined (or explicitly empty []), starting from Rhythm and/or Harmony
+  const isMelodySuppressed = isMelodyExplicitlyEmpty(resolvedLayers.melody) || isMelodyExplicitlyEmpty(coil.melody);
   const normalizedHarmony = normalizeHarmonyLayer(
     resolvedLayers.harmony,
     undefined,
@@ -698,7 +710,7 @@ export function resolveCoil(
     let melodyIndex = 0;
     for (let k = 0; k < resolvedRhythmOnsets.length; k++) {
       const ro = resolvedRhythmOnsets[k];
-      const isRest = ro.token === 'Dox';
+      let isRest = ro.token === 'Dox' || isMelodySuppressed;
       const activeChordToken = getActiveChordToken(ro.startBeat);
       const parsedChord = parseHarmonyChord(activeChordToken);
       const semitone = solfegeToHarmonyRootOffset(parsedChord.rootSyllable);
@@ -712,7 +724,7 @@ export function resolveCoil(
       let scaleDegree = '';
       let melodyOnsetIndex: number | undefined = undefined;
 
-      if (!isRest) {
+      if (!isRest && !isMelodySuppressed) {
         melodyIndex++;
         melodyOnsetIndex = melodyIndex;
         const parsedRoot = parsePitch(parsedChord.rootSyllable);
@@ -767,7 +779,7 @@ export function resolveCoil(
     let melodyIndex = 0;
     for (let k = 0; k < harmTimeline.length; k++) {
       const ro = harmTimeline[k];
-      const isRest = ro.token === 'Dox';
+      let isRest = ro.token === 'Dox' || isMelodySuppressed;
       let activeChordToken = chordEvents[0]?.chordToken ?? 'Do';
       for (const ev of chordEvents) {
         if (ev.startBeat <= ro.startBeat + 1e-4) activeChordToken = ev.chordToken;
@@ -785,7 +797,7 @@ export function resolveCoil(
       let scaleDegree = '';
       let melodyOnsetIndex: number | undefined = undefined;
 
-      if (!isRest) {
+      if (!isRest && !isMelodySuppressed) {
         melodyIndex++;
         melodyOnsetIndex = melodyIndex;
         const parsedRoot = parsePitch(parsedChord.rootSyllable);
@@ -833,19 +845,20 @@ export function resolveCoil(
       knotDoMidi: knot.doMidi + ((normalizedHarmony.harmonyOctave ?? 0) * 12),
     });
 
+    const isRest = isMelodySuppressed;
     const parsedRoot = parsePitch(parsedChord.rootSyllable);
-    const melodyMidi = resolveAbsolutePitch(parsedRoot.syllable, parsedRoot.octaveShift, knot.doMidi);
-    const scaleDegree = parsedRoot.syllable;
+    const melodyMidi = isRest ? 0 : resolveAbsolutePitch(parsedRoot.syllable, parsedRoot.octaveShift, knot.doMidi);
+    const scaleDegree = isRest ? '' : parsedRoot.syllable;
     const startBeat = i * pulseBeats;
 
-    const augmentationNotes = (activeAugmentation !== 'none')
+    const augmentationNotes = (!isRest && activeAugmentation !== 'none')
       ? generateMelodyAugmentation(melodyMidi, activeChordToken, knot.doMidi, activeAugmentation)
       : undefined;
 
     allOnsets.push({
       melodyMidi,
       scaleDegree,
-      isRest: false,
+      isRest,
       chordMidi: chordTriad,
       chordRoot: activeChordToken,
       voiceIndex: 1,
@@ -855,7 +868,7 @@ export function resolveCoil(
       duration: durationLily,
       sourceCoilId: coilId,
       sourceOnsetIndex: i + 1,
-      melodyOnsetIndex: i + 1,
+      melodyOnsetIndex: isRest ? undefined : (i + 1),
       melodySourceCoil: resolvedLayers.harmonySourceCoil || coilId,
       rhythmSourceCoil: resolvedLayers.harmonySourceCoil || coilId,
       harmonySourceCoil: resolvedLayers.harmonySourceCoil || coilId,
