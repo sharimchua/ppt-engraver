@@ -514,6 +514,44 @@ tapestry:
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_strum_pattern_melody_1 c'8");
     expect(result.lilypondSource).toContain("\\tag #'ppt_song_strum_pattern_melody_9 f'8");
   });
+
+  it('compiles score with gridSymbols without coils using compact spacing staff', () => {
+    const yaml = `
+tapestry:
+  knot:
+    tonic: C4
+    engraving:
+      colorNotes: true
+      omitStem: true
+      noteheadStyle: ppt
+      show:
+        - melody
+        - harmony
+        - rhythmGrid
+      gridSymbols: 'no-do'
+  weaves:
+    song:
+      children:
+        - coil:
+            melody: [Do, Me, So, Do^]
+            rhythm: [Do, Fi, Do, Fi, Do, Fi, Do, Fi]
+            harmony: [Do, Fa, So, Do]
+`;
+
+    const result = compileYamlString(yaml);
+    expect(result.warnings).toHaveLength(0);
+
+    // Verify gridSymbolsVoice is generated
+    expect(result.lilypondSource).toContain('gridSymbolsVoice = {');
+    // Verify compact staff is generated with invisible staff lines
+    expect(result.lilypondSource).toContain('\\override StaffSymbol.stencil = ##f');
+    expect(result.lilypondSource).toContain('\\override Clef.stencil = ##f');
+    expect(result.lilypondSource).toContain('\\gridSymbolsVoice');
+    // Verify NoteHead.stencil ##f is used on downbeats without symbols
+    expect(result.lilypondSource).toContain('\\tweak NoteHead.stencil ##f b\'8');
+    // Verify geometric notehead symbol stencil is used on offbeats
+    expect(result.lilypondSource).toContain('\\tweak NoteHead.text \\markup { \\stencil #gridSymbolFi } b\'8');
+  });
 });
 
 

@@ -1883,62 +1883,6 @@ export function compileToLilyPond(
     showPulseCoil ||
     showHarmonyCoil;
 
-  const gridSymbolsTopLines: string[] = [
-    "  \\override TextScript.outside-staff-priority = ##f",
-    "  \\override TextScript.self-alignment-Y = #CENTER",
-    hasCoils
-      ? "  \\override TextScript.Y-offset = #3.6"
-      : "  \\override TextScript.Y-offset = #4.5",
-    "  \\cadenzaOn",
-  ];
-  const gridSymbolsBottomLines: string[] = [
-    "  \\override TextScript.outside-staff-priority = ##f",
-    "  \\override TextScript.self-alignment-Y = #CENTER",
-    hasCoils
-      ? "  \\override TextScript.Y-offset = #-3.6"
-      : "  \\override TextScript.Y-offset = #-4.5",
-    "  \\cadenzaOn",
-  ];
-
-  if (hasGridSymbols) {
-    for (let c = 0; c < coilGroups.length; c++) {
-      const group = coilGroups[c];
-      const pOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
-      const topSpacers: string[] = [];
-      const bottomSpacers: string[] = [];
-
-      for (let idx = 0; idx < pOnsets.length; idx++) {
-        const onset = pOnsets[idx];
-        const onsetDur =
-          traditionalRhythms && onset.durationBeats !== undefined
-            ? beatsToLilyPondDuration(onset.durationBeats, true)
-            : (onset.duration ?? dur);
-        const schemeVar = getGridSymbolSchemeVar(onset, excludeDo);
-        if (schemeVar) {
-          topSpacers.push(`s${onsetDur}^\\markup { \\stencil #${schemeVar} }`);
-          bottomSpacers.push(`s${onsetDur}_\\markup { \\stencil #${schemeVar} }`);
-        } else {
-          topSpacers.push(`s${onsetDur}`);
-          bottomSpacers.push(`s${onsetDur}`);
-        }
-      }
-      gridSymbolsTopLines.push(`  ${topSpacers.join(" ")}`);
-      gridSymbolsBottomLines.push(`  ${bottomSpacers.join(" ")}`);
-      if (c < coilGroups.length - 1) {
-        gridSymbolsTopLines.push('  \\bar "|"');
-        gridSymbolsBottomLines.push('  \\bar "|"');
-      } else {
-        gridSymbolsTopLines.push('  \\bar "|."');
-        gridSymbolsBottomLines.push('  \\bar "|."');
-      }
-    }
-    gridSymbolsTopLines.push("  \\cadenzaOff");
-    gridSymbolsBottomLines.push("  \\cadenzaOff");
-  }
-
-  const gridSymbolsTopVoiceStr = gridSymbolsTopLines.join("\n");
-  const gridSymbolsBottomVoiceStr = gridSymbolsBottomLines.join("\n");
-
   // Assemble staves in PianoStaff
   const gridSuffix = options.showRhythmGrid ? " \\rhythmGridVoice >>" : "";
   const wrapWithGrid = (voiceName: string) =>
@@ -2023,6 +1967,147 @@ export function compileToLilyPond(
   }
 
   const numCoils = coilStaffDefList.length;
+
+  const gridSymbolsTopLines: string[] = [
+    "  \\override TextScript.outside-staff-priority = ##f",
+    "  \\override TextScript.self-alignment-Y = #CENTER",
+    hasCoils
+      ? "  \\override TextScript.Y-offset = #3.6"
+      : "  \\override TextScript.Y-offset = #4.5",
+    "  \\cadenzaOn",
+  ];
+  const gridSymbolsBottomLines: string[] = [
+    "  \\override TextScript.outside-staff-priority = ##f",
+    "  \\override TextScript.self-alignment-Y = #CENTER",
+    hasCoils
+      ? "  \\override TextScript.Y-offset = #-3.6"
+      : "  \\override TextScript.Y-offset = #-4.5",
+    "  \\cadenzaOn",
+  ];
+  const gridSymbolsVoiceLines: string[] = [
+    "  \\override NoteHead.stencil = #ly:text-interface::print",
+    "  \\cadenzaOn",
+  ];
+
+  if (hasGridSymbols) {
+    if (numCoils === 0) {
+      // When no coil staves are shown, grid symbols are rendered in a dedicated compact staff
+      // with real notes/durations to drive LilyPond horizontal spacing and prevent note collisions
+      for (let c = 0; c < coilGroups.length; c++) {
+        const group = coilGroups[c];
+        if (c > 0) {
+          gridSymbolsVoiceLines.push('  \\bar "|"');
+        }
+
+        const timestampMap = new Map<number, { rhythmToken?: string; isRest?: boolean }>();
+        let maxEndBeat = 0;
+
+        for (const o of group.onsets) {
+          const start = o.startBeat ?? (o.onsetIndex - 1);
+          const durB = o.durationBeats !== undefined ? o.durationBeats : 1.0;
+          const end = start + durB;
+          if (end > maxEndBeat) {
+            maxEndBeat = end;
+          }
+
+          const existing = timestampMap.get(start);
+          if (!existing) {
+            timestampMap.set(start, { rhythmToken: o.rhythmToken, isRest: o.isRest });
+          } else {
+            if (!existing.rhythmToken && o.rhythmToken) {
+              existing.rhythmToken = o.rhythmToken;
+            }
+            if (existing.isRest === undefined && o.isRest !== undefined) {
+              existing.isRest = o.isRest;
+            }
+          }
+        }
+
+        const sortedTimes = Array.from(timestampMap.keys()).sort((a, b) => a - b);
+        if (sortedTimes.length === 0) {
+          sortedTimes.push(0);
+          maxEndBeat = 1.0;
+        }
+
+        const tokens: string[] = [];
+        for (let tIdx = 0; tIdx < sortedTimes.length; tIdx++) {
+          const startBeat = sortedTimes[tIdx];
+          const nextBeat = tIdx < sortedTimes.length - 1 ? sortedTimes[tIdx + 1] : maxEndBeat;
+          const durationBeats = Math.max(0.125, nextBeat - startBeat);
+          const durationStr = beatsToLilyPondDuration(durationBeats);
+
+          const entry = timestampMap.get(startBeat);
+          let rhythmToken = entry?.rhythmToken;
+          if (!rhythmToken) {
+            const f = startBeat - Math.floor(startBeat);
+            const s = Math.round(f * 12) % 12;
+            rhythmToken = SOLFEGE_POSITIONS[s] ?? "Do";
+          }
+
+          const schemeVar = getGridSymbolSchemeVar(
+            {
+              rhythmToken,
+              startBeat,
+              isRest: entry?.isRest,
+            } as any,
+            excludeDo,
+          );
+
+          if (schemeVar) {
+            tokens.push(`\\tweak NoteHead.text \\markup { \\stencil #${schemeVar} } b'${durationStr}`);
+          } else {
+            tokens.push(`\\tweak NoteHead.stencil ##f b'${durationStr}`);
+          }
+        }
+        gridSymbolsVoiceLines.push(`  ${tokens.join(" ")}`);
+      }
+
+      if (coilGroups.length > 0) {
+        gridSymbolsVoiceLines.push('  \\bar "|."');
+      }
+      gridSymbolsVoiceLines.push("  \\cadenzaOff");
+    } else {
+      // When coil staves are shown, top & bottom grid symbols frame the coil stack
+      for (let c = 0; c < coilGroups.length; c++) {
+        const group = coilGroups[c];
+        const pOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
+        const topSpacers: string[] = [];
+        const bottomSpacers: string[] = [];
+
+        for (let idx = 0; idx < pOnsets.length; idx++) {
+          const onset = pOnsets[idx];
+          const onsetDur =
+            traditionalRhythms && onset.durationBeats !== undefined
+              ? beatsToLilyPondDuration(onset.durationBeats, true)
+              : (onset.duration ?? dur);
+          const schemeVar = getGridSymbolSchemeVar(onset, excludeDo);
+          if (schemeVar) {
+            topSpacers.push(`s${onsetDur}^\\markup { \\stencil #${schemeVar} }`);
+            bottomSpacers.push(`s${onsetDur}_\\markup { \\stencil #${schemeVar} }`);
+          } else {
+            topSpacers.push(`s${onsetDur}`);
+            bottomSpacers.push(`s${onsetDur}`);
+          }
+        }
+        gridSymbolsTopLines.push(`  ${topSpacers.join(" ")}`);
+        gridSymbolsBottomLines.push(`  ${bottomSpacers.join(" ")}`);
+        if (c < coilGroups.length - 1) {
+          gridSymbolsTopLines.push('  \\bar "|"');
+          gridSymbolsBottomLines.push('  \\bar "|"');
+        } else {
+          gridSymbolsTopLines.push('  \\bar "|."');
+          gridSymbolsBottomLines.push('  \\bar "|."');
+        }
+      }
+      gridSymbolsTopLines.push("  \\cadenzaOff");
+      gridSymbolsBottomLines.push("  \\cadenzaOff");
+    }
+  }
+
+  const gridSymbolsTopVoiceStr = gridSymbolsTopLines.join("\n");
+  const gridSymbolsBottomVoiceStr = gridSymbolsBottomLines.join("\n");
+  const gridSymbolsVoiceStr = gridSymbolsVoiceLines.join("\n");
+
   const coilStaffLines: string[] = coilStaffDefList.map((def, idx) =>
     makeCoilStaff(def.voiceName, def.clefStencil, idx === 0, idx === numCoils - 1),
   );
@@ -2099,15 +2184,29 @@ export function compileToLilyPond(
     if (options.showRhythmGrid) {
       melodyInnerVoices.push("\\rhythmGridVoice");
     }
-    if (hasGridSymbols && numCoils === 0) {
-      melodyInnerVoices.push("\\gridSymbolsBottomVoice");
-    }
     if (melodyInnerVoices.length > 1) {
       staffLines.push(`    \\new Staff << ${melodyInnerVoices.join(" ")} >>`);
     } else {
       staffLines.push("    \\new Staff \\melodyVoice");
     }
   }
+
+  if (hasGridSymbols && numCoils === 0) {
+    staffLines.push(`      \\new Staff \\with {
+        \\override StaffSymbol.stencil = ##f
+        \\override Clef.stencil = ##f
+        \\override Clef.X-extent = #'(-0.2 . 1.2)
+        \\override Clef.Y-extent = #'(-1.0 . 1.0)
+        \\override NoteHead.Y-extent = #'(-1.0 . 1.0)
+        \\override TimeSignature.stencil = ##f
+        \\override Stem.stencil = ##f
+        \\override Flag.stencil = ##f
+        \\override Beam.stencil = ##f
+        \\override Dots.stencil = ##f
+        \\override NoteHead.no-ledgers = ##t
+      } ${wrapWithGrid('\\gridSymbolsVoice')}`);
+  }
+
   if (coilStaffLines.length > 1) {
     staffLines.push(`    \\new StaffGroup \\with {
       \\remove "System_start_delimiter_engraver"
@@ -2122,13 +2221,11 @@ ${coilStaffLines.join("\n")}
   } else if (coilStaffLines.length === 1) {
     staffLines.push(`  ${coilStaffLines[0].trim()}`);
   }
+
   if (showTraditionalHarmony) {
     const harmonyInnerVoices = ["\\harmonyVoice"];
     if (options.showRhythmGrid) {
       harmonyInnerVoices.push("\\rhythmGridVoice");
-    }
-    if (hasGridSymbols && numCoils === 0 && !showMelody) {
-      harmonyInnerVoices.push("\\gridSymbolsTopVoice");
     }
     if (harmonyInnerVoices.length > 1) {
       staffLines.push(`    \\new Staff << ${harmonyInnerVoices.join(" ")} >>`);
@@ -2340,8 +2437,12 @@ ${chordChangesDirective}      \\chordNamesVoice
     voiceDefs.push(`rhythmGridVoice = {\n${rhythmGridVoiceStr}\n}`);
   }
   if (hasGridSymbols) {
-    voiceDefs.push(`gridSymbolsTopVoice = {\n${gridSymbolsTopVoiceStr}\n}`);
-    voiceDefs.push(`gridSymbolsBottomVoice = {\n${gridSymbolsBottomVoiceStr}\n}`);
+    if (numCoils === 0) {
+      voiceDefs.push(`gridSymbolsVoice = {\n${gridSymbolsVoiceStr}\n}`);
+    } else {
+      voiceDefs.push(`gridSymbolsTopVoice = {\n${gridSymbolsTopVoiceStr}\n}`);
+      voiceDefs.push(`gridSymbolsBottomVoice = {\n${gridSymbolsBottomVoiceStr}\n}`);
+    }
   }
   let zoomPreamble = "";
   if (options.zoom !== undefined) {

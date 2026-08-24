@@ -980,7 +980,7 @@ describe('computeOnsetBeaming & LilyPond Beaming', () => {
   });
 
   it('annotates rhythm grid lines with notehead shapes and respects excludeGridDoSymbol', () => {
-    // When excludeGridDoSymbol is true, Do onsets at beats 0.0 and 2.0 have no markup
+    // When no coils are shown (numCoils === 0), gridSymbols renders as a dedicated compact staff
     const lyExcluded = compileToLilyPond(metricOnsets, {
       showRhythmGrid: true,
       gridSymbols: true,
@@ -989,9 +989,10 @@ describe('computeOnsetBeaming & LilyPond Beaming', () => {
       meter: 'DoLa',
     });
     expect(lyExcluded).toContain('rhythmGridVoice = {');
-    expect(lyExcluded).toContain('gridSymbolsTopVoice = {');
-    expect(lyExcluded).toContain('gridSymbolsBottomVoice = {');
-    expect(lyExcluded).not.toContain('^\\markup { \\stencil #gridSymbolDo }');
+    expect(lyExcluded).toContain('gridSymbolsVoice = {');
+    expect(lyExcluded).toContain('\\new Staff \\with {');
+    expect(lyExcluded).toContain('\\override StaffSymbol.stencil = ##f');
+    expect(lyExcluded).not.toContain('\\markup { \\stencil #gridSymbolDo }');
     expect(lyExcluded).toContain('\\override GridLine.thickness = #0.8');
     expect(lyExcluded).toContain('\\override GridLine.color = #(x11-color \'gray65)');
     expect(lyExcluded).toContain('make-strong-grid-point-stencil');
@@ -1003,8 +1004,17 @@ describe('computeOnsetBeaming & LilyPond Beaming', () => {
       excludeGridDoSymbol: false,
       meter: 'DoLa',
     });
-    expect(lyWithSymbols).toContain('^\\markup { \\stencil #gridSymbolDo }');
-    expect(lyWithSymbols).toContain('_\\markup { \\stencil #gridSymbolDo }');
+    expect(lyWithSymbols).toContain('\\markup { \\stencil #gridSymbolDo }');
+
+    // When coils are shown, grid symbols frame the top and bottom of the coil stack
+    const lyWithCoils = compileToLilyPond(metricOnsets, {
+      showRhythmCoil: true,
+      showRhythmGrid: true,
+      gridSymbols: true,
+      excludeGridDoSymbol: true,
+    });
+    expect(lyWithCoils).toContain('gridSymbolsTopVoice = {');
+    expect(lyWithCoils).toContain('gridSymbolsBottomVoice = {');
   });
 });
 
