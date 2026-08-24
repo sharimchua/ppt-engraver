@@ -522,6 +522,82 @@ document.addEventListener('DOMContentLoaded', async () => {
     notifications.setSaveStatus(dirty);
   });
 
+  // Global Keyboard Shortcuts (active across the entire studio window)
+  window.addEventListener('keydown', (e) => {
+    const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+    // F1 -> Open Command Palette
+    if (e.key === 'F1') {
+      e.preventDefault();
+      commandPalette.openCommandPalette();
+      return;
+    }
+
+    // Ctrl+Shift+P / Cmd+Shift+P -> Open Command Palette
+    if (cmdOrCtrl && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+      e.preventDefault();
+      commandPalette.openCommandPalette();
+      return;
+    }
+
+    // Ctrl+Shift+M / Cmd+Shift+M -> Toggle MIDI Input
+    if (cmdOrCtrl && e.shiftKey && (e.key === 'M' || e.key === 'm')) {
+      e.preventDefault();
+      toggleMidiInput();
+      return;
+    }
+
+    // Don't intercept single-key or standard input if an input/textarea (outside CodeMirror) has focus
+    const activeEl = document.activeElement;
+    const isModalInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT') && !activeEl.closest('.CodeMirror');
+
+    if (isModalInput) {
+      return;
+    }
+
+    // Ctrl+G / Cmd+G (without Shift) -> Go to Symbol Palette
+    if (cmdOrCtrl && !e.shiftKey && (e.key === 'g' || e.key === 'G')) {
+      e.preventDefault();
+      commandPalette.openGotoReferencePalette();
+      return;
+    }
+
+    // Ctrl+O / Cmd+O (without Shift) -> Open Tapestry Picker
+    if (cmdOrCtrl && !e.shiftKey && (e.key === 'o' || e.key === 'O')) {
+      e.preventDefault();
+      commandPalette.openTapestryPicker();
+      return;
+    }
+
+    // Ctrl+N / Cmd+N (without Shift) -> Create Tapestry
+    if (cmdOrCtrl && !e.shiftKey && (e.key === 'n' || e.key === 'N')) {
+      e.preventDefault();
+      createTapestry({
+        onSetStatus: notifications.setStatus,
+        onClearPreview: preview.clearPreviewWindow,
+        onRefreshScores: fetchScoresList,
+        onTriggerCompile: triggerCompile,
+        getEditor: () => editor,
+      });
+      return;
+    }
+
+    // Ctrl+S / Cmd+S (without Shift) -> Save Tapestry
+    if (cmdOrCtrl && !e.shiftKey && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      saveScore();
+      return;
+    }
+
+    // Ctrl+Enter / Cmd+Enter -> Recompile Tapestry
+    if (cmdOrCtrl && e.key === 'Enter') {
+      e.preventDefault();
+      triggerCompile();
+      return;
+    }
+  });
+
   // Window beforeunload safety guard
   window.addEventListener('beforeunload', (e) => {
     if (state.isDirty) {
