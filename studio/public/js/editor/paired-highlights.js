@@ -11,7 +11,16 @@ export function clearPairedTokenHighlights() {
   pairedTokenMarks = [];
 }
 
-export function expandLayerTokensWithOnsets(tokens) {
+export function isRhythmRestToken(tokenStr) {
+  const raw = (tokenStr || '').trim();
+  if (raw === 'Dox' || raw === 'R' || raw === '~' || /^(?:Dox)+$/i.test(raw)) {
+    return true;
+  }
+  return false;
+}
+
+export function expandLayerTokensWithOnsets(tokens, layerType = 'melody') {
+  const isRhythm = (layerType === 'rhythm' || layerType === 'harmonyRhythm');
   const onsets = [];
 
   for (let i = 0; i < tokens.length; i++) {
@@ -26,11 +35,13 @@ export function expandLayerTokensWithOnsets(tokens) {
         const windowOnsets = onsets.slice(-windowSize);
         for (let r = 0; r < repeatCount; r++) {
           for (let w = 0; w < windowOnsets.length; w++) {
+            const refOnset = windowOnsets[w];
             onsets.push({
               onsetIndex: onsets.length,
               sourceToken: tok,
-              originToken: windowOnsets[w].originToken || windowOnsets[w].sourceToken,
+              originToken: refOnset.originToken || refOnset.sourceToken,
               isRepeat: true,
+              isRest: Boolean(refOnset.isRest),
             });
           }
         }
@@ -38,12 +49,23 @@ export function expandLayerTokensWithOnsets(tokens) {
       }
     }
 
+    const isRest = isRhythm ? isRhythmRestToken(raw) : false;
     onsets.push({
       onsetIndex: onsets.length,
       sourceToken: tok,
       originToken: tok,
       isRepeat: false,
+      isRest,
     });
+  }
+
+  let soundingCount = 0;
+  for (let i = 0; i < onsets.length; i++) {
+    if (!onsets[i].isRest) {
+      onsets[i].soundingIndex = soundingCount++;
+    } else {
+      onsets[i].soundingIndex = null;
+    }
   }
 
   return onsets;
@@ -188,17 +210,19 @@ export function updatePairedTokenHighlights(cm) {
   const lineTokens = extractTokensForPaired(currentLine);
   if (lineTokens.length === 0) return;
 
-  const activeOnsets = expandLayerTokensWithOnsets(lineTokens);
+  const activeOnsets = expandLayerTokensWithOnsets(lineTokens, musicContext.layer);
 
-  const targetOnsetIndices = [];
+  const targetSoundingIndices = [];
   activeOnsets.forEach(onset => {
     const srcTok = onset.sourceToken;
     if (cur.ch >= srcTok.startCh && cur.ch <= srcTok.endCh) {
-      targetOnsetIndices.push(onset.onsetIndex);
+      if (onset.soundingIndex !== null && onset.soundingIndex !== undefined) {
+        targetSoundingIndices.push(onset.soundingIndex);
+      }
     }
   });
 
-  if (targetOnsetIndices.length === 0) return;
+  if (targetSoundingIndices.length === 0) return;
 
   const coil = getEnclosingCoilAtPos(cm, cur);
   if (!coil) return;
@@ -212,6 +236,25 @@ export function updatePairedTokenHighlights(cm) {
     for (let l = coil.startLine; l <= coil.endLine; l++) {
       const lText = cm.getLine(l) || '';
       if (isTarget(lText)) return l;
+    }
+
+    if (coil.parents && coil.parents.length > 0) {
+      for (const parentId of coil.parents) {
+        for (let l = 0; l < totalLines; l++) {
+          const lText = cm.getLine(l) || '';
+          const match = lText.match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)/);
+          if (match && match[2] === parentId) {
+            const pIndent = (lText.match(/^\s*/) || [''])[0].length;
+            for (let pl = l + 1; pl < Math.min(totalLines, l + 30); pl++) {
+              const plText = cm.getLine(pl) || '';
+              if (!plText.trim() || /^\s*#/.test(plText)) continue;
+              const plIndent = (plText.match(/^\s*/) || [''])[0].length;
+              if (plIndent <= pIndent && /^\s*[_a-zA-Z0-9]+:/.test(plText)) break;
+              if (isTarget(plText)) return pl;
+            }
+          }
+        }
+      }
     }
 
     return -1;
@@ -249,12 +292,13 @@ export function updatePairedTokenHighlights(cm) {
         }
       }
 
-      const targetOnsets = expandLayerTokensWithOnsets(targetTokens);
+      const targetOnsets = expandLayerTokensWithOnsets(targetTokens, layer);
       const markedTokens = new Set();
 
-      targetOnsetIndices.forEach(oIdx => {
-        if (targetOnsets[oIdx]) {
-          const tok = targetOnsets[oIdx].sourceToken;
+      targetSoundingIndices.forEach(sIdx => {
+        const matchingOnset = targetOnsets.find(o => o.soundingIndex === sIdx);
+        if (matchingOnset) {
+          const tok = matchingOnset.sourceToken;
           const tokKey = `${tok.startCh}-${tok.endCh}`;
           if (!markedTokens.has(tokKey)) {
             markedTokens.add(tokKey);
@@ -263,7 +307,7 @@ export function updatePairedTokenHighlights(cm) {
               { line: targetLineNo, ch: tok.endCh },
               {
                 className: 'cm-paired-token-highlight',
-                title: `Paired onset #${oIdx + 1} (${tok.word})`,
+                title: `Paired sounding note #${sIdx + 1} (${tok.word})`,
               }
             );
             pairedTokenMarks.push(mark);

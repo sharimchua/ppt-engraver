@@ -8,6 +8,11 @@ import {
   getSolfegeArrayContextAtCursor,
   insertSolfegeTokenAtCursor,
 } from '../../studio/public/js/core/midi-input.js';
+import {
+  isRhythmRestToken,
+  expandLayerTokensWithOnsets,
+  extractTokensForPaired,
+} from '../../studio/public/js/editor/paired-highlights.js';
 
 describe('MIDI Solfège Typing Engine', () => {
   describe('Rhythm MIDI Mapping (mapRhythmNoteToSolfege)', () => {
@@ -217,6 +222,110 @@ describe('MIDI Solfège Typing Engine', () => {
 
       expect(success).toBe(true);
       expect(mockCm.getValue()).toBe('  melody: [Do, Re, Mi]');
+    });
+  });
+});
+
+describe('Paired Music Layer Token Synchronization', () => {
+  describe('isRhythmRestToken', () => {
+    it('correctly identifies pure rest tokens', () => {
+      expect(isRhythmRestToken('Dox')).toBe(true);
+      expect(isRhythmRestToken('DoxDox')).toBe(true);
+      expect(isRhythmRestToken('R')).toBe(true);
+      expect(isRhythmRestToken('~')).toBe(true);
+    });
+
+    it('correctly identifies sounding rhythm tokens with Dox delay prefixes', () => {
+      expect(isRhythmRestToken('Do')).toBe(false);
+      expect(isRhythmRestToken('Fi')).toBe(false);
+      expect(isRhythmRestToken('DoxDo')).toBe(false);
+      expect(isRhythmRestToken('DoxFi')).toBe(false);
+      expect(isRhythmRestToken('DoxDoxDo')).toBe(false);
+      expect(isRhythmRestToken('LeFi')).toBe(false);
+    });
+  });
+
+  describe('expandLayerTokensWithOnsets', () => {
+    it('assigns soundingIndex correctly when rhythm starts with Dox skip', () => {
+      const lineText = '  rhythm: [Dox, Do, Fi, La]';
+      const tokens = extractTokensForPaired(lineText);
+      const onsets = expandLayerTokensWithOnsets(tokens, 'rhythm');
+
+      expect(onsets.length).toBe(4);
+
+      // Dox (rest)
+      expect(onsets[0].sourceToken.word).toBe('Dox');
+      expect(onsets[0].isRest).toBe(true);
+      expect(onsets[0].soundingIndex).toBe(null);
+
+      // Do (1st sounding onset)
+      expect(onsets[1].sourceToken.word).toBe('Do');
+      expect(onsets[1].isRest).toBe(false);
+      expect(onsets[1].soundingIndex).toBe(0);
+
+      // Fi (2nd sounding onset)
+      expect(onsets[2].sourceToken.word).toBe('Fi');
+      expect(onsets[2].isRest).toBe(false);
+      expect(onsets[2].soundingIndex).toBe(1);
+
+      // La (3rd sounding onset)
+      expect(onsets[3].sourceToken.word).toBe('La');
+      expect(onsets[3].isRest).toBe(false);
+      expect(onsets[3].soundingIndex).toBe(2);
+    });
+
+    it('aligns melody tokens with sounding rhythm onsets', () => {
+      const melodyText = '  melody: [Do, Me, Re]';
+      const rhythmText = '  rhythm: [Dox, Do, Fi, La]';
+
+      const melodyTokens = extractTokensForPaired(melodyText);
+      const melodyOnsets = expandLayerTokensWithOnsets(melodyTokens, 'melody');
+
+      const rhythmTokens = extractTokensForPaired(rhythmText);
+      const rhythmOnsets = expandLayerTokensWithOnsets(rhythmTokens, 'rhythm');
+
+      expect(melodyOnsets[0].soundingIndex).toBe(0);
+      expect(melodyOnsets[1].soundingIndex).toBe(1);
+      expect(melodyOnsets[2].soundingIndex).toBe(2);
+
+      // 1st melody syllable (Do) pairs with 1st sounding rhythm token (Do, not Dox)
+      const pairedRhythm0 = rhythmOnsets.find(r => r.soundingIndex === melodyOnsets[0].soundingIndex);
+      expect(pairedRhythm0?.sourceToken.word).toBe('Do');
+
+      // 2nd melody syllable (Me) pairs with 2nd sounding rhythm token (Fi)
+      const pairedRhythm1 = rhythmOnsets.find(r => r.soundingIndex === melodyOnsets[1].soundingIndex);
+      expect(pairedRhythm1?.sourceToken.word).toBe('Fi');
+
+      // 3rd melody syllable (Re) pairs with 3rd sounding rhythm token (La)
+      const pairedRhythm2 = rhythmOnsets.find(r => r.soundingIndex === melodyOnsets[2].soundingIndex);
+      expect(pairedRhythm2?.sourceToken.word).toBe('La');
+    });
+
+    it('handles lookback repeats with rests and sounding onsets', () => {
+      const rhythmText = '  rhythm: [Dox, Do, 2.2]';
+      const rhythmTokens = extractTokensForPaired(rhythmText);
+      const rhythmOnsets = expandLayerTokensWithOnsets(rhythmTokens, 'rhythm');
+
+      // [Dox, Do, Dox, Do, Dox, Do] -> length 6
+      expect(rhythmOnsets.length).toBe(6);
+
+      expect(rhythmOnsets[0].isRest).toBe(true);
+      expect(rhythmOnsets[0].soundingIndex).toBe(null);
+
+      expect(rhythmOnsets[1].isRest).toBe(false);
+      expect(rhythmOnsets[1].soundingIndex).toBe(0);
+
+      expect(rhythmOnsets[2].isRest).toBe(true);
+      expect(rhythmOnsets[2].soundingIndex).toBe(null);
+
+      expect(rhythmOnsets[3].isRest).toBe(false);
+      expect(rhythmOnsets[3].soundingIndex).toBe(1);
+
+      expect(rhythmOnsets[4].isRest).toBe(true);
+      expect(rhythmOnsets[4].soundingIndex).toBe(null);
+
+      expect(rhythmOnsets[5].isRest).toBe(false);
+      expect(rhythmOnsets[5].soundingIndex).toBe(2);
     });
   });
 });

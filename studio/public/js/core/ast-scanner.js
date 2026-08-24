@@ -466,7 +466,8 @@ export function findYamlTarget(yamlText, coilId, onsetIndex, targetLayer = 'melo
       targetLine = l;
       const tokens = extractTokensFromLine(line);
       if (tokens.length > 0) {
-        const tokenObj = tokens[Math.min(onsetIndex, tokens.length - 1)];
+        const idx = Math.max(0, (typeof onsetIndex === 'number' ? onsetIndex - 1 : 0));
+        const tokenObj = tokens[Math.min(idx, tokens.length - 1)];
         if (tokenObj) {
           targetCol = tokenObj.start;
           targetLength = tokenObj.end - tokenObj.start;
@@ -476,7 +477,7 @@ export function findYamlTarget(yamlText, coilId, onsetIndex, targetLayer = 'melo
     }
   }
 
-  return { line: targetLine, col: targetCol, length: targetLength };
+  return { line: targetLine, col: targetCol, targetLine, targetCh: targetCol, length: targetLength };
 }
 
 export function resolveTagFromLyLine(lyLineNum, onsets, sidecarMap, lilypondSource) {
