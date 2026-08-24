@@ -8,6 +8,7 @@ import { registerAutocomplete } from './autocomplete.js';
 import { setupGoToDefinition, triggerGoToDefinition } from './definition.js';
 import { updateInlineSolfegeWidget, clearInlineWidget } from './solfege-strip.js';
 import { updatePairedTokenHighlights, clearPairedTokenHighlights } from './paired-highlights.js';
+import { updateScoreHighlights } from '../preview/score-highlighter.js';
 import {
   handleContextualUp,
   handleContextualDown,
@@ -118,6 +119,7 @@ export function initEditor(container, commandHandlers = {}) {
     scanDeclaredCoilsAndWeaves(cm);
     updateInlineSolfegeWidget(cm);
     updatePairedTokenHighlights(cm);
+    updateScoreHighlights(cm);
     events.emit('editor:change', cm);
 
     if (state.preferences.autocompile) {
@@ -133,6 +135,7 @@ export function initEditor(container, commandHandlers = {}) {
     cursorDebounceTimer = setTimeout(() => {
       updateInlineSolfegeWidget(cm);
       updatePairedTokenHighlights(cm);
+      updateScoreHighlights(cm);
       events.emit('editor:cursorActivity', cm);
     }, 40);
   });
@@ -157,6 +160,7 @@ export function initEditor(container, commandHandlers = {}) {
     scanDeclaredCoilsAndWeaves(cm);
     updateInlineSolfegeWidget(cm);
     updatePairedTokenHighlights(cm);
+    updateScoreHighlights(cm);
     events.emit('editor:cursorActivity', cm);
   });
 

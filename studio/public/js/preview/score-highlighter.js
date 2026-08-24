@@ -222,7 +222,12 @@ export function updateScoreHighlights(cm) {
           return;
         }
 
-        const elOnsetIndex = parseInt(el.dataset.sourceOnsetIndex || el.dataset.onsetIndex, 10);
+        const elOnsetIndex = parseInt(
+          (declarativeLayer === 'melody' && el.dataset.melodyOnsetIndex)
+            ? el.dataset.melodyOnsetIndex
+            : (el.dataset.sourceOnsetIndex || el.dataset.onsetIndex),
+          10
+        );
         let isTokenMatch = false;
 
         if (targetOnsetIndex !== null) {

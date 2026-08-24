@@ -117,6 +117,7 @@ export async function renderPdfPages(options = {}) {
                 linkEl.dataset.voiceIndex = String(tagInfo.voiceIndex || '1');
                 linkEl.dataset.onsetIndex = String(tagInfo.onsetIndex || '');
                 linkEl.dataset.sourceOnsetIndex = String(tagInfo.sourceOnsetIndex || '');
+                linkEl.dataset.melodyOnsetIndex = String(tagInfo.melodyOnsetIndex || '');
               }
             }
 

@@ -34,6 +34,7 @@ export function renderSvgScore(svgString, options = {}) {
             link.dataset.voiceIndex = String(tagInfo.voiceIndex || '1');
             link.dataset.onsetIndex = String(tagInfo.onsetIndex || '');
             link.dataset.sourceOnsetIndex = String(tagInfo.sourceOnsetIndex || '');
+            link.dataset.melodyOnsetIndex = String(tagInfo.melodyOnsetIndex || '');
           }
         }
       }
