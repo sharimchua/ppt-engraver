@@ -18,21 +18,18 @@ snippet: |
         colorNotes: true
         omitStem: true
         noteheadStyle: ppt
+        strongBeatGridWeight: true
         show:
           - melody
-          - harmony
-          - melodyCoilInterval
-          - rhythmCoil
+          - gridSymbols
           - rhythmGrid
           - chordNames
+          - pulseSignature
 
     weaves:
       song:
         children:
-          - coil: verse
-
-    coils:
-      verse:
-        melody: [Dox, Do, Me, So, Me, Do]
-        rhythm: [Do, Fi, Do, Fi, Do, 2]
-        harmony: [DoMe]
+          - coil:
+              # melody: [Dox, Do, Me, So, Me, Do]
+              # rhythm: [Do, Fi, Do, Fi, Do, 2]
+              harmony: [Do, Fa, LaMe, So]

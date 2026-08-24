@@ -124,7 +124,7 @@ The `studio/public/` directory contains the client-side single-page application 
 
 ### 4. Contextual Autocomplete, Snippets & Command Palette
 - **Rich Context Autocomplete (`Ctrl+Space`)**:
-  - Custom hint renderer displaying category badges: `[SNIP]` (Cyan), `[COIL]` (Green), `[WEAVE]` (Purple), `[NOTE]` (Solfège Pill with PPT color swatch), `[ENUM]` (Amber), `[PROP]` (Slate).
+  - Custom hint renderer in elevated dark popup (`.CodeMirror-hints`, `.cm-ppt-hint-item`) displaying high-contrast typography, descriptions, and category badges: `[SNIP]` (Cyan), `[COIL]` (Green), `[WEAVE]` (Purple), `[KNOT]` (Pink), `[NOTE]` (Solfège Pill with PPT color swatch and SVG glyph), `[ENUM]` (Amber), `[PROP]` (Slate).
   - **Precision Scope & Property Enums**: Accurately scopes suggestions based on YAML block hierarchy and active property (`harmonyVoicing:`, `melodyAugmentation:`, `melodyAugmentationDisplay:`, `projection:`, `melodyClef:`, `harmonyClef:`, `noteheadStyle:`, `show:`, inside brackets `[...]`, or inside `engraving:`, `coils:`, `weaves:`, `children:`).
 - **Dynamic YAML Snippets Library (`snippets/*.yaml`)**:
   - Automatically loads and watches modular snippet files from `snippets/*.yaml` via `/api/snippets`.

@@ -10,6 +10,8 @@ import { scanDeclaredCoilsAndWeaves, findParentSection, getLineIndent } from '..
 
 export function setSnippetDefinitions(snippets) {
   state.snippets = (snippets || []).map(s => ({
+    id: s.id,
+    label: s.label,
     text: s.label || s.displayText || s.id,
     displayText: s.displayText || s.label || s.id,
     snippet: s.snippet,
@@ -437,7 +439,8 @@ export function getContextSuggestions(cm, cursor) {
 }
 
 export function renderHintItem(element, self, data) {
-  element.className = 'cm-ppt-hint-item';
+  element.classList.add('CodeMirror-hint', 'cm-ppt-hint-item');
+  element.innerHTML = '';
 
   const type = data.type || 'prop';
   const badge = document.createElement('span');

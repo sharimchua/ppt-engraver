@@ -37,37 +37,42 @@ export async function createTapestry(options = {}) {
   const composer = (result.values.composer || 'Composer').trim();
   const tonic = (result.values.tonic || 'C4').trim();
 
-  const starterTemplate = `tapestry:
+  const fullSnip = (state.snippets || []).find(
+    (s) => s.id === 'snip-tapestry-full' || s.label === 'New Tapestry Score Scaffold' || s.displayText?.includes('New Tapestry')
+  );
+
+  let starterTemplate = '';
+  if (fullSnip && fullSnip.snippet) {
+    starterTemplate = fullSnip.snippet
+      .replace(/tonic:\s*["']?[^"'\n]+["']?/, `tonic: "${tonic}"`)
+      .replace(/title:\s*["']?[^"'\n]+["']?/, `title: "${title}"`)
+      .replace(/composer:\s*["']?[^"'\n]+["']?/, `composer: "${composer}"`);
+  } else {
+    starterTemplate = `tapestry:
   knot:
     tonic: "${tonic}"
     weave: song
     engraving:
       title: "${title}"
       composer: "${composer}"
-      arranger: "Midlife Muso"
       colorNotes: true
       omitStem: true
       noteheadStyle: ppt
-      harmonyClef: treble_8
+      strongBeatGridWeight: true
       show:
         - melody
-        - harmony
-        - melodyCoilInterval
-        - rhythmCoil
+        - gridSymbols
         - rhythmGrid
         - chordNames
+        - pulseSignature
 
   weaves:
     song:
       children:
-        - coil: verse
-
-  coils:
-    verse:
-      melody: [Dox, Do, Me, So, Me, Do]
-      rhythm: [Do, Fi, Do, Fi, Do, 2]
-      harmony: [DoMe]
+        - coil:
+            harmony: [Do, Fa, LaMe, So]
 `;
+  }
 
   try {
     onSetStatus?.('compiling', 'Creating...');

@@ -1169,32 +1169,41 @@ body.resizing-panels iframe {
 .CodeMirror-hints {
   position: absolute;
   z-index: 1000;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   list-style: none;
   margin: 0;
   padding: 4px 0;
   border-radius: 6px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-surface-elevated);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border-color) !important;
+  background: var(--bg-surface-elevated) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6) !important;
   font-family: var(--font-ui);
   font-size: 12px;
   max-height: 280px;
-  min-width: 220px;
-  max-width: 440px;
+  min-width: 240px;
+  max-width: 480px;
 }
 
-.CodeMirror-hint {
+.CodeMirror-hint,
+.cm-ppt-hint-item {
   margin: 0;
-  padding: 4px 8px;
+  padding: 5px 10px;
   border-radius: 0;
   white-space: nowrap;
-  color: var(--text-main);
+  color: var(--text-main) !important;
+  background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   transition: background 0.1s ease;
+}
+
+.CodeMirror-hint:hover,
+.cm-ppt-hint-item:hover {
+  background: var(--bg-surface-hover);
 }
 
 li.CodeMirror-hint-active {
@@ -1202,61 +1211,68 @@ li.CodeMirror-hint-active {
   color: #ffffff !important;
 }
 
-.cm-hint-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: 8px;
-}
-
-.cm-hint-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+.cm-ppt-hint-badge,
 .cm-hint-badge {
   font-size: 9px;
   font-family: var(--font-mono);
   font-weight: 700;
-  padding: 1px 5px;
+  padding: 2px 5px;
   border-radius: 3px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   flex-shrink: 0;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.cm-hint-badge-snip { background: rgba(59, 130, 246, 0.25); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
-.cm-hint-badge-coil { background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
-.cm-hint-badge-weave { background: rgba(168, 85, 247, 0.25); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
-.cm-hint-badge-enum { background: rgba(245, 158, 11, 0.25); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
-.cm-hint-badge-prop { background: rgba(100, 116, 139, 0.25); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); }
-.cm-hint-badge-note { background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+.badge-snip, .cm-hint-badge-snip { background: rgba(59, 130, 246, 0.25); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+.badge-coil, .cm-hint-badge-coil { background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+.badge-weave, .cm-hint-badge-weave { background: rgba(168, 85, 247, 0.25); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+.badge-knot, .cm-hint-badge-knot { background: rgba(236, 72, 153, 0.25); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
+.badge-enum, .cm-hint-badge-enum { background: rgba(245, 158, 11, 0.25); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+.badge-prop, .cm-hint-badge-prop { background: rgba(100, 116, 139, 0.25); color: #cbd5e1; border: 1px solid rgba(100, 116, 139, 0.4); }
+.badge-note, .cm-hint-badge-note { background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 4px; }
 
+li.CodeMirror-hint-active .cm-ppt-hint-badge,
 li.CodeMirror-hint-active .cm-hint-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
 }
 
+.cm-ppt-hint-label,
 .cm-hint-label {
   font-family: var(--font-mono);
   font-weight: 500;
+  font-size: 12px;
+  color: var(--text-main);
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+.cm-ppt-hint-desc,
 .cm-hint-desc {
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   font-style: normal;
   flex-shrink: 0;
   text-align: right;
+  margin-left: auto;
+  padding-left: 8px;
 }
 
+li.CodeMirror-hint-active .cm-ppt-hint-label,
+li.CodeMirror-hint-active .cm-hint-label {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+li.CodeMirror-hint-active .cm-ppt-hint-desc,
 li.CodeMirror-hint-active .cm-hint-desc {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .cm-hint-solfege-pill {
