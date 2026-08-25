@@ -722,23 +722,32 @@ PPT Studio supports direct "typing" of Solfège tokens into the CodeMirror edito
 
 | Shortcut | Context | Action |
 |---|---|---|
+| `Ctrl+Alt+N` / `Alt+N` / `Cmd+Alt+N` | Global | **Create New Tapestry** starter score |
+| `Ctrl+O` / `Cmd+O` | Global | **Open Tapestry Score** palette |
+| `Ctrl+S` / `Cmd+S` | Global | **Save Tapestry Score** to disk |
+| `Ctrl+Shift+E` / `Cmd+Shift+E` | Global | **Export Standalone PDF Score** (saves to `scores/` & downloads) |
+| `Ctrl+Enter` / `Cmd+Enter` | Global | **Compile / Recompile** sheet music with LilyPond |
+| `Ctrl+Shift+P` / `Cmd+Shift+P` / `F1` | Global | **Command Palette** (search actions, snippets & tools) |
+| `Ctrl+G` / `Cmd+G` | Global | **Go to Named Reference / Symbol** palette (`w:`, `c:`, `k:`, `s:`) |
+| `?` / Command Palette / ⚙ Settings | Global | **Keyboard Shortcuts Cheat Sheet Modal** |
 | `Ctrl+Shift+M` / `Cmd+Shift+M` | Global | **Toggle MIDI Solfège Typing** On / Off |
 | `Ctrl+Up` / `Ctrl+Down` | On Solfège note | Transpose active note chromatically (+1 / -1 semitone) |
 | `Ctrl+Up` / `Ctrl+Down` | On property line | Navigate cursor to previous / next **property sibling** at same indentation |
 | `Ctrl+Alt+Up` / `Ctrl+Alt+Down` | On Solfège note | Shift active note octave (+1 / -1 octave with `^` / `_`) |
 | `Ctrl+Alt+Up` / `Ctrl+Alt+Down` | On property block | **Reorder property / array item** up/down within parent boundaries |
+| `Ctrl+Left` / `Ctrl+Right` | On Solfège note | Navigate tokens; press `Ctrl+Right` at list end to duplicate syllable |
 | `Ctrl+Alt+Enter` | Anywhere in block | **Duplicate property / array item** contextually with auto-incremented ID |
-| `Ctrl+G` / `Cmd+G` | Global | **Go to Named Reference / Symbol** palette (`w:`, `c:`, `k:`, `s:`) |
 | `Ctrl+Alt+A` | In coil / melody line | Convert Melody between **Interval Mode** and **Absolute Mode** |
 | `Ctrl+Alt+P` | In coil | Extract layer into Parent Coil |
 | `Ctrl+Alt+C` | In child coil | Extract Inline Coil to Named Coil |
+| `Ctrl+Alt+I` | In coil with parents | Inline Parent Coil Properties |
 | `Ctrl+Alt+W` | In selection | Group Selection into Weave |
-| `F2` | On declared ID | Rename Symbol / ID globally |
+| `F2` | On declared ID | Rename Symbol / ID globally across score |
 | `F12` / `Ctrl+Click` | On ID reference | Jump to Symbol Definition |
 | `Ctrl+Space` | In editor | Trigger contextual autocomplete & YAML snippets |
 | `Ctrl+Q` | On block | Fold / unfold current section |
-| `Ctrl+Enter` | Global | Recompile sheet music with LilyPond |
-| `Ctrl+Shift+E` / `Cmd+Shift+E` | Global | **Export Standalone PDF Score** (saves to `scores/` & downloads) |
+| `Ctrl+/` | In editor | Toggle line / block comment |
+| `Hold Shift` / 🔍 button | On preview | Circular magnifying glass (loupe) inspection tool |
 
 ---
 

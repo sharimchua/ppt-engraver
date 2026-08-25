@@ -1657,3 +1657,224 @@ kbd {
   color: #60a5fa;
   border: 1px solid rgba(59, 130, 246, 0.4);
 }
+
+/* ==========================================================================
+   Keyboard Shortcuts Modal
+   ========================================================================== */
+.shortcuts-card {
+  width: 820px;
+  max-width: 94vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.shortcuts-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shortcuts-header-icon {
+  font-size: 18px;
+}
+
+.shortcuts-filter-container {
+  padding: 10px 16px;
+  background-color: var(--bg-surface-elevated);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.shortcuts-search-input {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text-main);
+  font-size: 13px;
+  font-family: var(--font-ui);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shortcuts-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.shortcuts-search-input::placeholder {
+  color: var(--text-dim);
+}
+
+.shortcuts-modal-body {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(88vh - 140px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shortcuts-content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shortcuts-group {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.shortcuts-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-surface-elevated);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.shortcuts-group-icon {
+  font-size: 14px;
+}
+
+.shortcuts-group-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.shortcuts-group-count {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: 10px;
+  color: var(--text-dim);
+}
+
+.shortcuts-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.shortcuts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.1s ease;
+}
+
+.shortcuts-row:last-child {
+  border-bottom: none;
+}
+
+.shortcuts-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.shortcuts-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.shortcuts-action-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.shortcuts-action-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.shortcuts-keys-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.shortcuts-key-combo {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.shortcuts-key-combo kbd {
+  background-color: var(--bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  color: #f1f5f9;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.shortcuts-or {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: lowercase;
+  margin: 0 2px;
+}
+
+.shortcuts-empty {
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--text-dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.shortcuts-empty-icon {
+  font-size: 28px;
+  opacity: 0.6;
+}
+
+.shortcuts-empty-text {
+  font-size: 13px;
+}
+
+.shortcuts-empty-text strong {
+  color: var(--text-main);
+}
+
+.shortcuts-modal-footer {
+  padding: 10px 16px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-surface-elevated);
+}
+
+.shortcuts-hint-text {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.shortcuts-hint-text kbd {
+  margin: 0 2px;
+}
+

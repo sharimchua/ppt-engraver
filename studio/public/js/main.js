@@ -21,6 +21,7 @@ import { setupZoomControls } from './ui/zoom-controls.js';
 import { setupNotifications } from './ui/notifications.js';
 import { setupSettingsModal } from './modals/settings-modal.js';
 import { setupCommandPalette } from './modals/command-palette.js';
+import { setupShortcutsModal } from './modals/shortcuts-modal.js';
 import { setupModalManagerListeners } from './modals/modal-manager.js';
 import { createTapestry, deleteTapestry, renameTapestryFile, confirmDiscardUnsavedChanges } from './modals/tapestry-modals.js';
 import { showTonicModeTranspositionModal } from './modals/tonic-modal.js';
@@ -303,7 +304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         title: 'Create Tapestry...',
         category: 'Project',
         icon: '✨',
-        shortcut: 'Ctrl+N',
+        shortcut: 'Ctrl+Alt+N',
         action: () => createTapestry({
           onSetStatus: notifications.setStatus,
           onClearPreview: preview.clearPreviewWindow,
@@ -311,6 +312,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           onTriggerCompile: triggerCompile,
           getEditor: () => editor,
         }),
+      },
+      {
+        id: 'help-shortcuts',
+        title: 'Keyboard Shortcuts Cheat Sheet...',
+        category: 'Help & Reference',
+        icon: '⌨',
+        shortcut: '?',
+        action: () => shortcutsModal.openShortcutsModal(),
       },
       {
         id: 'project-save-tapestry',
@@ -572,7 +581,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     onsets: lastCompiledData?.onsets,
   });
 
-  setupSettingsModal();
+  const shortcutsModal = setupShortcutsModal();
+
+  setupSettingsModal({
+    onOpenShortcuts: () => shortcutsModal.openShortcutsModal(),
+  });
 
   // Listen to dirty state changes
   events.on('dirty:changed', (dirty) => {
@@ -627,8 +640,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Ctrl+N / Cmd+N (without Shift) -> Create Tapestry
-    if (cmdOrCtrl && !e.shiftKey && (e.key === 'n' || e.key === 'N')) {
+    // Ctrl+Alt+N / Alt+N / Cmd+Alt+N -> Create Tapestry
+    if (e.altKey && (e.key === 'n' || e.key === 'N')) {
       e.preventDefault();
       createTapestry({
         onSetStatus: notifications.setStatus,
@@ -638,6 +651,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         getEditor: () => editor,
       });
       return;
+    }
+
+    // ? / Shift+? (when not inside CodeMirror editor or text input) -> Open Keyboard Shortcuts
+    if ((e.key === '?' || (e.shiftKey && e.key === '/')) && !cmdOrCtrl && !e.altKey) {
+      const isCM = activeEl && activeEl.closest('.CodeMirror');
+      if (!isCM) {
+        e.preventDefault();
+        shortcutsModal.openShortcutsModal();
+        return;
+      }
     }
 
     // Ctrl+S / Cmd+S (without Shift) -> Save Tapestry

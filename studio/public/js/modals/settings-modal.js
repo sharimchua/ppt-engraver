@@ -5,11 +5,13 @@
 import { state, setPreference } from '../state.js';
 import { apiGetConfig, apiSaveConfig } from '../api.js';
 
-export function setupSettingsModal() {
+export function setupSettingsModal(options = {}) {
+  const { onOpenShortcuts } = options;
   const settingsModal = document.getElementById('settings-modal');
   const btnSettings = document.getElementById('btn-settings');
   const btnCloseSettings = document.getElementById('btn-close-settings');
   const btnSaveSettings = document.getElementById('btn-save-settings');
+  const btnOpenShortcuts = document.getElementById('btn-open-shortcuts-from-settings');
 
   const settingLilypondPath = document.getElementById('setting-lilypond-path');
   const settingStatusHint = document.getElementById('setting-status-hint');
@@ -99,6 +101,13 @@ export function setupSettingsModal() {
   if (btnCloseSettings) {
     btnCloseSettings.addEventListener('click', () => {
       if (settingsModal) settingsModal.classList.add('hidden');
+    });
+  }
+
+  if (btnOpenShortcuts) {
+    btnOpenShortcuts.addEventListener('click', () => {
+      if (settingsModal) settingsModal.classList.add('hidden');
+      onOpenShortcuts?.();
     });
   }
 

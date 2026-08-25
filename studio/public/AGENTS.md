@@ -34,6 +34,7 @@ The `studio/public/` directory contains the client-side single-page application 
   - `rhythm-modal.js`: Rhythmic Period Transposition & Grammar Optimizer dialog.
   - `refactor-dialogs.js`: Structural refactorings (Extract Parent, Extract Inline, Inline Parent, Extract Weave, Rename Symbol).
   - `settings-modal.js`: Studio settings and preferences modal.
+  - `shortcuts-modal.js`: Searchable and categorized Keyboard Shortcuts Cheat Sheet modal.
 - **`js/ui/`**:
   - `toolbar.js`: Top header bar, score picker, and knot projection dropdowns.
   - `split-pane.js`: Draggable split pane gutter with size persistence.
@@ -86,9 +87,12 @@ The `studio/public/` directory contains the client-side single-page application 
 - **Open Tapestry (`Ctrl+O` / `Cmd+O` / Command Palette `Open Tapestry...`)**:
   - Interactive palette search filtering across all score files and rich metadata (`title`, `composer`, `arranger`, `tonic`, `tempo`, filename).
   - Shows metadata badges and subtitles for quick library navigation.
-- **Create Tapestry (`Ctrl+N` / `Cmd+N` / `+` Toolbar Button / Command Palette `Create Tapestry...`)**:
+- **Create Tapestry (`Ctrl+Alt+N` / `Alt+N` / `Cmd+Alt+N` / `+` Toolbar Button / Command Palette `Create Tapestry...`)**:
   - Prompts for filename, score title, composer, and tonic root pitch.
   - Automatically scaffolds clean starter YAML score with PPT noteheads, compiles, and loads it into the editor.
+- **Keyboard Shortcuts Cheat Sheet Modal (`?` / Settings Button / Command Palette `Keyboard Shortcuts Cheat Sheet...`)**:
+  - Displays a comprehensive, searchable modal categorizing all Studio keyboard shortcuts: Project & File, Navigation & Symbol Palettes, Music & Solfège Pitch Editing, YAML Structure & CodeMirror, Refactoring & Theory Tools, and Score Preview & Loupe.
+  - Dynamically formats key badges for Mac (`⌘`, `⌥`, `⇧`) and Windows/Linux (`Ctrl`, `Alt`, `Shift`).
 - **Rename Tapestry File (Command Palette `Rename Tapestry File & Artifacts...`)**:
   - Prompts for new filename and renames the primary score YAML file along with all associated compilation artifacts (`.notation.ly`, `.pdf`, `.ppt-map.json`, `.svg`, `.cropped.svg`, `.mid`) via `POST /api/rename`.
   - Automatically refreshes the tapestry library and updates active URL deeplinks.
@@ -98,7 +102,7 @@ The `studio/public/` directory contains the client-side single-page application 
   - Compiles the current tapestry and active knot projection via LilyPond with `-dpoint-and-click` enabled.
   - Persists `<score>.pdf` in `scores/` and automatically triggers a direct browser file download for the user.
 - **Unsaved Changes Protection (`confirmDiscardUnsavedChanges`)**:
-  - Automatically guards against accidental loss of unsaved tapestry modifications when switching scores via dropdown, tapestry palette (`Ctrl+O`), `+ New Tapestry` (`Ctrl+N`), browser back/forward navigation (`popstate`), and page reload/close (`beforeunload`).
+  - Automatically guards against accidental loss of unsaved tapestry modifications when switching scores via dropdown, tapestry palette (`Ctrl+O`), `+ New Tapestry` (`Ctrl+Alt+N`), browser back/forward navigation (`popstate`), and page reload/close (`beforeunload`).
   - Reverts dropdown selector and URL navigation if the user cancels the confirmation dialog.
 - **Delete Tapestry (`🗑️` Toolbar Button / Command Palette `Delete Current Tapestry...`)**:
   - Prompts for confirmation and permanently removes the score YAML file and all associated compiled artifacts (`.notation.ly`, `.pdf`, `.ppt-map.json`, `.svg`) via `POST /api/delete`.

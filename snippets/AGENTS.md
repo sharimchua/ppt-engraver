@@ -5,7 +5,7 @@
 The `snippets/` directory contains modular, editable YAML templates and boilerplate motifs used by PPT Studio for:
 1. **Contextual Autocomplete (`Ctrl+Space`)**: Suggesting context-relevant structures (root scores, knot headers, weaves, coils, layers, and engraving settings).
 2. **Command Palette (`Ctrl+Shift+P` / `F1`)**: Exposing one-click snippet insertions into the active score.
-3. **Tapestry Creation (`Ctrl+N` / `+` Toolbar Button)**: `snippets/tapestry-full.yaml` (`snip-tapestry-full`) acts as the dynamic starter template when creating new tapestries, injecting the user's chosen title, composer, and tonic pitch.
+3. **Tapestry Creation (`Ctrl+Alt+N` / `Alt+N` / `+` Toolbar Button)**: `snippets/tapestry-full.yaml` (`snip-tapestry-full`) acts as the dynamic starter template when creating new tapestries, injecting the user's chosen title, composer, and tonic pitch.
 
 ---
 
