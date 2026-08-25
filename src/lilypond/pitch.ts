@@ -58,6 +58,26 @@ export const SOLFEGE_TO_PPT_STENCIL: Record<string, string> = {
   Ti: 'stencilTi',
 };
 
+export const SOLFEGE_TO_PPT_TAB_STENCIL: Record<string, string> = {
+  Do: 'tabStencilDo',
+  Ra: 'tabStencilRa',
+  Di: 'tabStencilRa',
+  Re: 'tabStencilRe',
+  Me: 'tabStencilMe',
+  Ri: 'tabStencilMe',
+  Mi: 'tabStencilMi',
+  Fa: 'tabStencilFa',
+  Se: 'tabStencilFa',
+  Fi: 'tabStencilFi',
+  So: 'tabStencilSo',
+  Le: 'tabStencilLe',
+  Si: 'tabStencilLe',
+  La: 'tabStencilLa',
+  Te: 'tabStencilTe',
+  Li: 'tabStencilTe',
+  Ti: 'tabStencilTi',
+};
+
 export const LILYPOND_SHARP_NOTES = [
   'c',   // 0: C
   'cis', // 1: C#

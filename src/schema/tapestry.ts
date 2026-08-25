@@ -118,9 +118,27 @@ export const EngravingElementSchema = z.enum([
   'gridSymbols',
   'timeSignature',
   'pulseSignature',
+  'guitarTab',
 ]);
 
 export type EngravingElement = z.infer<typeof EngravingElementSchema>;
+
+/**
+ * Voicing styles for guitar tablature grips.
+ */
+export const GuitarVoicingEnum = z.enum([
+  'melodyOnly',      // Pure melody noteheads on optimal string/fret positions
+  'root',            // Melody note + bass root note on chord changes
+  'triad',           // Melody note + root + 3rd/5th chord tones on chord changes
+  'shell',           // Melody note + 3rd and 7th guide tones on chord changes
+  'chordMelody',     // Jazz chord-melody drop-2 / 3-4 note grips on changes and downbeats
+  'rootChordTones',  // Alias for triad
+  'guideTones',      // Alias for shell
+  'bassAndMelody',   // Alias for root
+  'auto',            // Dynamically selects richest playable grip within maxFretSpan
+]);
+
+export type GuitarVoicing = z.infer<typeof GuitarVoicingEnum>;
 
 /**
  * Voicing styles for projecting abstract harmony chords onto concrete staves and MIDI.
@@ -249,6 +267,18 @@ export const EngravingSchema = z.object({
   showHarmonyCoil: z.boolean().optional(),
   /** Whether to show the traditional 5-line harmony staff */
   showTraditionalHarmony: z.boolean().optional(),
+  /** Whether to show the guitar tablature staff */
+  showGuitarTab: z.boolean().optional(),
+  /** Guitar tablature voicing style */
+  guitarVoicing: GuitarVoicingEnum.optional(),
+  /** Maximum fret span / stretch distance for guitar grips (default: 4, e.g. 3 for smaller hands) */
+  maximumFretSpan: z.number().int().min(1).max(10).optional(),
+  /** Alias for maximumFretSpan */
+  maxFretSpan: z.number().int().min(1).max(10).optional(),
+  /** Custom guitar tuning specification (default: 'guitar' / standard EADGBE) */
+  guitarTuning: z.string().optional(),
+  /** Tablature notehead styling: 'ppt' (geometric shapes) | 'numbersOnly' | 'default' */
+  tabStaffStyle: z.enum(['ppt', 'numbersOnly', 'default']).optional(),
   /** Whether to show the melody staff (default: true) */
   showMelody: z.boolean().optional(),
   /** Whether to show the Melody Coil Absolute row layer (displays absolute Solfège pitch classes) */
@@ -347,6 +377,11 @@ export const KnotSchema = z.object({
   noteheadStyle: z.enum(['ppt', 'sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default']).optional(),
   harmonyChangesOnly: z.boolean().optional(),
   harmonyVoicing: HarmonyVoicingEnum.optional(),
+  guitarVoicing: GuitarVoicingEnum.optional(),
+  maximumFretSpan: z.number().int().min(1).max(10).optional(),
+  maxFretSpan: z.number().int().min(1).max(10).optional(),
+  guitarTuning: z.string().optional(),
+  tabStaffStyle: z.enum(['ppt', 'numbersOnly', 'default']).optional(),
   melodyAugmentation: MelodyAugmentationEnum.optional(),
   melodyAugmentationDisplay: MelodyAugmentationDisplayEnum.optional(),
   projection: ProjectionPresetEnum.optional(),
@@ -359,6 +394,7 @@ export const KnotSchema = z.object({
   showHarmonyCoil: z.boolean().optional(),
   showPulseCoil: z.boolean().optional(),
   showTraditionalHarmony: z.boolean().optional(),
+  showGuitarTab: z.boolean().optional(),
   showMelody: z.boolean().optional(),
   showMelodyCoilAbsolute: z.boolean().optional(),
   showMelodyCoilInterval: z.boolean().optional(),

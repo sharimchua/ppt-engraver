@@ -2,7 +2,7 @@
 
 ## Purpose & Scope
 
-The `src/lilypond/` directory generates valid, beautiful, standalone LilyPond markup (`.ly`) from resolved PPT score onsets. It includes custom Scheme functions and PostScript path stencils to engrave PPT geometric noteheads, solfège lyric lines, rhythm grids, and harmony blocks.
+The `src/lilypond/` directory generates valid, beautiful, standalone LilyPond markup (`.ly`) from resolved PPT score onsets. It includes custom Scheme functions and PostScript path stencils to engrave PPT geometric noteheads, solfège lyric lines, rhythm grids, harmony blocks, and guitar tablature.
 
 ---
 
@@ -13,6 +13,7 @@ Generated `.ly` documents contain:
    - `pptPathBase`, `pptPathSharp`, `pptPathFlat` defining the vector bezier curves.
    - `pptPathTriangleUp`, `pptPathTriangleDown` defining directional octave displacement indicators.
    - `make-solfege-glyph` / `make-path-stencil` computing scale, rotation, color, optional axis stroke, and vertical-stacked directional octave displacement triangles.
+   - `make-ppt-tab-stencil` generating centered, chromatic PPT Solfège geometric notehead shapes behind white fret numbers for `TabStaff`.
 2. **Engraving Visibility Config**:
    - `\layout` and `\paper` blocks configured for Frescobaldi and PPT Studio rendering.
 3. **Voice Lines**:
@@ -23,6 +24,7 @@ Generated `.ly` documents contain:
    - `\pulseCoil`: Row band with `P` clef displaying macro metric pulses across the timeline (`showPulseCoil`).
    - `\harmonyCoil`: Row band with `H` clef displaying Solfège chord glyphs and alterations.
    - `\harmonyVoice`: Traditional 5-line harmony chord staff (e.g. Bass clef).
+   - `\tabVoice`: Guitar tablature staff (`\new TabStaff`) placed underneath traditional harmony, with PPT geometric notehead shapes rendered behind fret numbers.
    - `\rhythmGrid`: Subdivision tick marks and beat pulse indicators.
 
 ---
@@ -39,6 +41,7 @@ Generated `.ly` documents contain:
   - Pulse coil: `pulse` (e.g. `ppt_verse_introMotif_pulse_1`)
   - Harmony coil: `harmony` (e.g. `ppt_verse_introMotif_harmony_1`)
   - Harmony staff: `harmonyStaff` (e.g. `ppt_verse_introMotif_harmonyStaff_1`)
+  - Guitar Tab staff: `tab` (e.g. `ppt_verse_introMotif_tab_1` or `ppt_verse_introMotif_tab_v2_1`)
   - Chord names: `chordName` (e.g. `ppt_verse_introMotif_chordName_1`)
 - Polyphony compiles into `\new Voice = "v1" { \voiceOne ... }` and `\new Voice = "v2" { \voiceTwo ... }` inside the top staff.
 - This enables PPT Studio point-and-click navigation to route clicks unambiguously to the exact layer line (`melody:`, `rhythm:`, or `harmony:`) and voice, tracing concatenated / inherited sub-coils back to their definition in YAML.
@@ -51,6 +54,7 @@ Generated `.ly` documents contain:
 - **Strict Syntax Safety**: Ensure all scheme expressions (`#(...)`) are properly balanced and escaped. Inside `\markup \column { ... }`, child elements must be markup bodies (markup expressions **without** a leading `\markup` keyword) — nesting `\markup` inside `\column` is a LilyPond syntax error.
 - **Preserve Tags**: Never omit `\tag #'ppt_...` on notes or rests, as Point-and-Click navigation relies on them.
 - **Decoupled Canonical ChordNames**: `\new ChordNames` uses canonical block chords (`canonicalChordToLilyPond`) derived directly from Solfège tokens and key context, completely independent of harmony staff voicings (e.g. `rootless`, `shell`, `bassOnly`), preserving clean lead sheet symbols and slash chords (`C/G`, `C/E`, `Cm/Eb`).
+- **Guitar Tablature & Voicings (`showGuitarTab: true`)**: Generates `\new TabStaff` placed directly underneath the harmony staff. Fret noteheads feature PPT chromatic geometric shapes centered behind white fret numbers. Voicings (`guitarVoicing: melodyOnly | root | triad | shell | auto`) and `maximumFretSpan` (ignoring open strings $f = 0$) solve ergonomic fingering grips across strings 1–6.
 - **Rhythmic Beaming in Cadenza Mode**: Because `\cadenzaOn` suppresses LilyPond's automatic beam engraver, sub-quarter notes (< 1.0 beat) within each integer beat window are beamed deterministically using manual beam brackets (`[` and `]`), respecting voice, rest, and coil barline boundaries.
 - **Traditional Rhythms Mode (`traditionalRhythms: true`)**: Formats periods with standard traditional duration tokens (dotted notes `2.`, `4.`, `8.`, `1.`, half notes `2`, whole notes `1`), visible rests (`r4`, `r2`, `r8`, etc.), and omits `\override NoteHead.duration-log = #2` so half and whole noteheads render as open/hollow noteheads.
 - **Traditional Time Signature on Staves (`showTimeSignature: true`)**: Emits standard `\time <sig>` on traditional 5-line notation staves (`melodyVoice`, `harmonyVoice`) and retains `Time_signature_engraver` on standard staves while keeping coil staves uncluttered.

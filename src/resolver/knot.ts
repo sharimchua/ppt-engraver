@@ -265,6 +265,7 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
     knotDef.showMetricCoil;
   let showHarmonyCoil = eng.showHarmonyCoil ?? knotDef.showHarmonyCoil;
   let showTraditionalHarmony = eng.showTraditionalHarmony ?? knotDef.showTraditionalHarmony;
+  let showGuitarTab = eng.showGuitarTab ?? knotDef.showGuitarTab;
   let showRhythmGrid = eng.showRhythmGrid ?? knotDef.showRhythmGrid;
   let showChordNames: boolean | undefined = undefined;
 
@@ -285,6 +286,9 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
       eng.show.includes('harmony') ||
       eng.show.includes('traditionalHarmony') ||
       eng.show.includes('harmonyStaff');
+    if (eng.show.includes('guitarTab')) {
+      showGuitarTab = true;
+    }
     showRhythmGrid = eng.show.includes('rhythmGrid');
     showChordNames = eng.show.includes('chordNames');
     if (eng.show.includes('gridSymbols') && gridSymbols === undefined) {
@@ -321,6 +325,15 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
   const colorNotes = eng.colorNotes ?? knotDef.colorNotes;
   const noteheadOutline = eng.noteheadOutline ?? knotDef.noteheadOutline;
   const harmonyStaffStyle = eng.harmonyStaffStyle ?? knotDef.harmonyStaffStyle;
+  const guitarVoicing = eng.guitarVoicing ?? knotDef.guitarVoicing;
+  const maximumFretSpan =
+    eng.maximumFretSpan ??
+    eng.maxFretSpan ??
+    knotDef.maximumFretSpan ??
+    knotDef.maxFretSpan;
+  const maxFretSpan = maximumFretSpan;
+  const guitarTuning = eng.guitarTuning ?? knotDef.guitarTuning;
+  const tabStaffStyle = eng.tabStaffStyle ?? knotDef.tabStaffStyle;
   const zoom = eng.zoom ?? knotDef.zoom;
   const indent = eng.indent ?? knotDef.indent;
   const chordChanges = eng.chordChanges ?? knotDef.chordChanges;
@@ -395,6 +408,11 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
       noteheadStyle,
       harmonyChangesOnly,
       harmonyVoicing,
+      guitarVoicing,
+      maximumFretSpan,
+      maxFretSpan,
+      guitarTuning,
+      tabStaffStyle,
       melodyAugmentation,
       melodyAugmentationDisplay,
       projection,
@@ -405,6 +423,7 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
       harmonyStaffStyle,
       showHarmonyCoil,
       showTraditionalHarmony,
+      showGuitarTab,
       showMelody,
       showMelodyCoilAbsolute,
       showMelodyCoilInterval,

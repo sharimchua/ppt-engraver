@@ -14,6 +14,7 @@ Compiles [Prime Period Theory](https://ppt.midlifemuso.com/) Tapestry source fil
 - 🔗 **Coil Concatenation & In-Place Maps**: Compose complex phrases using `concat: [...]` with automatic downbeat rhythm boundary collapsing.
 - 📐 **Solfège Rhythmic Grammar**: Full sub-beat subdivisions via 12 chromatic degrees (`Fi` = 8th note, `Me`/`La` = 16th notes, `Mi`/`Le` = triplets, `Re`/`Te` = sextuplets), recursive compound suffixes (`LeFi`, `MeFi`), downbeat skips/rests (`Dox`, `DoxDo`, `DoxFi`), and repeat lookback windows (`X.Y`).
 - 🎹 **Harmonic Grammar, Inversions & Slash Chords**: 12-chromatic Solfège chord qualities, explicit bass notes and inversions via Axis Bass prefix (`${Bass}x${Root}${Quality}`, e.g., `SoxDo` = C/G, `MiexDo` = C/E, `MexDoMe` = Cm/Eb, `FaxDo` = C/F), chord voicing styles (`close`, `rootless`, `shell`, `open`, `smoothLead`, `bassOnly`, `walkingBass`), and melody harmonic augmentations (`thirdsBelow`, `drop2`, `triadClose`).
+- 🎸 **Guitar Tablature & Voicings (`TabStaff`)**: Automatic string/fret fingering solver (`showGuitarTab: true`) placed underneath traditional harmony, with PPT geometric noteheads rendered behind fret numbers, customizable guitar voicings (`melodyOnly`, `root`, `triad`, `shell`, `auto`), open string handling, and hand reach span limits (`maximumFretSpan: 3` or `4`).
 - 📄 **LilyPond Engine**: Compiles to `.notation.ly`, vector `.svg`, `.pdf`, and `.ppt-map.json` provenance sidecars with standard MIDI export.
 
 ---
@@ -510,7 +511,39 @@ Control how the harmony layer realizes chord tokens:
 
 ---
 
-## Coil Composition, Layer Injection & Inheritance
+## Guitar Tablature & Voicings (`TabStaff`)
+
+PPT Engraver features a full-featured guitar fretboard engine and grip solver that renders standard tablature staves directly underneath the traditional harmony staff.
+
+### Enabling Guitar Tablature
+Add `guitarTab` (or `tablature` / `tabStaff`) to `knot.engraving.show` or set `showGuitarTab: true`:
+
+```yaml
+knot:
+  engraving:
+    show:
+      - melody
+      - harmony
+      - guitarTab
+      - chordNames
+    guitarVoicing: chordMelody # melodyOnly | root | triad | shell | chordMelody | auto
+    maximumFretSpan: 4         # Hand stretch reach limit (e.g. 3 for smaller hands)
+    tabStaffStyle: ppt         # ppt (geometric noteheads behind numbers) | numbersOnly
+```
+
+### PPT Shaped Fret Noteheads
+In `tabStaffStyle: ppt` (or when `noteheadStyle: ppt`), fret numbers on the `TabStaff` are engraved with PPT chromatic geometric notehead shapes (Circle, Squares, Triangles, Crosses, Diamonds, Half-Circles) drawn behind the numbers with 8-directional contrast outlines and full chromatic coloring.
+
+### Guitar Voicing Options (`guitarVoicing`)
+- **`melodyOnly`**: Solves optimal single-note string/fret positions prioritizing lower frets and open strings.
+- **`root`** (alias **`bassAndMelody`**): Automatically plays the harmonic bass root note on the beat/onset that the harmony changes, while intermediate melody notes during the sustained chord remain clean single notes.
+- **`triad`** (alias **`rootChordTones`**): Adds chord root, 3rd, and 5th tones to form compact playable chord grips on chord changes under the melody.
+- **`shell`** (alias **`guideTones`**): Voices melody along with 3rd and 7th guide tones on chord changes.
+- **`chordMelody`**: Jazz chord melody projection that voices rich 3-to-4 note Drop-2 chord grips (with melody as the highest sounding note) on chord changes and strong beat downbeats, while keeping passing sub-beat notes single and fluid.
+- **`auto`**: Dynamically chooses the richest chord voicing that fits within the configured `maximumFretSpan`.
+
+### Hand Reach Constraints (`maximumFretSpan`)
+The grip solver computes physical fret distance across active frets, excluding open strings ($f = 0$). Setting `maximumFretSpan: 3` ensures fingerings are tailored for younger students or smaller hands without requiring wide stretches.
 
 Coils support modular composition through **Layer Injection**, **Priority Parent Inheritance**, and **Concat Composition**:
 

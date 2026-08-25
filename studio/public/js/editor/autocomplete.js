@@ -26,6 +26,7 @@ export function setSnippetDefinitions(snippets) {
 export const ENUMS_SHOW = [
   { text: 'melody', displayText: 'melody', type: 'enum', desc: 'Melody traditional staff' },
   { text: 'harmony', displayText: 'harmony', type: 'enum', desc: 'Harmony chord staff / coil' },
+  { text: 'guitarTab', displayText: 'guitarTab', type: 'enum', desc: 'Guitar Tablature staff' },
   { text: 'melodyCoilAbsolute', displayText: 'melodyCoilAbsolute', type: 'enum', desc: 'Absolute Solfège degree row' },
   { text: 'melodyCoilInterval', displayText: 'melodyCoilInterval', type: 'enum', desc: 'Interval Solfège degree row' },
   { text: 'rhythmCoil', displayText: 'rhythmCoil', type: 'enum', desc: 'Solfège rhythm duration row' },
@@ -101,6 +102,24 @@ export const ENUMS_HARMONY_STAFF_STYLE = [
   { text: 'standard', displayText: 'standard', type: 'enum', desc: 'Traditional music staff only' },
   { text: 'coil', displayText: 'coil', type: 'enum', desc: 'PPT Harmony Coil only' },
   { text: 'both', displayText: 'both', type: 'enum', desc: 'Both staff and Harmony Coil' }
+];
+
+export const ENUMS_GUITAR_VOICING = [
+  { text: 'melodyOnly', displayText: 'melodyOnly', type: 'enum', desc: 'Melody line only on optimal strings' },
+  { text: 'root', displayText: 'root', type: 'enum', desc: 'Melody note + bass root note on chord changes' },
+  { text: 'triad', displayText: 'triad', type: 'enum', desc: 'Melody note + root + 3rd/5th chord tones on chord changes' },
+  { text: 'shell', displayText: 'shell', type: 'enum', desc: 'Melody note + 3rd and 7th guide tones on chord changes' },
+  { text: 'chordMelody', displayText: 'chordMelody', type: 'enum', desc: 'Jazz chord-melody drop-2 / 3-4 note grips on changes/downbeats' },
+  { text: 'rootChordTones', displayText: 'rootChordTones', type: 'enum', desc: 'Alias for triad' },
+  { text: 'guideTones', displayText: 'guideTones', type: 'enum', desc: 'Alias for shell' },
+  { text: 'bassAndMelody', displayText: 'bassAndMelody', type: 'enum', desc: 'Alias for root' },
+  { text: 'auto', displayText: 'auto', type: 'enum', desc: 'Richest playable grip fitting maxFretSpan' }
+];
+
+export const ENUMS_TAB_STAFF_STYLE = [
+  { text: 'ppt', displayText: 'ppt', type: 'enum', desc: 'Fret numbers with PPT Solfège shape noteheads' },
+  { text: 'numbersOnly', displayText: 'numbersOnly', type: 'enum', desc: 'Standard numerical fret numbers' },
+  { text: 'default', displayText: 'default', type: 'enum', desc: 'Follows global noteheadStyle' }
 ];
 
 export const TOKENS_MELODY = [
@@ -351,6 +370,8 @@ export function getContextSuggestions(cm, cursor) {
     const afterColon = propMatch[2];
 
     if (/^harmonyVoicing$/i.test(propName)) return ENUMS_HARMONY_VOICING;
+    if (/^guitarVoicing$/i.test(propName)) return ENUMS_GUITAR_VOICING;
+    if (/^tabStaffStyle$/i.test(propName)) return ENUMS_TAB_STAFF_STYLE;
     if (/^melodyAugmentation$/i.test(propName)) return ENUMS_MELODY_AUGMENTATION;
     if (/^melodyAugmentationDisplay$/i.test(propName)) return ENUMS_MELODY_AUGMENTATION_DISPLAY;
     if (/^projection$/i.test(propName)) return ENUMS_PROJECTION;
@@ -358,7 +379,7 @@ export function getContextSuggestions(cm, cursor) {
     if (/^noteheadStyle$/i.test(propName)) return ENUMS_NOTEHEAD_STYLE;
     if (/^harmonyStaffStyle$/i.test(propName)) return ENUMS_HARMONY_STAFF_STYLE;
     if (/^layout$/i.test(propName)) return ENUMS_LAYOUT;
-    if (/^(abstract|hidden|visible|colorNotes|noteheadOutline|omitStem|traditionalRhythms|traditionalDurations|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil|showPulseCoil|showTimeSignature|showPulseSignature|excludeGridDoSymbol|gridSymbolExcludeDo|strongBeatGridWeight|gridBeatWeights|showChordNames)$/i.test(propName)) {
+    if (/^(abstract|hidden|visible|colorNotes|noteheadOutline|omitStem|traditionalRhythms|traditionalDurations|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showGuitarTab|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil|showPulseCoil|showTimeSignature|showPulseSignature|excludeGridDoSymbol|gridSymbolExcludeDo|strongBeatGridWeight|gridBeatWeights|showChordNames)$/i.test(propName)) {
       return [
         { text: 'true', displayText: 'true', type: 'enum', desc: 'Enable' },
         { text: 'false', displayText: 'false', type: 'enum', desc: 'Disable' },

@@ -204,6 +204,18 @@ export interface ResolvedKnot {
   showHarmonyCoil?: boolean;
   /** Whether to show the traditional 5-line harmony staff */
   showTraditionalHarmony?: boolean;
+  /** Whether to show the guitar tablature staff */
+  showGuitarTab?: boolean;
+  /** Guitar tablature voicing style */
+  guitarVoicing?: 'melodyOnly' | 'root' | 'triad' | 'shell' | 'chordMelody' | 'rootChordTones' | 'guideTones' | 'bassAndMelody' | 'auto';
+  /** Maximum allowable fret distance between simultaneous fretted notes (default: 4) */
+  maximumFretSpan?: number;
+  /** Alias for maximumFretSpan */
+  maxFretSpan?: number;
+  /** Custom guitar tuning string */
+  guitarTuning?: string;
+  /** Tablature notehead styling: 'ppt' (geometric shapes) | 'numbersOnly' | 'default' */
+  tabStaffStyle?: 'ppt' | 'numbersOnly' | 'default';
   /** Whether to show the melody staff */
   showMelody?: boolean;
   /** Whether to show the Melody Coil Absolute row layer (displays absolute Solfège pitch classes) */

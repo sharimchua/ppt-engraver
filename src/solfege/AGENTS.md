@@ -58,6 +58,23 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
   - Maps signed semitone coordinates in $[-5, +6]$ centered on Do (0): `{-5: 'So', -4: 'Le', -3: 'La', -2: 'Te', -1: 'Ti', 0: 'Do', 1: 'Ra', 2: 'Re', 3: 'Me', 4: 'Mi', 5: 'Fa', 6: 'Fi'}`.
 - **Dual Melody Mode Conversions (`pitch.ts`)**:
   - `parseMelodyToken(token)`: Parses rests (`R`), repeats (`2.2`), octave modifiers (`^`, `_`), and axis markers (`x`).
+
+---
+
+## Guitar Fretboard & Grip Solver (`guitar.ts`)
+
+- **Standard Guitar Tuning**: E4 (64, string 1), B3 (59, string 2), G3 (55, string 3), D3 (50, string 4), A2 (45, string 5), E2 (40, string 6).
+- **Workable Grips & Fret Distance**:
+  - Open strings ($f = 0$) do not add physical hand stretch distance.
+  - Span calculation $\text{span} = \max(\text{frets}_{>0}) - \min(\text{frets}_{>0})$ is validated against `maximumFretSpan` (default `4`, customizable for younger students with smaller hands, e.g. `3`).
+- **Voicing Modes (`guitarVoicing`)**:
+  - `melodyOnly`: Optimal string/fret selection for single-line melody.
+  - `root` / `bassAndMelody`: Plays the harmonic bass root note on chord change onsets under melody; single melody notes on intermediate onsets.
+  - `triad` / `rootChordTones`: Melody note + root + 3rd/5th chord tones on chord changes.
+  - `shell` / `guideTones`: Melody note + 3rd and 7th guide tones on chord changes.
+  - `chordMelody`: Jazz chord-melody drop-2 grips on changes and downbeats; clean single melody notes on passing sub-beat notes.
+  - `auto`: Richest playable chord grip satisfying hand reach constraints.
+
   - `semitonesToSolfege(semitones)`: Converts signed semitone offsets from Do into canonical Solfège tokens with octave shifts.
   - `convertIntervalToAbsoluteMelody(tokenList)`: Converts an Interval mode token list into chromatic scale degrees relative to Do.
   - `convertAbsoluteToIntervalMelody(tokenList)`: Converts an Absolute mode scale degree list into an Interval mode sequence anchored on the first pitch with axis `x`.

@@ -115,6 +115,8 @@ export function generateSidecarMap(onsets: OnsetStream): SidecarMap {
     map[`${prefix}_harmCoil_${idx}`] = entry;
     map[`${prefix}_harmonyStaff_${idx}`] = entry;
     map[`${prefix}_chordName_${idx}`] = entry;
+    map[`${prefix}_tab_${idx}`] = entry;
+    map[`${prefix}_tab_v${vIdx}_${idx}`] = entry;
   }
 
   return map;

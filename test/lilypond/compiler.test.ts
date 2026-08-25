@@ -1016,7 +1016,50 @@ describe('computeOnsetBeaming & LilyPond Beaming', () => {
     expect(lyWithCoils).toContain('gridSymbolsTopVoice = {');
     expect(lyWithCoils).toContain('gridSymbolsBottomVoice = {');
   });
+
+  it('engraves guitar tablature staff with PPT shaped fret noteheads below harmony staff', () => {
+    const ly = compileToLilyPond(metricOnsets, {
+      showGuitarTab: true,
+      noteheadStyle: 'ppt',
+      colorNotes: true,
+    });
+
+    // Contains tabVoice definition
+    expect(ly).toContain('tabVoice = {');
+    expect(ly).toContain('\\new TabStaff \\with {');
+    expect(ly).toContain('stringTunings = #guitar-tuning');
+
+    // Tab noteheads are tweaked with PPT tab stencils and colors
+    expect(ly).toContain('\\tweak TabNoteHead.stencil #tabStencilDo');
+    expect(ly).toContain('\\tweak color #colorDo');
+    expect(ly).toContain('\\tweak TabNoteHead.stencil #tabStencilSo');
+    expect(ly).toContain('\\tweak color #colorSo');
+
+    // Provenance tagging
+    expect(ly).toContain("\\tag #'ppt_song_motif_tab_1");
+    expect(ly).toContain("\\tag #'ppt_song_motif_tab_2");
+
+    // TabStaff placed below harmony staff in PianoStaff
+    const harmIndex = ly.indexOf('\\new Staff \\harmonyVoice');
+    const tabIndex = ly.indexOf('\\new TabStaff');
+    expect(harmIndex).toBeGreaterThan(0);
+    expect(tabIndex).toBeGreaterThan(harmIndex);
+  });
+
+  it('supports guitar voicings and maximum fret span constraints', () => {
+    const lyRoot = compileToLilyPond(metricOnsets, {
+      showGuitarTab: true,
+      guitarVoicing: 'root',
+      maximumFretSpan: 3,
+      noteheadStyle: 'ppt',
+    });
+
+    expect(lyRoot).toContain('tabVoice = {');
+    // For C4 (Do) over Do (C major), root voicing generates a multi-note grip with string numbers
+    expect(lyRoot).toMatch(/<.*\\tweak TabNoteHead\.stencil.*>/);
+  });
 });
+
 
 
 

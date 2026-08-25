@@ -13,7 +13,9 @@ const EXCLUDED_KEYS = new Set([
   'tempo', 'tonic', 'colorNotes', 'omitStem', 'octave', 'meter',
   'duration', 'harmonyOctave', 'harmonyClef', 'melodyClef',
   'voice', 'voices', 'harmonyStaffStyle', 'showHarmonyCoil',
-  'showTraditionalHarmony', 'harmonyChangesOnly', 'color',
+  'showTraditionalHarmony', 'showGuitarTab',
+  'guitarVoicing', 'maximumFretSpan', 'maxFretSpan', 'guitarTuning', 'tabStaffStyle',
+  'harmonyChangesOnly', 'color',
   'harmonyVoicing', 'melodyAugmentation', 'melodyAugmentationDisplay',
   'projection'
 ]);

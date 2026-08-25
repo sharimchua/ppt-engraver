@@ -20,6 +20,7 @@ import {
   LILYPOND_SHARP_NOTES,
   SOLFEGE_TO_SCHEME_COLOR,
   SOLFEGE_TO_PPT_STENCIL,
+  SOLFEGE_TO_PPT_TAB_STENCIL,
 } from "./pitch.js";
 import {
   pitchNameToMidi,
@@ -30,6 +31,11 @@ import {
   SOLFEGE_POSITIONS,
   SOLFEGE_TO_SEMITONE,
 } from "../solfege/pitch.js";
+import {
+  solveGuitarGrip,
+  solveStandaloneHarmonyGrip,
+  type GuitarVoicing,
+} from "../solfege/guitar.js";
 import {
   beatsToLilyPondDuration,
   resolveMetricGrammar,
@@ -70,6 +76,18 @@ export interface CompileOptions {
   showHarmonyCoil?: boolean;
   /** Whether to show the traditional 5-line harmony staff (default: true) */
   showTraditionalHarmony?: boolean;
+  /** Whether to show the guitar tablature staff */
+  showGuitarTab?: boolean;
+  /** Guitar tablature voicing style: 'melodyOnly' | 'root' | 'triad' | 'shell' | 'rootChordTones' | 'guideTones' | 'bassAndMelody' | 'auto' */
+  guitarVoicing?: GuitarVoicing;
+  /** Maximum allowable fret distance between simultaneous fretted notes (default: 4) */
+  maximumFretSpan?: number;
+  /** Alias for maximumFretSpan */
+  maxFretSpan?: number;
+  /** Custom guitar tuning string (default: '#guitar-tuning') */
+  guitarTuning?: string;
+  /** Tablature notehead styling: 'ppt' (geometric shapes) | 'numbersOnly' | 'default' */
+  tabStaffStyle?: "ppt" | "numbersOnly" | "default";
   /** Whether to show the melody staff (default: true) */
   showMelody?: boolean;
   /** Whether to show the Melody Coil Absolute row layer (displays absolute Solfège pitch classes) */
@@ -218,6 +236,85 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 #(define stencilLa (make-ppt-stencil (make-path-stencil '(moveto -0.58 -0.48 lineto 0.58 -0.48 lineto 0.0 0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilTe (make-ppt-stencil (make-path-stencil '(moveto -0.62 0.0 lineto 0.0 0.52 lineto 0.62 0.0 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilTi (make-ppt-stencil (make-path-stencil '(moveto -0.62 0.0 lineto 0.0 0.52 lineto 0.62 0.0 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
+
+#(define pptTabShapeDo (make-circle-stencil 0.50 0.0 #t))
+#(define pptTabShapeRa (make-path-stencil '(moveto -0.48 -0.46 lineto 0.48 -0.46 lineto 0.48 0.46 lineto -0.48 0.46 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeRe (make-path-stencil '(moveto -0.48 -0.46 lineto 0.48 -0.46 lineto 0.48 0.46 lineto -0.48 0.46 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeMe (make-path-stencil '(moveto -0.54 0.46 lineto 0.54 0.46 lineto 0.0 -0.48 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeMi (make-path-stencil '(moveto -0.54 -0.46 lineto 0.54 -0.46 lineto 0.0 0.48 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeFa (make-path-stencil '(moveto 0.32 -0.48 lineto 0.32 0.48 curveto -0.22 0.48 -0.60 0.28 -0.60 0.0 curveto -0.60 -0.28 -0.22 -0.48 0.32 -0.48 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeFi (ly:stencil-add (make-line-stencil 0.24 -0.42 -0.42 0.42 0.42) (make-line-stencil 0.24 -0.42 0.42 0.42 -0.42)))
+#(define pptTabShapeSo (make-path-stencil '(moveto -0.32 -0.48 lineto -0.32 0.48 curveto 0.22 0.48 0.60 0.28 0.60 0.0 curveto 0.60 -0.28 0.22 -0.48 -0.32 -0.48 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeLe (make-path-stencil '(moveto -0.54 0.46 lineto 0.54 0.46 lineto 0.0 -0.48 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeLa (make-path-stencil '(moveto -0.54 -0.46 lineto 0.54 -0.46 lineto 0.0 0.48 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeTe (make-path-stencil '(moveto -0.56 0.0 lineto 0.0 0.48 lineto 0.56 0.0 lineto 0.0 -0.48 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeTi (make-path-stencil '(moveto -0.56 0.0 lineto 0.0 0.48 lineto 0.56 0.0 lineto 0.0 -0.48 closepath) 0.0 1.0 1.0 #t))
+
+#(define (make-ppt-tab-stencil base-shape-stencil)
+   (lambda (grob)
+     (let* ((fret-stencil (tab-note-head::print grob))
+            (col (ly:grob-property grob 'color #f))
+            (fret-x-ext (if (ly:stencil? fret-stencil) (ly:stencil-extent fret-stencil X) '(-0.4 . 0.4)))
+            (fret-y-ext (if (ly:stencil? fret-stencil) (ly:stencil-extent fret-stencil Y) '(-0.4 . 0.4)))
+            (fw (max 0.7 (- (cdr fret-x-ext) (car fret-x-ext))))
+            (fx-center (/ (+ (car fret-x-ext) (cdr fret-x-ext)) 2.0))
+            (fy-center (/ (+ (car fret-y-ext) (cdr fret-y-ext)) 2.0))
+            ;; Sized to maintain clean 0.28+ space between adjacent strings (spacing 1.50)
+            (sx (max 1.15 (* 0.92 (+ fw 0.38))))
+            (sy 1.12)
+            (shape-scaled (ly:stencil-scale base-shape-stencil sx sy))
+            (shape-centered (ly:stencil-aligned-to (ly:stencil-aligned-to shape-scaled X CENTER) Y CENTER))
+            (shape-placed (ly:stencil-translate shape-centered (cons fx-center fy-center)))
+            (d 0.05)
+            (black-shape (stencil-with-color shape-placed black))
+            (colored-shape (if (and col (list? col))
+                               (stencil-with-color shape-placed col)
+                               shape-placed))
+            (outlined (ly:stencil-add
+                        (ly:stencil-translate black-shape (cons (- d) 0))
+                        (ly:stencil-translate black-shape (cons d 0))
+                        (ly:stencil-translate black-shape (cons 0 (- d)))
+                        (ly:stencil-translate black-shape (cons 0 d))
+                        (ly:stencil-translate black-shape (cons (- d) (- d)))
+                        (ly:stencil-translate black-shape (cons d d))
+                        (ly:stencil-translate black-shape (cons (- d) d))
+                        (ly:stencil-translate black-shape (cons d (- d)))
+                        colored-shape))
+            (fret-black (if (ly:stencil? fret-stencil)
+                            (stencil-with-color fret-stencil black)
+                            empty-stencil))
+            (fret-white (if (ly:stencil? fret-stencil)
+                            (stencil-with-color fret-stencil white)
+                            empty-stencil))
+            (fd 0.045)
+            (fret-outlined (if (ly:stencil? fret-stencil)
+                               (ly:stencil-add
+                                 (ly:stencil-translate fret-white (cons (- fd) 0))
+                                 (ly:stencil-translate fret-white (cons fd 0))
+                                 (ly:stencil-translate fret-white (cons 0 (- fd)))
+                                 (ly:stencil-translate fret-white (cons 0 fd))
+                                 (ly:stencil-translate fret-white (cons (- fd) (- fd)))
+                                 (ly:stencil-translate fret-white (cons fd fd))
+                                 (ly:stencil-translate fret-white (cons (- fd) fd))
+                                 (ly:stencil-translate fret-white (cons fd (- fd)))
+                                 fret-black)
+                               empty-stencil)))
+       (if (ly:stencil? fret-stencil)
+           (ly:stencil-add outlined fret-outlined)
+           outlined))))
+
+#(define tabStencilDo (make-ppt-tab-stencil pptTabShapeDo))
+#(define tabStencilRa (make-ppt-tab-stencil pptTabShapeRa))
+#(define tabStencilRe (make-ppt-tab-stencil pptTabShapeRe))
+#(define tabStencilMe (make-ppt-tab-stencil pptTabShapeMe))
+#(define tabStencilMi (make-ppt-tab-stencil pptTabShapeMi))
+#(define tabStencilFa (make-ppt-tab-stencil pptTabShapeFa))
+#(define tabStencilFi (make-ppt-tab-stencil pptTabShapeFi))
+#(define tabStencilSo (make-ppt-tab-stencil pptTabShapeSo))
+#(define tabStencilLe (make-ppt-tab-stencil pptTabShapeLe))
+#(define tabStencilLa (make-ppt-tab-stencil pptTabShapeLa))
+#(define tabStencilTe (make-ppt-tab-stencil pptTabShapeTe))
+#(define tabStencilTi (make-ppt-tab-stencil pptTabShapeTi))
 
 #(define pptPathBase
    '(moveto 0.262 0.806
@@ -929,6 +1026,19 @@ export function compileToLilyPond(
       ? "flats"
       : "sharps");
 
+  const doMidi = options.doPitch ? pitchNameToMidi(options.doPitch) : undefined;
+  const resolvedDoMidi = (() => {
+    if (doMidi !== undefined) return doMidi;
+    const firstWithPitch = onsets.find(
+      (o) => o.scaleDegree && o.midiNote !== undefined && o.midiNote > 0,
+    );
+    if (firstWithPitch) {
+      const semitone = SOLFEGE_TO_SEMITONE[firstWithPitch.scaleDegree] ?? 0;
+      return firstWithPitch.midiNote - semitone;
+    }
+    return 60;
+  })();
+
   const melodyLines: string[] = [
     `  \\clef ${formatClef(melClef)}`,
     `  \\accidentalStyle ${accStyle}`,
@@ -1176,6 +1286,231 @@ export function compileToLilyPond(
     melodyLines.push("  \\cadenzaOff");
   }
 
+  const showGuitarTab = options.showGuitarTab ?? false;
+  const guitarVoicing = options.guitarVoicing ?? "melodyOnly";
+  const maxFretSpan = options.maximumFretSpan ?? options.maxFretSpan ?? 4;
+  const guitarTuning = options.guitarTuning;
+  const tabStaffStyle =
+    options.tabStaffStyle ?? (noteheadStyle === "ppt" ? "ppt" : "default");
+
+  function formatTabNote(
+    onset: Onset,
+    beamBracket: string = "",
+    isChordChange: boolean = true,
+    isStrongBeat: boolean = false,
+  ): string {
+    const onsetDur =
+      traditionalRhythms && onset.durationBeats !== undefined
+        ? beatsToLilyPondDuration(onset.durationBeats, true)
+        : (onset.duration ?? dur);
+
+    const isPptTab =
+      tabStaffStyle === "ppt" || (tabStaffStyle === "default" && noteheadStyle === "ppt");
+
+    if (onset.isRest) {
+      if (
+        guitarVoicing !== "melodyOnly" &&
+        onset.chordRoot &&
+        (isChordChange || options.harmonyChangesOnly === false)
+      ) {
+        const grip = solveStandaloneHarmonyGrip(onset.chordRoot, {
+          voicing: guitarVoicing,
+          maxFretSpan,
+          knotDoMidi: resolvedDoMidi,
+        });
+        if (grip.length > 0) {
+          if (grip.length === 1) {
+            const pos = grip[0];
+            const pitchStr = midiToLilyPondPitch(pos.midiNote, accMode, forceAccidentals);
+            const semitoneOffset = ((pos.midiNote - resolvedDoMidi) % 12 + 12) % 12;
+            const chromaticDegree = SOLFEGE_POSITIONS[semitoneOffset];
+            const stencilTweak = isPptTab
+              ? `\\tweak TabNoteHead.stencil #${SOLFEGE_TO_PPT_TAB_STENCIL[chromaticDegree] ?? "tabStencilDo"} `
+              : "";
+            const colorTweak = colorNotes
+              ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[chromaticDegree] ?? "colorDo"} `
+              : "";
+            return `${stencilTweak}${colorTweak}${pitchStr}${onsetDur}\\${pos.stringNumber}${beamBracket}`;
+          }
+
+          const noteTokens = grip.map((pos) => {
+            const pitchStr = midiToLilyPondPitch(pos.midiNote, accMode, forceAccidentals);
+            const semitoneOffset = ((pos.midiNote - resolvedDoMidi) % 12 + 12) % 12;
+            const chromaticDegree = SOLFEGE_POSITIONS[semitoneOffset];
+            const stencilTweak = isPptTab
+              ? `\\tweak TabNoteHead.stencil #${SOLFEGE_TO_PPT_TAB_STENCIL[chromaticDegree] ?? "tabStencilDo"} `
+              : "";
+            const colorTweak = colorNotes
+              ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[chromaticDegree] ?? "colorDo"} `
+              : "";
+            return `${stencilTweak}${colorTweak}${pitchStr}\\${pos.stringNumber}`;
+          });
+
+          return `<${noteTokens.join(" ")}>${onsetDur}${beamBracket}`;
+        }
+      }
+      const restPrefix = traditionalRhythms ? "r" : "s";
+      return `${restPrefix}${onsetDur}`;
+    }
+
+    const grip = solveGuitarGrip(onset.midiNote, onset.scaleDegree, onset.chordRoot, {
+      voicing: guitarVoicing,
+      maxFretSpan,
+      knotDoMidi: resolvedDoMidi,
+      isChordChange,
+      isStrongBeat,
+      changesOnly: options.harmonyChangesOnly !== false,
+    });
+
+    if (grip.length === 1) {
+      const pos = grip[0];
+      const pitchStr = midiToLilyPondPitch(pos.midiNote, accMode, forceAccidentals);
+      const semitoneOffset = ((pos.midiNote - resolvedDoMidi) % 12 + 12) % 12;
+      const chromaticDegree = SOLFEGE_POSITIONS[semitoneOffset];
+      const stencilTweak = isPptTab
+        ? `\\tweak TabNoteHead.stencil #${SOLFEGE_TO_PPT_TAB_STENCIL[chromaticDegree] ?? "tabStencilDo"} `
+        : "";
+      const colorTweak = colorNotes
+        ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[chromaticDegree] ?? "colorDo"} `
+        : "";
+      return `${stencilTweak}${colorTweak}${pitchStr}${onsetDur}\\${pos.stringNumber}${beamBracket}`;
+    }
+
+    const noteTokens = grip.map((pos) => {
+      const pitchStr = midiToLilyPondPitch(pos.midiNote, accMode, forceAccidentals);
+      const semitoneOffset = ((pos.midiNote - resolvedDoMidi) % 12 + 12) % 12;
+      const chromaticDegree = SOLFEGE_POSITIONS[semitoneOffset];
+      const stencilTweak = isPptTab
+        ? `\\tweak TabNoteHead.stencil #${SOLFEGE_TO_PPT_TAB_STENCIL[chromaticDegree] ?? "tabStencilDo"} `
+        : "";
+      const colorTweak = colorNotes
+        ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[chromaticDegree] ?? "colorDo"} `
+        : "";
+      return `${stencilTweak}${colorTweak}${pitchStr}\\${pos.stringNumber}`;
+    });
+
+    return `<${noteTokens.join(" ")}>${onsetDur}${beamBracket}`;
+  }
+
+  const tabLines: string[] = [];
+  const tabVoiceMap = new Map<number, string>();
+
+  if (showGuitarTab) {
+    if (omitStem) {
+      tabLines.push("  \\omit Stem");
+      tabLines.push("  \\omit Flag");
+      tabLines.push("  \\omit Beam");
+      tabLines.push("  \\omit Dots");
+    }
+    if (!traditionalRhythms) {
+      tabLines.push("  \\override TabNoteHead.duration-log = #2");
+    }
+    tabLines.push("  \\cadenzaOn");
+
+    if (isMultiVoice) {
+      const voiceCommands = ["\\voiceOne", "\\voiceTwo", "\\voiceThree", "\\voiceFour"];
+      for (let vIdx = 0; vIdx < voiceIndices.length; vIdx++) {
+        const vNum = voiceIndices[vIdx];
+        const voiceCmd = voiceCommands[vIdx] ?? "\\voiceOne";
+        const vLines: string[] = [
+          `  ${voiceCmd}`,
+        ];
+        if (omitStem) {
+          vLines.push("  \\omit Stem");
+          vLines.push("  \\omit Flag");
+          vLines.push("  \\omit Beam");
+          vLines.push("  \\omit Dots");
+        }
+        if (!traditionalRhythms) {
+          vLines.push("  \\override TabNoteHead.duration-log = #2");
+        }
+        vLines.push("  \\cadenzaOn");
+
+        let lastChordKey: string | null = null;
+        let lastCoilId: string | null = null;
+
+        for (let c = 0; c < coilGroups.length; c++) {
+          const group = coilGroups[c];
+          if (c > 0) {
+            vLines.push('  \\bar "|"');
+          }
+          const vOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === vNum);
+          if (vOnsets.length > 0) {
+            const beamMap = computeOnsetBeaming(vOnsets);
+            for (let idx = 0; idx < vOnsets.length; idx++) {
+              const onset = vOnsets[idx];
+              const beamBracket = beamMap.get(idx) ?? "";
+              const chordKey = `${onset.chordRoot}_${(onset.chordMidi ?? []).join(",")}`;
+              const isChordChange =
+                idx === 0 && c === 0
+                  ? true
+                  : chordKey !== lastChordKey || (onset.onsetIndex === 1 && onset.coilId !== lastCoilId);
+              lastChordKey = chordKey;
+              lastCoilId = onset.coilId;
+
+              const isStrongBeat =
+                onset.startBeat === undefined ||
+                onset.startBeat % 2.0 === 0 ||
+                (onset.durationBeats !== undefined && onset.durationBeats >= 1.5);
+
+              const formatted = formatTabNote(onset, beamBracket, isChordChange, isStrongBeat);
+              vLines.push(
+                `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_tab_v${vNum}_${onset.onsetIndex} ${formatted}`,
+              );
+            }
+          } else {
+            const primaryGroupOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
+            for (const pOnset of primaryGroupOnsets) {
+              const onsetDur = pOnset.duration ?? dur;
+              vLines.push(`  s${onsetDur}`);
+            }
+          }
+        }
+        if (coilGroups.length > 0) {
+          vLines.push('  \\bar "|."');
+        }
+        vLines.push("  \\cadenzaOff");
+        tabVoiceMap.set(vNum, vLines.join("\n"));
+      }
+    } else {
+      let lastChordKey: string | null = null;
+      let lastCoilId: string | null = null;
+
+      for (let c = 0; c < coilGroups.length; c++) {
+        const group = coilGroups[c];
+        if (c > 0) {
+          tabLines.push('  \\bar "|"');
+        }
+        const beamMap = computeOnsetBeaming(group.onsets);
+        for (let idx = 0; idx < group.onsets.length; idx++) {
+          const onset = group.onsets[idx];
+          const beamBracket = beamMap.get(idx) ?? "";
+          const chordKey = `${onset.chordRoot}_${(onset.chordMidi ?? []).join(",")}`;
+          const isChordChange =
+            idx === 0 && c === 0
+              ? true
+              : chordKey !== lastChordKey || (onset.onsetIndex === 1 && onset.coilId !== lastCoilId);
+          lastChordKey = chordKey;
+          lastCoilId = onset.coilId;
+
+          const isStrongBeat =
+            onset.startBeat === undefined ||
+            onset.startBeat % 2.0 === 0 ||
+            (onset.durationBeats !== undefined && onset.durationBeats >= 1.5);
+
+          const formatted = formatTabNote(onset, beamBracket, isChordChange, isStrongBeat);
+          tabLines.push(
+            `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_tab_${onset.onsetIndex} ${formatted}`,
+          );
+        }
+      }
+      if (onsets.length > 0) {
+        tabLines.push('  \\bar "|."');
+      }
+      tabLines.push("  \\cadenzaOff");
+    }
+  }
+
   const harmonyStaffStyle = options.harmonyStaffStyle ?? "standard";
   const showMelody = options.showMelody ?? true;
   const showMelodyCoilAbsolute = options.showMelodyCoilAbsolute ?? false;
@@ -1204,8 +1539,6 @@ export function compileToLilyPond(
     "  \\override NoteHead.stencil = #ly:text-interface::print",
     "  \\cadenzaOn",
   ];
-
-  const doMidi = options.doPitch ? pitchNameToMidi(options.doPitch) : undefined;
 
   if (showMelodyCoilAbsolute) {
     if (isMultiVoice) {
@@ -1629,19 +1962,6 @@ export function compileToLilyPond(
     harmonyLines.push("  \\override NoteHead.duration-log = #2");
   }
   harmonyLines.push("  \\cadenzaOn");
-
-  // Determine reference Do MIDI pitch for canonical chord name generation
-  const resolvedDoMidi = (() => {
-    if (doMidi !== undefined) return doMidi;
-    const firstWithPitch = onsets.find(
-      (o) => o.scaleDegree && o.midiNote !== undefined && o.midiNote > 0,
-    );
-    if (firstWithPitch) {
-      const semitone = SOLFEGE_TO_SEMITONE[firstWithPitch.scaleDegree] ?? 0;
-      return firstWithPitch.midiNote - semitone;
-    }
-    return 60;
-  })();
 
   if (harmonyChangesOnly) {
     // 4a. Traditional Harmony Voice (5-line staff): Group consecutive onsets with same voiced chord
@@ -2284,6 +2604,23 @@ ${coilStaffLines.join("\n")}
     }
   }
 
+  if (showGuitarTab) {
+    const tabInnerVoices = isMultiVoice
+      ? voiceIndices.map((v) => `\\tabVoice${voiceNumberToWord(v)}`)
+      : ["\\tabVoice"];
+    if (options.showRhythmGrid) {
+      tabInnerVoices.push("\\rhythmGridVoice");
+    }
+    const tabTuningConfig = guitarTuning
+      ? `stringTunings = #${guitarTuning}\n`
+      : `stringTunings = #guitar-tuning\n`;
+    if (tabInnerVoices.length > 1) {
+      staffLines.push(`    \\new TabStaff \\with {\n      ${tabTuningConfig.trim()}\n    } << ${tabInnerVoices.join(" ")} >>`);
+    } else {
+      staffLines.push(`    \\new TabStaff \\with {\n      ${tabTuningConfig.trim()}\n    } ${tabInnerVoices[0]}`);
+    }
+  }
+
   const staffGroupBody =
     staffLines.length === 1
       ? staffLines[0]
@@ -2420,6 +2757,7 @@ ${chordChangesDirective}      \\chordNamesVoice
   if (
     colorNotes ||
     noteheadStyle === "ppt" ||
+    showGuitarTab ||
     showHarmonyCoil ||
     showMelodyCoilAbsolute ||
     showMelodyCoilInterval ||
@@ -2482,6 +2820,17 @@ ${chordChangesDirective}      \\chordNamesVoice
   }
   if (showTraditionalHarmony) {
     voiceDefs.push(`harmonyVoice = {\n${harmonyVoiceStr}\n}`);
+  }
+  if (showGuitarTab) {
+    if (isMultiVoice) {
+      for (const v of voiceIndices) {
+        voiceDefs.push(
+          `tabVoice${voiceNumberToWord(v)} = {\n${tabVoiceMap.get(v)}\n}`,
+        );
+      }
+    } else {
+      voiceDefs.push(`tabVoice = {\n${tabLines.join("\n")}\n}`);
+    }
   }
   if (options.showRhythmGrid) {
     voiceDefs.push(`rhythmGridVoice = {\n${rhythmGridVoiceStr}\n}`);
