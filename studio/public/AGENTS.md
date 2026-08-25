@@ -94,6 +94,9 @@ The `studio/public/` directory contains the client-side single-page application 
   - Automatically refreshes the tapestry library and updates active URL deeplinks.
 - **Save Tapestry (`Ctrl+S` / `Cmd+S` / `💾 Save Tapestry` Button)**:
   - Persists the active tapestry to the `scores/` directory and updates the UI status badge and URL history.
+- **Export Standalone PDF (`Ctrl+Shift+E` / `Cmd+Shift+E` / `📑 Export PDF` Button / Command Palette `Export Standalone PDF Score...`)**:
+  - Compiles the current tapestry and active knot projection via LilyPond with `-dpoint-and-click` enabled.
+  - Persists `<score>.pdf` in `scores/` and automatically triggers a direct browser file download for the user.
 - **Unsaved Changes Protection (`confirmDiscardUnsavedChanges`)**:
   - Automatically guards against accidental loss of unsaved tapestry modifications when switching scores via dropdown, tapestry palette (`Ctrl+O`), `+ New Tapestry` (`Ctrl+N`), browser back/forward navigation (`popstate`), and page reload/close (`beforeunload`).
   - Reverts dropdown selector and URL navigation if the user cancels the confirmation dialog.

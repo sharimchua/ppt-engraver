@@ -461,19 +461,31 @@ const server = createServer(async (req, res) => {
         const lyPath = join(SCORES_DIR, `${fileName}.notation.ly`);
         const pdfOutPrefix = join(SCORES_DIR, fileName);
 
-        const result = compileYamlString(body.yaml, { knotId: body.knotId || body.knot });
-        writeFileSync(lyPath, result.lilypondSource, 'utf-8');
+        try {
+          const result = compileYamlString(body.yaml, { knotId: body.knotId || body.knot });
+          writeFileSync(lyPath, result.lilypondSource, 'utf-8');
 
-        await execFileAsync(lilypondPath, [
-          '-o',
-          pdfOutPrefix,
-          lyPath,
-        ], { timeout: 20000 });
+          await execFileAsync(lilypondPath, [
+            '-dpoint-and-click',
+            '-o',
+            pdfOutPrefix,
+            lyPath,
+          ], { timeout: 20000 });
 
-        return sendJson(res, {
-          success: true,
-          pdfFile: `${fileName}.pdf`,
-        });
+          const pdfPath = join(SCORES_DIR, `${fileName}.pdf`);
+          let pdfBase64 = '';
+          if (existsSync(pdfPath)) {
+            pdfBase64 = readFileSync(pdfPath).toString('base64');
+          }
+
+          return sendJson(res, {
+            success: true,
+            pdfFile: `${fileName}.pdf`,
+            pdfBase64,
+          });
+        } catch (err: any) {
+          return sendError(res, err.stderr || err.message || 'LilyPond PDF export failed', 500, err.stack);
+        }
       }
 
       return sendError(res, 'Not found', 404);

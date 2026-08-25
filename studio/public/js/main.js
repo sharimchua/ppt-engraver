@@ -10,6 +10,7 @@ import {
   apiSaveScore,
   apiCompileScore,
   apiGetSnippets,
+  apiExportPdf,
 } from './api.js';
 import { initEditor, setEditorValue, foldAllSections, unfoldAllSections } from './editor/editor.js';
 import { setSnippetDefinitions } from './editor/autocomplete.js';
@@ -226,6 +227,52 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // --- Export PDF ---
+  async function exportPdf() {
+    if (!editor) return;
+    const yaml = editor.getValue();
+    if (!yaml.trim()) return;
+    const fileName = state.currentScoreFile || 'score.ppt.yaml';
+    const knotId = state.currentKnotId;
+
+    notifications.setStatus('compiling', 'Exporting PDF...');
+    notifications.hideError();
+
+    try {
+      const data = await apiExportPdf(yaml, fileName, knotId);
+      if (data.success) {
+        notifications.setStatus('ready', `PDF Exported`);
+        notifications.setMetrics(`Saved ${data.pdfFile}`);
+
+        // Trigger browser download if base64 data returned
+        if (data.pdfBase64) {
+          const byteCharacters = atob(data.pdfBase64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'application/pdf' });
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = data.pdfFile || 'score.pdf';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        }
+      } else {
+        notifications.setStatus('error', 'Export Failed');
+        notifications.showError(data.error || 'Failed to export PDF');
+      }
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+      notifications.setStatus('error', 'Export Error');
+      notifications.showError(String(err.message || err));
+    }
+  }
+
   // --- Fetch Score List ---
   async function fetchScoresList(targetPath = null) {
     try {
@@ -272,6 +319,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         icon: '💾',
         shortcut: 'Ctrl+S',
         action: () => saveScore(),
+      },
+      {
+        id: 'project-export-pdf',
+        title: 'Export Standalone PDF Score...',
+        category: 'Project',
+        icon: '📑',
+        shortcut: 'Ctrl+Shift+E',
+        action: () => exportPdf(),
       },
       {
         id: 'project-rename-tapestry',
@@ -440,6 +495,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const editorContainer = document.getElementById('editor-container');
   editor = initEditor(editorContainer, {
     saveScore,
+    exportPdf,
     openTapestryPicker: () => commandPalette.openTapestryPicker(),
     createTapestry: () => createTapestry({
       onSetStatus: notifications.setStatus,
@@ -464,6 +520,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const toolbar = setupToolbar({
     onLoadScore: (path) => loadScore(path),
     onSaveScore: saveScore,
+    onExportPdf: exportPdf,
     onTriggerCompile: triggerCompile,
     onCreateTapestry: () => createTapestry({
       onSetStatus: notifications.setStatus,

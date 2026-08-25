@@ -705,6 +705,7 @@ PPT Studio supports direct "typing" of Solfège tokens into the CodeMirror edito
 | `Ctrl+Space` | In editor | Trigger contextual autocomplete & YAML snippets |
 | `Ctrl+Q` | On block | Fold / unfold current section |
 | `Ctrl+Enter` | Global | Recompile sheet music with LilyPond |
+| `Ctrl+Shift+E` / `Cmd+Shift+E` | Global | **Export Standalone PDF Score** (saves to `scores/` & downloads) |
 
 ---
 

@@ -3,7 +3,6 @@
  */
 
 import { state, setPreference } from '../state.js';
-import { apiExportPdf } from '../api.js';
 
 export function updateKnotDropdown(availableKnots, selectedKnotId) {
   const knotSelect = document.getElementById('knot-select');
@@ -53,6 +52,7 @@ export function setupToolbar(options = {}) {
   const {
     onLoadScore,
     onSaveScore,
+    onExportPdf,
     onTriggerCompile,
     onCreateTapestry,
     onDeleteTapestry,
@@ -152,13 +152,7 @@ export function setupToolbar(options = {}) {
   }
 
   if (btnExportPdf) {
-    btnExportPdf.addEventListener('click', async () => {
-      try {
-        await apiExportPdf(state.currentScoreFile, state.currentKnotId);
-      } catch (err) {
-        console.error('Failed to export PDF:', err);
-      }
-    });
+    btnExportPdf.addEventListener('click', () => onExportPdf?.());
   }
 
   return {
