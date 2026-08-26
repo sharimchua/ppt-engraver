@@ -451,6 +451,60 @@ describe('buildChordFromToken & parseHarmonyChord', () => {
     // Minor 6th: DoMeLa -> [60, 63, 67, 69] (C-Eb-G-A / Cm6)
     expect(parseHarmonyChord('DoMeLa').quality).toBe('minor6');
     expect(buildChordFromToken(60, 'DoMeLa')).toEqual([60, 63, 67, 69]);
+
+    // 5th Power Chord: DoSo -> [60, 67] (C-G / C5, excluding 3rd)
+    expect(parseHarmonyChord('DoSo').quality).toBe('fifth');
+    expect(buildChordFromToken(60, 'DoSo')).toEqual([60, 67]);
+
+    // Diminished Triad: DoMeFi -> [60, 63, 66] (C-Eb-Gb / Cdim)
+    expect(parseHarmonyChord('DoMeFi').quality).toBe('diminished');
+    expect(buildChordFromToken(60, 'DoMeFi')).toEqual([60, 63, 66]);
+  });
+
+  it('correctly parses and builds extended (9th, 11th, 13th) and altered chords', () => {
+    // Dominant 9th: DoTeRe -> [60, 64, 67, 70, 74] (C9)
+    expect(parseHarmonyChord('DoTeRe').quality).toBe('dominant9');
+    expect(buildChordFromToken(60, 'DoTeRe')).toEqual([60, 64, 67, 70, 74]);
+
+    // Major 9th: DoTiRe -> [60, 64, 67, 71, 74] (Cmaj9)
+    expect(parseHarmonyChord('DoTiRe').quality).toBe('major9');
+    expect(buildChordFromToken(60, 'DoTiRe')).toEqual([60, 64, 67, 71, 74]);
+
+    // Minor 9th: DoMeTeRe -> [60, 63, 67, 70, 74] (Cm9)
+    expect(parseHarmonyChord('DoMeTeRe').quality).toBe('minor9');
+    expect(buildChordFromToken(60, 'DoMeTeRe')).toEqual([60, 63, 67, 70, 74]);
+
+    // 7(b9): DoTeRa -> [60, 64, 67, 70, 73] (C7b9)
+    expect(parseHarmonyChord('DoTeRa').quality).toBe('dominant7b9');
+    expect(buildChordFromToken(60, 'DoTeRa')).toEqual([60, 64, 67, 70, 73]);
+
+    // 7(#9): DoTeRi -> [60, 64, 67, 70, 75] (C7#9 Hendrix chord)
+    expect(parseHarmonyChord('DoTeRi').quality).toBe('dominant7sharp9');
+    expect(buildChordFromToken(60, 'DoTeRi')).toEqual([60, 64, 67, 70, 75]);
+
+    // 7(#11): DoTeFi -> [60, 64, 67, 70, 78] (C7#11 / C7b5)
+    expect(parseHarmonyChord('DoTeFi').quality).toBe('dominant7sharp11');
+    expect(buildChordFromToken(60, 'DoTeFi')).toEqual([60, 64, 67, 70, 78]);
+
+    // maj7(#11): DoTiFi -> [60, 64, 67, 71, 78] (Cmaj7#11)
+    expect(parseHarmonyChord('DoTiFi').quality).toBe('major7sharp11');
+    expect(buildChordFromToken(60, 'DoTiFi')).toEqual([60, 64, 67, 71, 78]);
+
+    // 7(b13): DoTeLe -> [60, 64, 68, 70] (C7b13 / C7#5)
+    expect(parseHarmonyChord('DoTeLe').quality).toBe('dominant7b13');
+    expect(buildChordFromToken(60, 'DoTeLe')).toEqual([60, 64, 68, 70]);
+
+    // Dominant 13th: DoTeLa -> [60, 64, 67, 70, 74, 81] (C13)
+    expect(parseHarmonyChord('DoTeLa').quality).toBe('dominant13');
+    expect(buildChordFromToken(60, 'DoTeLa')).toEqual([60, 64, 67, 70, 74, 81]);
+
+    // Major 13th: DoTiLa -> [60, 64, 67, 71, 74, 81] (Cmaj13)
+    expect(parseHarmonyChord('DoTiLa').quality).toBe('major13');
+    expect(buildChordFromToken(60, 'DoTiLa')).toEqual([60, 64, 67, 71, 74, 81]);
+
+    // Minor 13th: DoMeTeLa -> [60, 63, 67, 70, 74, 81] (Cm13)
+    expect(parseHarmonyChord('DoMeTeLa').quality).toBe('minor13');
+    expect(buildChordFromToken(60, 'DoMeTeLa')).toEqual([60, 63, 67, 70, 74, 81]);
   });
 });
 

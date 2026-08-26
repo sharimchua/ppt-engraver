@@ -418,6 +418,7 @@ Harmony chords are automatically voiced into tertian triads/sevenths and adapted
 | Token | Chord Name | Harmonic Formula | Example ($Do = \text{C}$) |
 | :--- | :--- | :--- | :--- |
 | `Do` | Major Triad | $1 - 3 - 5$ | C major (`C - E - G`) |
+| `DoSo` | 5th Power Chord | $1 - 5$ (no 3rd) | C5 (`C - G`) |
 | `DoMe` / `DoRi` | Minor Triad | $1 - \flat 3 - 5$ | C minor (`C - Eb - G`) |
 | `DoTe` / `SoTe` | Dominant 7th | $1 - 3 - 5 - \flat 7$ | C7 (`C - E - G - Bb`) / G7 |
 | `DoTi` / `FaTi` | Major 7th | $1 - 3 - 5 - 7$ | Cmaj7 (`C - E - G - B`) |
@@ -425,13 +426,25 @@ Harmony chords are automatically voiced into tertian triads/sevenths and adapted
 | `DoMeTi` | Minor-Major 7th | $1 - \flat 3 - 5 - 7$ | Cm(maj7) (`C - Eb - G - B`) |
 | `DoFi` / `DoMeFi` | Diminished Triad | $1 - \flat 3 - \flat 5$ | C dim (`C - Eb - Gb`) |
 | `TiMeFiLa` / `DoMeFiLa` | Diminished 7th | $1 - \flat 3 - \flat 5 - \flat\flat 7$ | Edim7 (`E - G - Bb - Db`) / Cdim7 |
-| `DoMeFiTe` / `DoFiTe` | Half-Diminished 7th | $1 - \flat 3 - \flat 5 - \flat 7$ | Cm7b5 (`C - Eb - Gb - Bb`) |
+| `DoMeFiTe` / `DoFiTe` | Half-Diminished 7th | $1 - \flat 3 - \flat 5 - \flat 7$ | Cm7b5 (`C - Eb - Gb - Bb` / Cø7) |
 | `DoSi` / `DoLe` | Augmented Triad | $1 - 3 - \sharp 5$ | C aug (`C - E - G#`) |
 | `DoFa` | Sus4 | $1 - 4 - 5$ | Csus4 (`C - F - G`) |
 | `DoRe` | Sus2 | $1 - 2 - 5$ | Csus2 (`C - D - G`) |
 | `DoFaTe` | 7sus4 | $1 - 4 - 5 - \flat 7$ | C7sus4 (`C - F - G - Bb`) |
 | `DoLa` | Major 6th | $1 - 3 - 5 - 6$ | C6 (`C - E - G - A`) |
 | `DoMeLa` | Minor 6th | $1 - \flat 3 - 5 - 6$ | Cm6 (`C - Eb - G - A`) |
+| `DoTeRe` | Dominant 9th | $1 - 3 - 5 - \flat 7 - 9$ | C9 (`C - E - G - Bb - D`) |
+| `DoTiRe` | Major 9th | $1 - 3 - 5 - 7 - 9$ | Cmaj9 (`C - E - G - B - D`) |
+| `DoMeTeRe` | Minor 9th | $1 - \flat 3 - 5 - \flat 7 - 9$ | Cm9 (`C - Eb - G - Bb - D`) |
+| `DoMiRe` | Add 9 | $1 - 3 - 5 - 9$ | Cadd9 (`C - E - G - D`) |
+| `DoTeRa` | 7(b9) | $1 - 3 - 5 - \flat 7 - \flat 9$ | C7(b9) (`C - E - G - Bb - Db`) |
+| `DoTeRi` | 7(#9) | $1 - 3 - 5 - \flat 7 - \sharp 9$ | C7(#9) (`C - E - G - Bb - D#`) |
+| `DoTeFi` | 7(#11) / 7b5 | $1 - 3 - 5 - \flat 7 - \sharp 11$ | C7(#11) (`C - E - G - Bb - F#`) |
+| `DoTiFi` | maj7(#11) | $1 - 3 - 5 - 7 - \sharp 11$ | Cmaj7(#11) (`C - E - G - B - F#`) |
+| `DoTeLe` | 7(b13) / 7#5 | $1 - 3 - \sharp 5 - \flat 7$ | C7(b13) (`C - E - G# - Bb`) |
+| `DoTeLa` | Dominant 13th | $1 - 3 - 5 - \flat 7 - 9 - 13$ | C13 (`C - E - G - Bb - D - A`) |
+| `DoTiLa` | Major 13th | $1 - 3 - 5 - 7 - 9 - 13$ | Cmaj13 (`C - E - G - B - D - A`) |
+| `DoMeTeLa` | Minor 13th | $1 - \flat 3 - 5 - \flat 7 - 9 - 13$ | Cm13 (`C - Eb - G - Bb - D - A`) |
 | `Do^` / `Do_` | Octave Shift | Transposed $\pm 1$ Octave | `Do` shifted up or down |
 
 ---

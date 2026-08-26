@@ -99,6 +99,16 @@ describe('chordToLilyPondChordMode', () => {
     expect(chordToLilyPondChordMode(60, 'major', '4', 'sharps')).toBe('c4');
     expect(chordToLilyPondChordMode(60, 'minor', '4', 'sharps')).toBe('c4:m');
     expect(chordToLilyPondChordMode(67, 'dominant7', '4', 'sharps')).toBe('g4:7');
+    expect(chordToLilyPondChordMode(60, 'fifth', '4', 'sharps')).toBe('c4:5');
+    expect(chordToLilyPondChordMode(60, 'halfDiminished7', '4', 'sharps')).toBe('c4:m7.5-');
+    expect(chordToLilyPondChordMode(60, 'diminished7', '4', 'sharps')).toBe('c4:dim7');
+    expect(chordToLilyPondChordMode(60, 'dominant9', '4', 'sharps')).toBe('c4:9');
+    expect(chordToLilyPondChordMode(60, 'major9', '4', 'sharps')).toBe('c4:maj9');
+    expect(chordToLilyPondChordMode(60, 'minor9', '4', 'sharps')).toBe('c4:m9');
+    expect(chordToLilyPondChordMode(60, 'dominant7b9', '4', 'sharps')).toBe('c4:7.9-');
+    expect(chordToLilyPondChordMode(60, 'dominant7sharp9', '4', 'sharps')).toBe('c4:7.9+');
+    expect(chordToLilyPondChordMode(60, 'dominant7sharp11', '4', 'sharps')).toBe('c4:7.11+');
+    expect(chordToLilyPondChordMode(60, 'dominant13', '4', 'sharps')).toBe('c4:13');
   });
 
   it('formats slash chords and inversions when bass note is specified', () => {
@@ -133,8 +143,9 @@ describe('canonicalChordToLilyPond', () => {
     // When Do is F4 (65): Ti is E4. E dim7 -> <e' g' bes' des''>
     expect(canonicalChordToLilyPond('TiMeFiLa', 65, 'flats')).toBe("<e' g' bes' des''>");
 
-    // DoMeFiLa when Do is C4 -> <c' ees' ges' a'>
-    expect(canonicalChordToLilyPond('DoMeFiLa', 60, 'flats')).toBe("<c' ees' ges' a'>");
+    // DoMeFiLa when Do is C4 -> <c' ees' ges' beses'> (Cdim7)
+    expect(canonicalChordToLilyPond('DoMeFiLa', 60, 'flats')).toBe("<c' ees' ges' beses'>");
+    expect(canonicalChordToLilyPond('DoMeFiLa', 60, 'sharps')).toBe("<c' ees' ges' beses'>");
   });
 
   it('formats half-diminished, sus, and 6th chords', () => {
@@ -147,8 +158,27 @@ describe('canonicalChordToLilyPond', () => {
     // Sus2: DoRe -> <c' d' g'>
     expect(canonicalChordToLilyPond('DoRe', 60)).toBe("<c' d' g'>");
 
-    // Major 6th: DoLa -> <c' e' g' a'>
-    expect(canonicalChordToLilyPond('DoLa', 60)).toBe("<c' e' g' a'>");
+    // 5th Power Chord: DoSo -> <c' g'> (excluding 3rd)
+    expect(canonicalChordToLilyPond('DoSo', 60)).toBe("<c' g'>");
+
+    // Dominant 9th: DoTeRe -> <c' e' g' bes' d''>
+    expect(canonicalChordToLilyPond('DoTeRe', 60, 'flats')).toBe("<c' e' g' bes' d''>");
+
+    // 7(b9): DoTeRa -> <c' e' g' bes' des''>
+    expect(canonicalChordToLilyPond('DoTeRa', 60, 'flats')).toBe("<c' e' g' bes' des''>");
+
+    // 7(#9): DoTeRi -> <c' e' g' bes' ees''>
+    expect(canonicalChordToLilyPond('DoTeRi', 60, 'flats')).toBe("<c' e' g' bes' ees''>");
+
+    // Half-diminished in sharps mode still spells flat 5th as ges' (Gb) rather than fis' (F#)
+    expect(canonicalChordToLilyPond('DoMeFiTe', 60, 'sharps')).toBe("<c' ees' ges' bes'>");
+    expect(canonicalChordToLilyPond('DoMeFi', 60, 'sharps')).toBe("<c' ees' ges'>");
+
+    // 7(#11) in sharps mode correctly spells sharp 4th/11th as fis'' (F#)
+    expect(canonicalChordToLilyPond('DoTeFi', 60, 'sharps')).toBe("<c' e' g' bes' fis''>");
+
+    // Dominant 13th: DoTeLa -> <c' e' g' bes' d'' a''>
+    expect(canonicalChordToLilyPond('DoTeLa', 60, 'flats')).toBe("<c' e' g' bes' d'' a''>");
   });
 
   it('formats slash chords and inversions with explicit slash bass', () => {

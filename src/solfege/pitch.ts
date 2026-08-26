@@ -572,6 +572,21 @@ export type HarmonyChordQuality =
   | '7sus4'
   | 'major6'
   | 'minor6'
+  | 'fifth'
+  | 'dominant9'
+  | 'major9'
+  | 'minor9'
+  | 'add9'
+  | 'dominant11'
+  | 'minor11'
+  | 'dominant13'
+  | 'major13'
+  | 'minor13'
+  | 'dominant7b9'
+  | 'dominant7sharp9'
+  | 'dominant7sharp11'
+  | 'major7sharp11'
+  | 'dominant7b13'
   | 'custom';
 
 /**
@@ -579,6 +594,9 @@ export type HarmonyChordQuality =
  */
 export function getChordIntervals(quality: string): number[] {
   switch (quality) {
+    case 'fifth':
+    case 'power':
+      return [0, 7];
     case 'minor':
       return [0, 3, 7];
     case 'minor7':
@@ -607,6 +625,34 @@ export function getChordIntervals(quality: string): number[] {
       return [0, 4, 7, 9];
     case 'minor6':
       return [0, 3, 7, 9];
+    case 'dominant9':
+      return [0, 4, 7, 10, 14];
+    case 'major9':
+      return [0, 4, 7, 11, 14];
+    case 'minor9':
+      return [0, 3, 7, 10, 14];
+    case 'add9':
+      return [0, 4, 7, 14];
+    case 'dominant11':
+      return [0, 7, 10, 14, 17];
+    case 'minor11':
+      return [0, 3, 7, 10, 14, 17];
+    case 'dominant13':
+      return [0, 4, 7, 10, 14, 21];
+    case 'major13':
+      return [0, 4, 7, 11, 14, 21];
+    case 'minor13':
+      return [0, 3, 7, 10, 14, 21];
+    case 'dominant7b9':
+      return [0, 4, 7, 10, 13];
+    case 'dominant7sharp9':
+      return [0, 4, 7, 10, 15];
+    case 'dominant7sharp11':
+      return [0, 4, 7, 10, 18];
+    case 'major7sharp11':
+      return [0, 4, 7, 11, 18];
+    case 'dominant7b13':
+      return [0, 4, 8, 10];
     case 'major':
     default:
       return [0, 4, 7];
@@ -761,45 +807,88 @@ export function parseHarmonyChord(token: string): ParsedHarmonyChord {
     });
   }
 
+  const hasRa = modifiers.some(m => m.syllable === 'Ra' || m.syllable === 'Di');
+  const hasRe = modifiers.some(m => m.syllable === 'Re');
   const hasMe = modifiers.some(m => m.syllable === 'Me' || m.syllable === 'Ri');
+  const hasRi = modifiers.some(m => m.syllable === 'Ri');
+  const hasMi = modifiers.some(m => m.syllable === 'Mi');
+  const hasFa = modifiers.some(m => m.syllable === 'Fa');
+  const hasFi = modifiers.some(m => m.syllable === 'Fi' || m.syllable === 'Se');
+  const hasSo = modifiers.some(m => m.syllable === 'So');
+  const hasLe = modifiers.some(m => m.syllable === 'Le' || m.syllable === 'Si');
+  const hasLa = modifiers.some(m => m.syllable === 'La');
   const hasTe = modifiers.some(m => m.syllable === 'Te' || m.syllable === 'Li');
   const hasTi = modifiers.some(m => m.syllable === 'Ti');
-  const hasFi = modifiers.some(m => m.syllable === 'Fi' || m.syllable === 'Se');
-  const hasLa = modifiers.some(m => m.syllable === 'La');
-  const hasLe = modifiers.some(m => m.syllable === 'Le' || m.syllable === 'Si');
-  const hasFa = modifiers.some(m => m.syllable === 'Fa');
-  const hasRe = modifiers.some(m => m.syllable === 'Re');
 
   let quality: HarmonyChordQuality = 'major';
 
-  if (hasFi && hasLa) {
+  // 1. Alterations with Dominant/Major 7th
+  if (hasTe && hasRa) {
+    quality = 'dominant7b9';
+  } else if (hasTe && (hasRi || (hasMe && hasMi))) {
+    quality = 'dominant7sharp9';
+  } else if (hasTe && hasFi && !hasMe) {
+    quality = 'dominant7sharp11';
+  } else if (hasTi && hasFi) {
+    quality = 'major7sharp11';
+  } else if (hasTe && hasLe) {
+    quality = 'dominant7b13';
+  }
+  // 2. Extended 13th, 11th, 9th chords
+  else if (hasMe && hasTe && hasLa) {
+    quality = 'minor13';
+  } else if (hasTi && hasLa) {
+    quality = 'major13';
+  } else if (hasTe && hasLa) {
+    quality = 'dominant13';
+  } else if (hasMe && hasTe && hasFa) {
+    quality = 'minor11';
+  } else if (hasTe && hasFa && hasRe) {
+    quality = 'dominant11';
+  } else if (hasMe && hasTe && hasRe) {
+    quality = 'minor9';
+  } else if (hasTi && hasRe) {
+    quality = 'major9';
+  } else if (hasTe && hasRe) {
+    quality = 'dominant9';
+  } else if (hasMi && hasRe) {
+    quality = 'add9';
+  }
+  // 3. Diminished & Half-Diminished chords
+  else if (hasFi && hasLa) {
     quality = 'diminished7';
   } else if (hasFi && hasTe) {
     quality = 'halfDiminished7';
   } else if (hasFi) {
     quality = 'diminished';
-  } else if (hasMe && hasTi) {
+  }
+  // 4. Standard 7ths & 6ths
+  else if (hasMe && hasTi) {
     quality = 'minorMajor7';
   } else if (hasMe && hasTe) {
     quality = 'minor7';
   } else if (hasMe && hasLa) {
     quality = 'minor6';
-  } else if (hasMe) {
-    quality = 'minor';
   } else if (hasFa && hasTe) {
     quality = '7sus4';
-  } else if (hasFa) {
-    quality = 'sus4';
-  } else if (hasRe) {
-    quality = 'sus2';
   } else if (hasTi) {
     quality = 'major7';
   } else if (hasTe) {
     quality = 'dominant7';
   } else if (hasLa) {
     quality = 'major6';
+  }
+  // 5. Triads, Sus & 5th Power Chords
+  else if (hasMe) {
+    quality = 'minor';
+  } else if (hasFa) {
+    quality = 'sus4';
+  } else if (hasRe) {
+    quality = 'sus2';
   } else if (hasLe) {
     quality = 'augmented';
+  } else if (hasSo) {
+    quality = 'fifth';
   }
 
   const result: ParsedHarmonyChord = {

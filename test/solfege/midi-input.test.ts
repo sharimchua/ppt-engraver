@@ -92,9 +92,25 @@ describe('MIDI Solfège Typing Engine', () => {
       expect(translateChordToSolfege([62, 65, 69, 72], 'C4')).toBe('ReMeTe');
     });
 
+    it('translates 5th power chords (excluding 3rd)', () => {
+      // C4-G4 -> DoSo
+      expect(translateChordToSolfege([60, 67], 'C4')).toBe('DoSo');
+      // D4-A4 -> ReSo
+      expect(translateChordToSolfege([62, 69], 'C4')).toBe('ReSo');
+    });
+
     it('translates diminished, sus, and augmented chords', () => {
-      // B4-D5-F5 (diminished) -> TiFi
-      expect(translateChordToSolfege([71, 74, 77], 'C4')).toBe('TiFi');
+      // B4-D5-F5 (diminished triad) -> TiMeFi
+      expect(translateChordToSolfege([71, 74, 77], 'C4')).toBe('TiMeFi');
+
+      // C4-Eb4-Gb4 (diminished triad) -> DoMeFi
+      expect(translateChordToSolfege([60, 63, 66], 'C4')).toBe('DoMeFi');
+
+      // C4-Eb4-Gb4-Bb4 (half-diminished 7th / m7b5) -> DoMeFiTe
+      expect(translateChordToSolfege([60, 63, 66, 70], 'C4')).toBe('DoMeFiTe');
+
+      // C4-Eb4-Gb4-A4 (full diminished 7th / dim7) -> DoMeFiLa
+      expect(translateChordToSolfege([60, 63, 66, 69], 'C4')).toBe('DoMeFiLa');
 
       // C4-F4-G4 (sus4) -> DoFa
       expect(translateChordToSolfege([60, 65, 67], 'C4')).toBe('DoFa');
@@ -107,6 +123,32 @@ describe('MIDI Solfège Typing Engine', () => {
 
       // C4-E4-G4-A4 (major 6th) -> DoLa
       expect(translateChordToSolfege([60, 64, 67, 69], 'C4')).toBe('DoLa');
+    });
+
+    it('translates extended (9th, 13th) and altered chords from MIDI', () => {
+      // C4-E4-G4-Bb4-D5 (dominant 9th) -> DoTeRe
+      expect(translateChordToSolfege([60, 64, 67, 70, 74], 'C4')).toBe('DoTeRe');
+
+      // C4-E4-G4-B4-D5 (major 9th) -> DoTiRe
+      expect(translateChordToSolfege([60, 64, 67, 71, 74], 'C4')).toBe('DoTiRe');
+
+      // C4-Eb4-G4-Bb4-D5 (minor 9th) -> DoMeTeRe
+      expect(translateChordToSolfege([60, 63, 67, 70, 74], 'C4')).toBe('DoMeTeRe');
+
+      // C4-E4-G4-Bb4-Db5 (7(b9)) -> DoTeRa
+      expect(translateChordToSolfege([60, 64, 67, 70, 73], 'C4')).toBe('DoTeRa');
+
+      // C4-E4-G4-Bb4-Eb5 (7(#9) Hendrix chord) -> DoTeRi
+      expect(translateChordToSolfege([60, 64, 67, 70, 75], 'C4')).toBe('DoTeRi');
+
+      // C4-E4-G4-Bb4-F#5 (7(#11)) -> DoTeFi
+      expect(translateChordToSolfege([60, 64, 67, 70, 78], 'C4')).toBe('DoTeFi');
+
+      // C4-E4-G4-B4-F#5 (maj7(#11)) -> DoTiFi
+      expect(translateChordToSolfege([60, 64, 67, 71, 78], 'C4')).toBe('DoTiFi');
+
+      // C4-E4-G4-Bb4-A5 (dominant 13th) -> DoTeLa
+      expect(translateChordToSolfege([60, 64, 67, 70, 81], 'C4')).toBe('DoTeLa');
     });
 
     it('translates chords accurately with non-C tonics', () => {

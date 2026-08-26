@@ -84,6 +84,7 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
 ## Harmonic Grammar & Axis Bass Prefix (`${Bass}x${Root}${Modifiers}`)
 
 - **Standard Chords**: Root syllable + optional modifiers:
+  - 5th / Power Chord: `DoSo`, `ReSo`, `FaSo` ($1-5$, no 3rd)
   - Major Triad: `Do`, `Fa`, `So` ($1-3-5$)
   - Minor Triad: `DoMe`, `DoRi`, `FaMe` ($1-\flat 3-5$)
   - Dominant 7th: `DoTe`, `SoTe` ($1-3-5-\flat 7$)
@@ -97,6 +98,10 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
   - Sus4 / Sus2: `DoFa` ($1-4-5$), `DoRe` ($1-2-5$)
   - 7sus4: `DoFaTe` ($1-4-5-\flat 7$)
   - Major 6th / Minor 6th: `DoLa` ($1-3-5-6$), `DoMeLa` ($1-\flat 3-5-6$)
+  - Extended 9th Chords: Dominant 9th `DoTeRe` ($1-3-5-\flat 7-9$), Major 9th `DoTiRe` ($1-3-5-7-9$), Minor 9th `DoMeTeRe` ($1-\flat 3-5-\flat 7-9$), Add 9 `DoMiRe` ($1-3-5-9$)
+  - Extended 11th Chords: Dominant 11th `DoTeReFa` ($1-5-\flat 7-9-11$), Minor 11th `DoMeTeReFa` / `DoMeTeFa` ($1-\flat 3-5-\flat 7-9-11$)
+  - Extended 13th Chords: Dominant 13th `DoTeLa` / `DoTeReLa` ($1-3-5-\flat 7-9-13$), Major 13th `DoTiLa` ($1-3-5-7-9-13$), Minor 13th `DoMeTeLa` ($1-\flat 3-5-\flat 7-9-13$)
+  - Altered Chords: 7(b9) `DoTeRa` ($1-3-5-\flat 7-\flat 9$), 7(#9) `DoTeRi` ($1-3-5-\flat 7-\sharp 9$), 7(#11) `DoTeFi` ($1-3-5-\flat 7-\sharp 11$), maj7(#11) `DoTiFi` ($1-3-5-7-\sharp 11$), 7(b13) `DoTeLe` ($1-3-\sharp 5-\flat 7$)
 - **Axis Bass Prefix**: Prepending an axis-marked Solfège syllable (e.g. `Sox`, `Miex`, `Mex`, `Rex`, `Dox`) defines an explicit bass note (inversion or slash chord):
   - `SoxDo`: C major triad with G in the bass (**C/G**).
   - `MiexDo` / `MixDo`: C major triad with E in the bass (**C/E** / 1st inversion).

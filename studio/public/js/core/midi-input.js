@@ -135,61 +135,128 @@ export function translateChordToSolfege(heldNotes, tonicPitch = 'C4') {
     sortedNotes.map(n => ((n - rootMidi) % 12 + 12) % 12)
   )).sort((a, b) => a - b);
 
+  const hasb9 = intervals.includes(1);
+  const has9th = intervals.includes(2);
   const has3rdMinor = intervals.includes(3);
   const has3rdMajor = intervals.includes(4);
+  const has11th = intervals.includes(5);
   const hasSus2 = intervals.includes(2) && !has3rdMinor && !has3rdMajor;
   const hasSus4 = intervals.includes(5) && !has3rdMinor && !has3rdMajor;
   const has5thDim = intervals.includes(6);
+  const has5thPerf = intervals.includes(7);
   const has5thAug = intervals.includes(8);
   const has6th = intervals.includes(9);
   const has7thMin = intervals.includes(10);
   const has7thMaj = intervals.includes(11);
 
-  // 1. Diminished 7th & Half-Diminished
+  // 1. 5th / Power Chord (Dyad: Root + 5th only, no 3rd, no 7th, no sus)
+  if (
+    has5thPerf &&
+    !has3rdMinor &&
+    !has3rdMajor &&
+    !hasSus2 &&
+    !hasSus4 &&
+    !has5thDim &&
+    !has5thAug &&
+    !has6th &&
+    !has7thMin &&
+    !has7thMaj &&
+    !hasb9
+  ) {
+    return `${rootSyllable}So`;
+  }
+
+  // 2. Alterations with Dominant/Major 7th
+  if (has7thMin && hasb9) {
+    return `${rootSyllable}TeRa`; // 7(b9)
+  }
+  if (has7thMin && has3rdMajor && has3rdMinor) {
+    return `${rootSyllable}TeRi`; // 7(#9) Hendrix chord
+  }
+  if (has7thMin && (has3rdMajor || !has3rdMinor) && has5thDim) {
+    return `${rootSyllable}TeFi`; // 7(#11) / 7(b5)
+  }
+  if (has7thMaj && has5thDim) {
+    return `${rootSyllable}TiFi`; // maj7(#11)
+  }
+  if (has7thMin && has5thAug) {
+    return `${rootSyllable}TeLe`; // 7(b13) / 7(#5)
+  }
+
+  // 3. Extended 13th, 11th, 9th Chords
+  if (has7thMin && has3rdMinor && has6th) {
+    return `${rootSyllable}MeTeLa`; // m13
+  }
+  if (has7thMaj && has6th) {
+    return `${rootSyllable}TiLa`; // maj13
+  }
+  if (has7thMin && has6th) {
+    return `${rootSyllable}TeLa`; // 13
+  }
+  if (has7thMin && has3rdMinor && has11th) {
+    return `${rootSyllable}MeTeFa`; // m11
+  }
+  if (has7thMin && has11th && has9th) {
+    return `${rootSyllable}TeReFa`; // 11
+  }
+  if (has7thMin && has3rdMinor && has9th) {
+    return `${rootSyllable}MeTeRe`; // m9
+  }
+  if (has7thMaj && has9th) {
+    return `${rootSyllable}TiRe`; // maj9
+  }
+  if (has7thMin && has9th) {
+    return `${rootSyllable}TeRe`; // 9
+  }
+  if (has3rdMajor && has9th && !has7thMin && !has7thMaj) {
+    return `${rootSyllable}MiRe`; // add9
+  }
+
+  // 4. Diminished 7th, Half-Diminished, Diminished Triad
   if (has5thDim && has6th) {
-    return `${rootSyllable}FiLa`;
+    return `${rootSyllable}MeFiLa`; // full diminished 7th (dim7)
   }
   if (has5thDim && has7thMin) {
-    return `${rootSyllable}FiTe`;
+    return `${rootSyllable}MeFiTe`; // half-diminished (m7b5)
   }
   if (has5thDim) {
-    return `${rootSyllable}Fi`;
+    return `${rootSyllable}MeFi`; // diminished triad
   }
 
-  // 2. Minor Chords
+  // 5. Minor Chords
   if (has3rdMinor) {
-    if (has7thMaj) return `${rootSyllable}MeTi`;
-    if (has7thMin) return `${rootSyllable}MeTe`;
-    if (has6th) return `${rootSyllable}MeLa`;
-    return `${rootSyllable}Me`;
+    if (has7thMaj) return `${rootSyllable}MeTi`; // m(maj7)
+    if (has7thMin) return `${rootSyllable}MeTe`; // m7
+    if (has6th) return `${rootSyllable}MeLa`; // m6
+    return `${rootSyllable}Me`; // minor triad
   }
 
-  // 3. Sus Chords
+  // 6. Sus Chords
   if (hasSus4) {
-    if (has7thMin) return `${rootSyllable}FaTe`;
-    return `${rootSyllable}Fa`;
+    if (has7thMin) return `${rootSyllable}FaTe`; // 7sus4
+    return `${rootSyllable}Fa`; // sus4
   }
   if (hasSus2) {
-    return `${rootSyllable}Re`;
+    return `${rootSyllable}Re`; // sus2
   }
 
-  // 4. Augmented Chords
+  // 7. Augmented Chords
   if (has5thAug) {
-    return `${rootSyllable}Le`;
+    return `${rootSyllable}Le`; // aug triad
   }
 
-  // 5. 7th / 6th Major Triad Based Chords
+  // 8. 7th / 6th Major Triad Based Chords
   if (has7thMaj) {
-    return `${rootSyllable}Ti`;
+    return `${rootSyllable}Ti`; // maj7
   }
   if (has7thMin) {
-    return `${rootSyllable}Te`;
+    return `${rootSyllable}Te`; // dom7
   }
   if (has6th) {
-    return `${rootSyllable}La`;
+    return `${rootSyllable}La`; // 6
   }
 
-  // 6. Default Triad (Major)
+  // 9. Default Triad (Major)
   return rootSyllable;
 }
 
