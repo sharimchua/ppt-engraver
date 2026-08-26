@@ -9,22 +9,18 @@ context:
   - top
 snippet: |
   tapestry:
-    knot:
-      tonic: "C4"
-      weave: song
-      engraving:
-        title: "New PPT Score"
-        composer: "Composer"
-        colorNotes: true
-        omitStem: true
-        noteheadStyle: ppt
-        strongBeatGridWeight: true
-        show:
-          - melody
-          - gridSymbols
-          - rhythmGrid
-          - chordNames
-          - pulseSignature
+    knots:
+      base:
+        tonic: "C4"
+        weave: song
+        engraving:
+          title: "New PPT Score"
+          composer: "Composer"
+          colorNotes: true
+          omitStem: true
+          noteheadStyle: ppt
+          strongBeatGridWeight: true
+          show: [melody, gridSymbols, rhythmGrid, chordNames, pulseSignature]
 
     weaves:
       song:
@@ -33,3 +29,6 @@ snippet: |
               # melody: [Dox, Do, Me, So, Me, Do]
               # rhythm: [Do, Fi, Do, Fi, Do, 2]
               harmony: [Do, Fa, LaMe, So]
+    coils:
+      motif:
+        melody: [Do]
