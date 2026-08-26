@@ -511,6 +511,13 @@ export class MidiManager {
     this.heldNotes = new Set();
     this.editorGetter = null;
     this.isListening = false;
+
+    events.on('preference:changed', ({ key, value }) => {
+      if (key === 'midiDeviceId') {
+        this.activeDeviceId = value || 'all';
+        this.bindInputs();
+      }
+    });
   }
 
   /**
@@ -520,7 +527,7 @@ export class MidiManager {
    */
   async init(editorGetter) {
     this.editorGetter = editorGetter;
-    this.activeDeviceId = state.preferences.midiDeviceId || 'all';
+    this.activeDeviceId = state.preferences?.midiDeviceId || 'all';
 
     if (typeof navigator === 'undefined' || !navigator.requestMIDIAccess) {
       console.warn('Web MIDI API is not supported in this browser environment.');
@@ -568,6 +575,19 @@ export class MidiManager {
   }
 
   /**
+   * Checks if an input device matches the target device filter.
+   * 
+   * @param {MIDIInput} input
+   * @param {string} targetDeviceId
+   * @returns {boolean}
+   */
+  isDeviceMatch(input, targetDeviceId) {
+    if (!targetDeviceId || targetDeviceId === 'all') return true;
+    if (!input) return false;
+    return input.id === targetDeviceId || input.name === targetDeviceId;
+  }
+
+  /**
    * Binds MIDI message listener to connected inputs according to device filter.
    */
   bindInputs() {
@@ -576,8 +596,10 @@ export class MidiManager {
 
     for (const input of inputs) {
       input.onmidimessage = (event) => {
-        if (!state.preferences.midiEnabled) return;
-        if (this.activeDeviceId !== 'all' && input.id !== this.activeDeviceId) {
+        if (!state.preferences?.midiEnabled) return;
+        const currentTarget = state.preferences?.midiDeviceId || this.activeDeviceId || 'all';
+        const port = event?.target || input;
+        if (!this.isDeviceMatch(port, currentTarget)) {
           return;
         }
         this.handleMidiMessage(event);

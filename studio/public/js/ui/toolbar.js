@@ -89,7 +89,7 @@ export function setupToolbar(options = {}) {
       btnMidiToggle.classList.add('midi-active');
       const devName = state.preferences.midiDeviceId === 'all'
         ? `${state.midiDevices.length} Device${state.midiDevices.length > 1 ? 's' : ''}`
-        : (state.midiDevices.find(d => d.id === state.preferences.midiDeviceId)?.name || 'Device');
+        : (state.midiDevices.find(d => d.id === state.preferences.midiDeviceId || d.name === state.preferences.midiDeviceId)?.name || 'Device');
       midiStatusText.textContent = `MIDI: ${devName}`;
       btnMidiToggle.title = `MIDI Typing Active listening to ${devName} (Click to toggle / Ctrl+Shift+M)`;
     } else {

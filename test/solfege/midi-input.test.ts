@@ -7,7 +7,9 @@ import {
   translateMelodyNoteToSolfege,
   getSolfegeArrayContextAtCursor,
   insertSolfegeTokenAtCursor,
+  MidiManager,
 } from '../../studio/public/js/core/midi-input.js';
+import { state, setPreference } from '../../studio/public/js/state.js';
 import {
   isRhythmRestToken,
   expandLayerTokensWithOnsets,
@@ -264,6 +266,193 @@ describe('MIDI Solfège Typing Engine', () => {
 
       expect(success).toBe(true);
       expect(mockCm.getValue()).toBe('  melody: [Do, Re, Mi]');
+    });
+  });
+
+  describe('MidiManager Hardware Device Filtering', () => {
+    function createMockMidiInput(id, name) {
+      return {
+        id,
+        name,
+        manufacturer: 'TestVendor',
+        state: 'connected',
+        onmidimessage: null,
+      };
+    }
+
+    function createMockCm(initialText = '  melody: []', cursorCh = 11) {
+      let content = initialText;
+      let cur = { line: 0, ch: cursorCh };
+      return {
+        getCursor: () => ({ ...cur }),
+        getLine: () => content,
+        setCursor: (newPos) => { cur = { ...newPos }; },
+        replaceRange: (text, from) => {
+          const before = content.slice(0, from.ch);
+          const after = content.slice(from.ch);
+          content = before + text + after;
+        },
+        getValue: () => content,
+      };
+    }
+
+    it('correctly matches devices with isDeviceMatch by ID or Name', () => {
+      const mgr = new MidiManager();
+      const dev1 = createMockMidiInput('port-1', 'Arturia KeyLab');
+
+      expect(mgr.isDeviceMatch(dev1, 'all')).toBe(true);
+      expect(mgr.isDeviceMatch(dev1, '')).toBe(true);
+      expect(mgr.isDeviceMatch(dev1, 'port-1')).toBe(true);
+      expect(mgr.isDeviceMatch(dev1, 'Arturia KeyLab')).toBe(true);
+      expect(mgr.isDeviceMatch(dev1, 'port-2')).toBe(false);
+      expect(mgr.isDeviceMatch(dev1, 'Launchkey')).toBe(false);
+      expect(mgr.isDeviceMatch(null, 'port-1')).toBe(false);
+    });
+
+    it('processes messages from all controllers when device filter is "all"', () => {
+      const mgr = new MidiManager();
+      const mockCm = createMockCm();
+      mgr.editorGetter = () => mockCm;
+
+      const input1 = createMockMidiInput('dev-1', 'Arturia KeyLab');
+      const input2 = createMockMidiInput('dev-2', 'Novation Launchkey');
+
+      mgr.midiAccess = {
+        inputs: new Map([
+          ['dev-1', input1],
+          ['dev-2', input2],
+        ]),
+      };
+
+      setPreference('midiEnabled', true);
+      setPreference('midiDeviceId', 'all');
+      mgr.bindInputs();
+
+      // Send Note On (C4 = 60, velocity 100) from Controller 1
+      input1.onmidimessage({
+        data: new Uint8Array([0x90, 60, 100]),
+        target: input1,
+      });
+      expect(mockCm.getValue()).toBe('  melody: [Do]');
+
+      // Send Note On (D4 = 62, velocity 100) from Controller 2
+      input2.onmidimessage({
+        data: new Uint8Array([0x90, 62, 100]),
+        target: input2,
+      });
+      expect(mockCm.getValue()).toBe('  melody: [Do, Re]');
+    });
+
+    it('filters out messages from unselected controllers when a specific device is selected', () => {
+      const mgr = new MidiManager();
+      const mockCm = createMockCm();
+      mgr.editorGetter = () => mockCm;
+
+      const input1 = createMockMidiInput('dev-1', 'Arturia KeyLab');
+      const input2 = createMockMidiInput('dev-2', 'Novation Launchkey');
+
+      mgr.midiAccess = {
+        inputs: new Map([
+          ['dev-1', input1],
+          ['dev-2', input2],
+        ]),
+      };
+
+      setPreference('midiEnabled', true);
+      setPreference('midiDeviceId', 'dev-1');
+      mgr.bindInputs();
+
+      // Controller 2 sends note (should be ignored)
+      input2.onmidimessage({
+        data: new Uint8Array([0x90, 64, 100]),
+        target: input2,
+      });
+      expect(mockCm.getValue()).toBe('  melody: []');
+
+      // Controller 1 sends note (should be accepted)
+      input1.onmidimessage({
+        data: new Uint8Array([0x90, 60, 100]),
+        target: input1,
+      });
+      expect(mockCm.getValue()).toBe('  melody: [Do]');
+    });
+
+    it('dynamically reacts to preference changes without requiring full re-initialization', () => {
+      const mgr = new MidiManager();
+      const mockCm = createMockCm();
+      mgr.editorGetter = () => mockCm;
+
+      const input1 = createMockMidiInput('dev-1', 'Arturia KeyLab');
+      const input2 = createMockMidiInput('dev-2', 'Novation Launchkey');
+
+      mgr.midiAccess = {
+        inputs: new Map([
+          ['dev-1', input1],
+          ['dev-2', input2],
+        ]),
+      };
+
+      setPreference('midiEnabled', true);
+      setPreference('midiDeviceId', 'dev-1');
+      mgr.bindInputs();
+
+      // Initially dev-1 is active
+      input1.onmidimessage({
+        data: new Uint8Array([0x90, 60, 100]),
+        target: input1,
+      });
+      expect(mockCm.getValue()).toBe('  melody: [Do]');
+
+      // Switch preference to dev-2
+      setPreference('midiDeviceId', 'dev-2');
+
+      // Now dev-1 is ignored
+      input1.onmidimessage({
+        data: new Uint8Array([0x90, 64, 100]),
+        target: input1,
+      });
+      expect(mockCm.getValue()).toBe('  melody: [Do]');
+
+      // dev-2 is accepted
+      input2.onmidimessage({
+        data: new Uint8Array([0x90, 62, 100]),
+        target: input2,
+      });
+      expect(mockCm.getValue()).toBe('  melody: [Do, Re]');
+    });
+
+    it('filters by device name fallback if ID differs', () => {
+      const mgr = new MidiManager();
+      const mockCm = createMockCm();
+      mgr.editorGetter = () => mockCm;
+
+      const input1 = createMockMidiInput('dev-uuid-xyz', 'Arturia KeyLab');
+      const input2 = createMockMidiInput('dev-uuid-abc', 'Novation Launchkey');
+
+      mgr.midiAccess = {
+        inputs: new Map([
+          ['dev-uuid-xyz', input1],
+          ['dev-uuid-abc', input2],
+        ]),
+      };
+
+      setPreference('midiEnabled', true);
+      setPreference('midiDeviceId', 'Arturia KeyLab');
+      mgr.bindInputs();
+
+      // Launchkey ignored
+      input2.onmidimessage({
+        data: new Uint8Array([0x90, 60, 100]),
+        target: input2,
+      });
+      expect(mockCm.getValue()).toBe('  melody: []');
+
+      // Arturia accepted by name match
+      input1.onmidimessage({
+        data: new Uint8Array([0x90, 60, 100]),
+        target: input1,
+      });
+      expect(mockCm.getValue()).toBe('  melody: [Do]');
     });
   });
 });

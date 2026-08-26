@@ -2,7 +2,7 @@
  * Settings & Studio Preferences Modal
  */
 
-import { state, setPreference } from '../state.js';
+import { state, setPreference, events } from '../state.js';
 import { apiGetConfig, apiSaveConfig } from '../api.js';
 
 export function setupSettingsModal(options = {}) {
@@ -37,7 +37,7 @@ export function setupSettingsModal(options = {}) {
         const opt = document.createElement('option');
         opt.value = dev.id;
         opt.textContent = `${dev.name}${dev.manufacturer ? ` (${dev.manufacturer})` : ''}`;
-        if (dev.id === selectedId) opt.selected = true;
+        if (dev.id === selectedId || (selectedId && dev.name === selectedId)) opt.selected = true;
         settingMidiDevice.appendChild(opt);
       });
       if (settingMidiDeviceHint) {
@@ -49,6 +49,10 @@ export function setupSettingsModal(options = {}) {
       }
     }
   }
+
+  events.on('midi:devices', (devices) => {
+    populateMidiDevices(devices, state.preferences?.midiDeviceId || 'all');
+  });
 
   if (settingLoupeSize && labelLoupeSize) {
     settingLoupeSize.addEventListener('input', (e) => {
