@@ -60,6 +60,8 @@ export function updateScoreHighlights(cm) {
       }
     } else if (/^\s*(?:-\s*)?(?:harmony|chords)\s*:/i.test(currentLine)) {
       declarativeLayer = 'harmony';
+    } else if (/^\s*(?:-\s*)?pulse\s*:/i.test(currentLine)) {
+      declarativeLayer = 'pulse';
     } else if (/^\s*(?:-\s*)?rhythm\s*:/i.test(currentLine)) {
       let isUnderHarmony = false;
       const curIndent = (currentLine.match(/^\s*/) || [''])[0].length;
@@ -127,18 +129,26 @@ export function updateScoreHighlights(cm) {
         if (/^\s*concat\s*:/i.test(lText) && lIndent < currentLineIndent) {
           isInsideConcat = true;
           let subCount = 0;
+          let subListIndent = -1;
           for (let sL = l + 1; sL <= currentLineNum; sL++) {
-            if (/^\s*-\s*/.test(lines[sL])) {
-              subCount++;
+            const sLine = lines[sL];
+            const sIndent = (sLine.match(/^\s*/) || [''])[0].length;
+            if (/^\s*-\s*/.test(sLine)) {
+              if (subListIndent === -1) subListIndent = sIndent;
+              if (sIndent === subListIndent) subCount++;
             }
           }
           inlineSubIndex = subCount || 1;
         } else if (/^\s*(children|stitch|stitches)\s*:/i.test(lText) && lIndent < currentLineIndent) {
           isInsideChildren = true;
           let childCount = 0;
+          let childListIndent = -1;
           for (let cL = l + 1; cL <= currentLineNum; cL++) {
-            if (/^\s*-\s*/.test(lines[cL])) {
-              childCount++;
+            const cLine = lines[cL];
+            const cIndent = (cLine.match(/^\s*/) || [''])[0].length;
+            if (/^\s*-\s*/.test(cLine)) {
+              if (childListIndent === -1) childListIndent = cIndent;
+              if (cIndent === childListIndent) childCount++;
             }
           }
           inlineChildIndex = childCount || 1;
@@ -168,6 +178,12 @@ export function updateScoreHighlights(cm) {
       const inlineChildCoilId = (isInsideChildren && inlineChildIndex !== null)
         ? `${enclosingCoil}_child_${inlineChildIndex}`
         : null;
+      const inlineCoilId = (isInsideChildren && inlineChildIndex !== null)
+        ? `${enclosingCoil}_coil_${inlineChildIndex}`
+        : null;
+      const inlineCoilShortId = (isInsideChildren && inlineChildIndex !== null)
+        ? `coil_${inlineChildIndex}`
+        : null;
 
       let targetOnsetIndex = null;
       const tokensOnLine = extractTokensFromLine(currentLine);
@@ -185,9 +201,22 @@ export function updateScoreHighlights(cm) {
           const cId = el.dataset.coilId;
           const sId = el.dataset.sourceCoilId;
           const hId = el.dataset.harmonySourceCoil;
-          const isCoilMatch = (cId === enclosingCoil || sId === enclosingCoil || hId === enclosingCoil ||
-                              (inlineSubCoilId && (cId === inlineSubCoilId || sId === inlineSubCoilId || hId === inlineSubCoilId)) ||
-                              (inlineChildCoilId && (cId === inlineChildCoilId || sId === inlineChildCoilId || hId === inlineChildCoilId)));
+          let isCoilMatch = false;
+          if (isInsideChildren) {
+            isCoilMatch = (
+              cId === inlineCoilId || sId === inlineCoilId || hId === inlineCoilId ||
+              cId === inlineChildCoilId || sId === inlineChildCoilId || hId === inlineChildCoilId ||
+              cId === inlineCoilShortId || sId === inlineCoilShortId || hId === inlineCoilShortId
+            );
+          } else if (isInsideConcat) {
+            isCoilMatch = (
+              cId === inlineSubCoilId || sId === inlineSubCoilId || hId === inlineSubCoilId
+            );
+          } else {
+            isCoilMatch = (
+              cId === enclosingCoil || sId === enclosingCoil || hId === enclosingCoil
+            );
+          }
           return isCoilMatch && (el.dataset.layer === 'harmony' || !el.dataset.layer);
         });
 
@@ -204,10 +233,23 @@ export function updateScoreHighlights(cm) {
         const rId = el.dataset.rhythmSourceCoil;
         const hId = el.dataset.harmonySourceCoil;
 
-        const isCoilMatch = (cId === enclosingCoil || sId === enclosingCoil ||
-                            mId === enclosingCoil || rId === enclosingCoil || hId === enclosingCoil ||
-                            (inlineSubCoilId && (cId === inlineSubCoilId || sId === inlineSubCoilId || mId === inlineSubCoilId || rId === inlineSubCoilId || hId === inlineSubCoilId)) ||
-                            (inlineChildCoilId && (cId === inlineChildCoilId || sId === inlineChildCoilId || mId === inlineChildCoilId || rId === inlineChildCoilId || hId === inlineChildCoilId)));
+        let isCoilMatch = false;
+        if (isInsideChildren) {
+          isCoilMatch = (
+            cId === inlineCoilId || sId === inlineCoilId || mId === inlineCoilId || rId === inlineCoilId || hId === inlineCoilId ||
+            cId === inlineChildCoilId || sId === inlineChildCoilId || mId === inlineChildCoilId || rId === inlineChildCoilId || hId === inlineChildCoilId ||
+            cId === inlineCoilShortId || sId === inlineCoilShortId || mId === inlineCoilShortId || rId === inlineCoilShortId || hId === inlineCoilShortId
+          );
+        } else if (isInsideConcat) {
+          isCoilMatch = (
+            cId === inlineSubCoilId || sId === inlineSubCoilId || mId === inlineSubCoilId || rId === inlineSubCoilId || hId === inlineSubCoilId
+          );
+        } else {
+          isCoilMatch = (
+            cId === enclosingCoil || sId === enclosingCoil ||
+            mId === enclosingCoil || rId === enclosingCoil || hId === enclosingCoil
+          );
+        }
 
         if (!isCoilMatch) {
           el.classList.remove('score-highlight-active', 'score-highlight-primary');
@@ -215,7 +257,10 @@ export function updateScoreHighlights(cm) {
         }
 
         const elLayer = el.dataset.layer || 'melody';
-        const isLayerMatch = (elLayer === declarativeLayer);
+        const isLayerMatch =
+          elLayer === declarativeLayer ||
+          (declarativeLayer === 'melody' && elLayer === 'tab') ||
+          (declarativeLayer === 'rhythm' && elLayer === 'pulse');
         const elVoice = parseInt(el.dataset.voiceIndex || '1', 10);
         const isVoiceMatch = (!targetVoiceIndex || elVoice === targetVoiceIndex);
 

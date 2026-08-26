@@ -23,14 +23,14 @@ export function renderSvgScore(svgString, options = {}) {
           const lyLineNum = parseInt(match[1], 10);
           const tagInfo = resolveTagFromLyLine(lyLineNum, onsets, sidecarMap, lilypondSource);
           if (tagInfo) {
-            link.dataset.tag = tagInfo.rawTag || '';
+            link.dataset.tag = tagInfo.tag || tagInfo.rawTag || '';
             link.dataset.coilId = tagInfo.coilId || '';
             link.dataset.sourceCoilId = tagInfo.sourceCoilId || '';
             link.dataset.melodySourceCoil = tagInfo.melodySourceCoil || '';
             link.dataset.rhythmSourceCoil = tagInfo.rhythmSourceCoil || '';
             link.dataset.harmonySourceCoil = tagInfo.harmonySourceCoil || '';
             link.dataset.weaveId = tagInfo.weaveId || '';
-            link.dataset.layer = tagInfo.targetLayer || '';
+            link.dataset.layer = tagInfo.targetLayer || 'melody';
             link.dataset.voiceIndex = String(tagInfo.voiceIndex || '1');
             link.dataset.onsetIndex = String(tagInfo.onsetIndex || '');
             link.dataset.sourceOnsetIndex = String(tagInfo.sourceOnsetIndex || '');

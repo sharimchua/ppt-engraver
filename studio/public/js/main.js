@@ -57,23 +57,37 @@ document.addEventListener('DOMContentLoaded', async () => {
       lastCompiledData?.sidecarMap,
       lastCompiledData?.lilypondSource
     );
-    if (!tagInfo || !tagInfo.coilId) return;
+    if (!tagInfo) return;
+
+    const targetLayer = tagInfo.targetLayer || 'melody';
+    const targetCoil =
+      targetLayer === 'rhythm'
+        ? (tagInfo.rhythmSourceCoil || tagInfo.sourceCoilId || tagInfo.coilId)
+        : targetLayer === 'harmony'
+        ? (tagInfo.harmonySourceCoil || tagInfo.sourceCoilId || tagInfo.coilId)
+        : (tagInfo.melodySourceCoil || tagInfo.sourceCoilId || tagInfo.coilId);
+
+    if (!targetCoil) return;
 
     const yamlText = editor.getValue();
+    const parentChain = [tagInfo.sourceCoilId, tagInfo.coilId, tagInfo.parentCoilId].filter(Boolean);
+    const onsetIdx =
+      targetLayer === 'melody'
+        ? (tagInfo.melodyOnsetIndex || tagInfo.sourceOnsetIndex || tagInfo.onsetIndex)
+        : (tagInfo.sourceOnsetIndex || tagInfo.onsetIndex);
+
     const { targetLine, targetCh } = findYamlTarget(
       yamlText,
-      tagInfo.coilId,
-      tagInfo.targetLayer === 'melody'
-        ? (tagInfo.melodyOnsetIndex || tagInfo.sourceOnsetIndex || tagInfo.onsetIndex)
-        : (tagInfo.sourceOnsetIndex || tagInfo.onsetIndex),
-      tagInfo.targetLayer,
+      targetCoil,
+      onsetIdx,
+      targetLayer,
       tagInfo.voiceIndex || 1,
-      tagInfo.parentCoilId
+      parentChain
     );
 
-    if (targetLine !== -1) {
-      editor.setCursor({ line: targetLine, ch: targetCh });
-      editor.scrollIntoView({ line: targetLine, ch: targetCh }, 150);
+    if (typeof targetLine === 'number' && targetLine >= 0) {
+      editor.setCursor({ line: targetLine, ch: targetCh || 0 });
+      editor.scrollIntoView({ line: targetLine, ch: targetCh || 0 }, 150);
       editor.focus();
 
       editor.addLineClass(targetLine, 'background', 'cm-point-click-flash');
@@ -576,9 +590,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupZoomControls({
     getEditor: () => editor,
     onPointAndClick: handlePointAndClick,
-    sidecarMap: lastCompiledData?.sidecarMap,
-    lilypondSource: lastCompiledData?.lilypondSource,
-    onsets: lastCompiledData?.onsets,
+    getLastCompiledData: () => lastCompiledData,
   });
 
   const shortcutsModal = setupShortcutsModal();

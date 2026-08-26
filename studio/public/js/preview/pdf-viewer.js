@@ -106,14 +106,14 @@ export async function renderPdfPages(options = {}) {
               const lyLineNum = parseInt(match[1], 10);
               const tagInfo = resolveTagFromLyLine(lyLineNum, onsets, sidecarMap, lilypondSource);
               if (tagInfo) {
-                linkEl.dataset.tag = tagInfo.rawTag || '';
+                linkEl.dataset.tag = tagInfo.tag || tagInfo.rawTag || '';
                 linkEl.dataset.coilId = tagInfo.coilId || '';
                 linkEl.dataset.sourceCoilId = tagInfo.sourceCoilId || '';
                 linkEl.dataset.melodySourceCoil = tagInfo.melodySourceCoil || '';
                 linkEl.dataset.rhythmSourceCoil = tagInfo.rhythmSourceCoil || '';
                 linkEl.dataset.harmonySourceCoil = tagInfo.harmonySourceCoil || '';
                 linkEl.dataset.weaveId = tagInfo.weaveId || '';
-                linkEl.dataset.layer = tagInfo.targetLayer || '';
+                linkEl.dataset.layer = tagInfo.targetLayer || 'melody';
                 linkEl.dataset.voiceIndex = String(tagInfo.voiceIndex || '1');
                 linkEl.dataset.onsetIndex = String(tagInfo.onsetIndex || '');
                 linkEl.dataset.sourceOnsetIndex = String(tagInfo.sourceOnsetIndex || '');

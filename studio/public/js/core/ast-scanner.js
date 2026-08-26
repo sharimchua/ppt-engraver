@@ -417,67 +417,217 @@ export function extractTokensFromLine(lineText) {
   return tokens;
 }
 
+export function extractLayerFromTag(tag) {
+  if (!tag) return 'melody';
+  if (tag.includes('_rhythm_')) return 'rhythm';
+  if (tag.includes('_pulse_')) return 'pulse';
+  if (
+    tag.includes('_harmony_') ||
+    tag.includes('_harmCoil_') ||
+    tag.includes('_harmonyStaff_') ||
+    tag.includes('_chordName_')
+  ) {
+    return 'harmony';
+  }
+  if (tag.includes('_tab_')) return 'melody';
+  if (
+    tag.includes('_melody_') ||
+    tag.includes('_melodyAbs_') ||
+    tag.includes('_melodyInt_')
+  ) {
+    return 'melody';
+  }
+  return 'melody';
+}
+
 export function findYamlTarget(yamlText, coilId, onsetIndex, targetLayer = 'melody', voiceIndex = 1, parentChain = []) {
   if (!yamlText) return null;
   const lines = yamlText.split('\n');
 
-  const coilsToSearch = [coilId, ...(parentChain || [])].filter(Boolean);
-  let coilLine = -1;
+  const coilsToSearch = Array.from(
+    new Set([coilId, ...(Array.isArray(parentChain) ? parentChain : [parentChain])].filter(Boolean))
+  );
+
+  const layerKeys =
+    targetLayer === 'harmony'
+      ? ['harmony', 'chords']
+      : targetLayer === 'rhythm'
+      ? ['rhythm']
+      : targetLayer === 'pulse'
+      ? ['pulse']
+      : ['melody', 'pitches'];
 
   for (const targetCoil of coilsToSearch) {
-    for (let l = 0; l < lines.length; l++) {
-      const line = lines[l];
-      const match = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)/);
-      if (match && match[2] === targetCoil) {
-        coilLine = l;
-        break;
-      }
-      const inlineMatch = line.match(/^\s*-\s*coil:\s*$/);
-      if (inlineMatch && l + 1 < lines.length) {
-        const nextLine = lines[l + 1];
-        if (nextLine.includes(`id: ${targetCoil}`) || nextLine.includes(`id: "${targetCoil}"`)) {
-          coilLine = l;
+    let coilStartLine = -1;
+    let coilEndLine = lines.length - 1;
+    let baseIndent = 0;
+
+    // Check if targetCoil is an anonymous child like <weave>_coil_<N> or <weave>_child_<N> or <weave>_sub_<N>
+    const anonymousMatch = targetCoil.match(/^(.+)_(?:coil|child|sub)_(\d+)$/);
+    if (anonymousMatch) {
+      const parentContainerId = anonymousMatch[1];
+      const childNum = parseInt(anonymousMatch[2], 10);
+
+      // Find parentContainerId in YAML
+      let parentLine = -1;
+      for (let l = 0; l < lines.length; l++) {
+        const match = lines[l].match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)/);
+        if (match && match[2] === parentContainerId) {
+          parentLine = l;
           break;
         }
       }
-    }
-    if (coilLine !== -1) break;
-  }
 
-  if (coilLine === -1) {
-    return { line: 0, col: 0, length: 0 };
-  }
+      if (parentLine !== -1) {
+        const pIndent = getLineIndent(lines[parentLine]);
+        let currentChild = 0;
+        let directChildIndent = -1;
+        for (let l = parentLine + 1; l < lines.length; l++) {
+          const line = lines[l];
+          if (!line.trim() || /^\s*#/.test(line)) continue;
+          const indent = getLineIndent(line);
+          if (indent <= pIndent && /^\s*[_a-zA-Z0-9]+:/.test(line)) break;
 
-  const baseIndent = getLineIndent(lines[coilLine]);
-  let targetLine = coilLine;
-  let targetCol = 0;
-  let targetLength = 0;
-
-  const targetKey = targetLayer === 'harmony' ? 'harmony' : targetLayer === 'rhythm' ? 'rhythm' : 'melody';
-
-  for (let l = coilLine + 1; l < lines.length; l++) {
-    const line = lines[l];
-    if (!line.trim() || /^\s*#/.test(line)) continue;
-    const indent = getLineIndent(line);
-    if (indent <= baseIndent && /^\s*[_a-zA-Z0-9]+:/.test(line)) break;
-
-    const layerMatch = line.match(new RegExp(`^\\s*${targetKey}\\s*:`, 'i'));
-    if (layerMatch) {
-      targetLine = l;
-      const tokens = extractTokensFromLine(line);
-      if (tokens.length > 0) {
-        const idx = Math.max(0, (typeof onsetIndex === 'number' ? onsetIndex - 1 : 0));
-        const tokenObj = tokens[Math.min(idx, tokens.length - 1)];
-        if (tokenObj) {
-          targetCol = tokenObj.start;
-          targetLength = tokenObj.end - tokenObj.start;
+          if (/^\s*-\s*(?:coil\s*:\s*$|coil\s*:\s*\{|\s*$)/i.test(line) || /^\s*-\s+coil\s*:/i.test(line)) {
+            if (directChildIndent === -1) directChildIndent = indent;
+            if (indent === directChildIndent) {
+              currentChild++;
+              if (currentChild === childNum) {
+                coilStartLine = l;
+                baseIndent = indent;
+                for (let e = l + 1; e < lines.length; e++) {
+                  const eLine = lines[e];
+                  if (!eLine.trim() || /^\s*#/.test(eLine)) continue;
+                  const eIndent = getLineIndent(eLine);
+                  if (eIndent <= baseIndent) {
+                    coilEndLine = e - 1;
+                    break;
+                  }
+                }
+                break;
+              }
+            }
+          }
         }
       }
-      break;
+    }
+
+    if (coilStartLine === -1) {
+      for (let l = 0; l < lines.length; l++) {
+        const line = lines[l];
+        const match = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)/);
+        if (match && match[2] === targetCoil) {
+          coilStartLine = l;
+          baseIndent = getLineIndent(line);
+          for (let e = l + 1; e < lines.length; e++) {
+            const eLine = lines[e];
+            if (!eLine.trim() || /^\s*#/.test(eLine)) continue;
+            const eIndent = getLineIndent(eLine);
+            if (eIndent <= baseIndent) {
+              coilEndLine = e - 1;
+              break;
+            }
+          }
+          break;
+        }
+        const inlineMatch = line.match(/^\s*-\s*coil:\s*$/);
+        if (inlineMatch && l + 1 < lines.length) {
+          const nextLine = lines[l + 1];
+          if (nextLine.includes(`id: ${targetCoil}`) || nextLine.includes(`id: "${targetCoil}"`)) {
+            coilStartLine = l;
+            baseIndent = getLineIndent(line);
+            for (let e = l + 1; e < lines.length; e++) {
+              const eLine = lines[e];
+              if (!eLine.trim() || /^\s*#/.test(eLine)) continue;
+              const eIndent = getLineIndent(eLine);
+              if (eIndent <= baseIndent) {
+                coilEndLine = e - 1;
+                break;
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    if (coilStartLine === -1) continue;
+
+    let targetLine = coilStartLine;
+    let targetCol = 0;
+    let targetLength = 0;
+    let foundLayer = false;
+
+    for (let l = coilStartLine; l <= coilEndLine; l++) {
+      const line = lines[l];
+      if (!line.trim() || /^\s*#/.test(line)) continue;
+
+      const matchedKey = layerKeys.find(k => new RegExp(`(?:^|\\s)(?:-\\s*)?${k}\\s*:`, 'i').test(line));
+      if (matchedKey) {
+        targetLine = l;
+        foundLayer = true;
+
+        if (targetLayer === 'melody' && voiceIndex > 1) {
+          let vCount = 0;
+          for (let vL = l + 1; vL <= coilEndLine; vL++) {
+            const vLine = lines[vL];
+            const vIndent = getLineIndent(vLine);
+            if (vIndent <= getLineIndent(line)) break;
+            if (/^\s*-\s+/.test(vLine)) {
+              vCount++;
+              if (vCount === voiceIndex) {
+                targetLine = vL;
+                break;
+              }
+            }
+          }
+        } else if (targetLayer === 'harmony') {
+          const afterColon = line.slice(line.indexOf(':') + 1).trim();
+          if (!afterColon) {
+            for (let hL = l + 1; hL <= coilEndLine; hL++) {
+              const hLine = lines[hL];
+              const hIndent = getLineIndent(hLine);
+              if (hIndent <= getLineIndent(line)) break;
+              if (/^\s*chords\s*:/i.test(hLine)) {
+                targetLine = hL;
+                break;
+              }
+            }
+          }
+        }
+
+        const targetLineText = lines[targetLine];
+        const tokens = extractTokensFromLine(targetLineText);
+        if (tokens.length > 0) {
+          const idx = Math.max(0, (typeof onsetIndex === 'number' ? onsetIndex - 1 : 0));
+          const tokenObj = tokens[Math.min(idx, tokens.length - 1)];
+          if (tokenObj) {
+            targetCol = tokenObj.start;
+            targetLength = tokenObj.end - tokenObj.start;
+          }
+        }
+        break;
+      }
+    }
+
+    if (foundLayer) {
+      return { line: targetLine, col: targetCol, targetLine, targetCh: targetCol, length: targetLength };
     }
   }
 
-  return { line: targetLine, col: targetCol, targetLine, targetCh: targetCol, length: targetLength };
+  // Fallback to first matched coil header
+  if (coilsToSearch.length > 0) {
+    for (const targetCoil of coilsToSearch) {
+      for (let l = 0; l < lines.length; l++) {
+        const match = lines[l].match(/^(\s*)([_a-zA-Z0-9]+)\s*:(?!\s*\[)/);
+        if (match && match[2] === targetCoil) {
+          return { line: l, col: 0, targetLine: l, targetCh: 0, length: 0 };
+        }
+      }
+    }
+  }
+
+  return { line: 0, col: 0, targetLine: 0, targetCh: 0, length: 0 };
 }
 
 export function resolveTagFromLyLine(lyLineNum, onsets, sidecarMap, lilypondSource) {
@@ -485,27 +635,52 @@ export function resolveTagFromLyLine(lyLineNum, onsets, sidecarMap, lilypondSour
   const lyLines = lilypondSource.split('\n');
   const targetLineIdx = lyLineNum - 1;
 
+  let fullTag = null;
   for (let l = targetLineIdx; l >= Math.max(0, targetLineIdx - 15); l--) {
     const line = lyLines[l] || '';
     const tagMatch = line.match(/\\tag\s*#'(ppt_[a-zA-Z0-9_-]+)/);
     if (tagMatch) {
-      const fullTag = tagMatch[1];
-      if (sidecarMap && sidecarMap[fullTag]) {
-        return { tag: fullTag, ...sidecarMap[fullTag] };
+      fullTag = tagMatch[1];
+      break;
+    }
+  }
+
+  if (!fullTag) {
+    for (let l = targetLineIdx; l < Math.min(lyLines.length, targetLineIdx + 15); l++) {
+      const line = lyLines[l] || '';
+      const tagMatch = line.match(/\\tag\s*#'(ppt_[a-zA-Z0-9_-]+)/);
+      if (tagMatch) {
+        fullTag = tagMatch[1];
+        break;
       }
     }
   }
 
-  for (let l = targetLineIdx; l < Math.min(lyLines.length, targetLineIdx + 15); l++) {
-    const line = lyLines[l] || '';
-    const tagMatch = line.match(/\\tag\s*#'(ppt_[a-zA-Z0-9_-]+)/);
-    if (tagMatch) {
-      const fullTag = tagMatch[1];
-      if (sidecarMap && sidecarMap[fullTag]) {
-        return { tag: fullTag, ...sidecarMap[fullTag] };
-      }
-    }
+  if (!fullTag) return null;
+
+  const targetLayer = extractLayerFromTag(fullTag);
+  const voiceMatch = fullTag.match(/_v(\d+)_/);
+  const tagVoiceIndex = voiceMatch ? parseInt(voiceMatch[1], 10) : 1;
+  const onsetMatch = fullTag.match(/_(\d+)$/);
+  const tagOnsetIndex = onsetMatch ? parseInt(onsetMatch[1], 10) : 1;
+
+  const sidecarEntry = sidecarMap ? sidecarMap[fullTag] : null;
+
+  if (sidecarEntry) {
+    return {
+      ...sidecarEntry,
+      tag: fullTag,
+      rawTag: fullTag,
+      targetLayer,
+      voiceIndex: sidecarEntry.voiceIndex || tagVoiceIndex,
+    };
   }
 
-  return null;
+  return {
+    tag: fullTag,
+    rawTag: fullTag,
+    targetLayer,
+    voiceIndex: tagVoiceIndex,
+    onsetIndex: tagOnsetIndex,
+  };
 }

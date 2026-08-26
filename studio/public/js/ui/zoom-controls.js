@@ -6,7 +6,7 @@ import { state } from '../state.js';
 import { getCurrentPdfDoc, renderPdfPages } from '../preview/pdf-viewer.js';
 
 export function setupZoomControls(options = {}) {
-  const { getEditor, onPointAndClick, sidecarMap, lilypondSource, onsets } = options;
+  const { getEditor, onPointAndClick, getLastCompiledData } = options;
 
   const btnZoomIn = document.getElementById('btn-zoom-in');
   const btnZoomOut = document.getElementById('btn-zoom-out');
@@ -27,13 +27,14 @@ export function setupZoomControls(options = {}) {
 
   function triggerRender() {
     const pdfDoc = getCurrentPdfDoc();
+    const compiledData = getLastCompiledData?.() || {};
     if (pdfDoc) {
       renderPdfPages({
         editor: getEditor?.(),
         onPointAndClick,
-        sidecarMap,
-        lilypondSource,
-        onsets,
+        sidecarMap: compiledData.sidecarMap,
+        lilypondSource: compiledData.lilypondSource,
+        onsets: compiledData.onsets,
       });
     } else {
       applySvgZoom();
