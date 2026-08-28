@@ -64,16 +64,23 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
 ## Guitar Fretboard & Grip Solver (`guitar.ts`)
 
 - **Standard Guitar Tuning**: E4 (64, string 1), B3 (59, string 2), G3 (55, string 3), D3 (50, string 4), A2 (45, string 5), E2 (40, string 6).
+- **Movement Priority (`guitarTabMovement` / `guitarTab.movement`)**:
+  - `vertical` (default): Position-based box playing; minimizes horizontal fret shifts ($|fret_t - fret_{t-1}|$) across a phrase using Dynamic Programming (Viterbi), applying position-break penalties for jumping to/from open strings ($f=0$) when in upper positions ($f \ge 5$).
+  - `horizontal`: Linear single-string playing; heavily penalizes string changes to encourage linear visualization of scale and interval geometry along individual strings.
+- **Phrasing Solver Scope (`guitarTabScope` / `guitarTab.scope`)**:
+  - `coil` (default): Solves each coil/motif independently, ensuring stable, locally optimal hand positions per phrase without lookahead distortion from later song sections.
+  - `continuous`: Solves globally across coil boundaries throughout the entire song passage for seamless, fully connected arrangement fingering.
 - **Workable Grips & Fret Distance**:
   - Open strings ($f = 0$) do not add physical hand stretch distance.
   - Span calculation $\text{span} = \max(\text{frets}_{>0}) - \min(\text{frets}_{>0})$ is validated against `maximumFretSpan` (default `4`, customizable for younger students with smaller hands, e.g. `3`).
-- **Voicing Modes (`guitarVoicing`)**:
+- **Voicing Modes (`guitarVoicing` / `guitarTab.voicing`)**:
   - `melodyOnly`: Optimal string/fret selection for single-line melody.
   - `root` / `bassAndMelody`: Plays the harmonic bass root note on chord change onsets under melody; single melody notes on intermediate onsets.
   - `triad` / `rootChordTones`: Melody note + root + 3rd/5th chord tones on chord changes.
   - `shell` / `guideTones`: Melody note + 3rd and 7th guide tones on chord changes.
   - `chordMelody`: Jazz chord-melody drop-2 grips on changes and downbeats; clean single melody notes on passing sub-beat notes.
   - `auto`: Richest playable chord grip satisfying hand reach constraints.
+- **Consolidated `guitarTab` Schema Block**: Supports `guitarTab: true/false` or `guitarTab: { show, movement, voicing, fretSpan, tuning, style }`.
 
   - `semitonesToSolfege(semitones)`: Converts signed semitone offsets from Do into canonical Solfège tokens with octave shifts.
   - `convertIntervalToAbsoluteMelody(tokenList)`: Converts an Interval mode token list into chromatic scale degrees relative to Do.

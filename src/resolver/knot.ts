@@ -265,7 +265,16 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
     knotDef.showMetricCoil;
   let showHarmonyCoil = eng.showHarmonyCoil ?? knotDef.showHarmonyCoil;
   let showTraditionalHarmony = eng.showTraditionalHarmony ?? knotDef.showTraditionalHarmony;
-  let showGuitarTab = eng.showGuitarTab ?? knotDef.showGuitarTab;
+  
+  const guitarTabObj = typeof eng.guitarTab === 'object' && eng.guitarTab !== null
+    ? eng.guitarTab
+    : (typeof knotDef.guitarTab === 'object' && knotDef.guitarTab !== null ? knotDef.guitarTab : {});
+
+  let showGuitarTab = (typeof eng.guitarTab === 'boolean' ? eng.guitarTab : (typeof eng.guitarTab === 'object' ? eng.guitarTab?.show : undefined))
+    ?? eng.showGuitarTab
+    ?? (typeof knotDef.guitarTab === 'boolean' ? knotDef.guitarTab : (typeof knotDef.guitarTab === 'object' ? knotDef.guitarTab?.show : undefined))
+    ?? knotDef.showGuitarTab;
+
   let showRhythmGrid = eng.showRhythmGrid ?? knotDef.showRhythmGrid;
   let showChordNames: boolean | undefined = undefined;
 
@@ -325,15 +334,29 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
   const colorNotes = eng.colorNotes ?? knotDef.colorNotes;
   const noteheadOutline = eng.noteheadOutline ?? knotDef.noteheadOutline;
   const harmonyStaffStyle = eng.harmonyStaffStyle ?? knotDef.harmonyStaffStyle;
-  const guitarVoicing = eng.guitarVoicing ?? knotDef.guitarVoicing;
+  const guitarTabMovement = guitarTabObj.movement ?? eng.guitarTabMovement ?? knotDef.guitarTabMovement ?? 'vertical';
+  const guitarTabScope =
+    guitarTabObj.scope ??
+    guitarTabObj.phraseScope ??
+    (guitarTabObj.crossCoil === true ? 'continuous' : (guitarTabObj.crossCoil === false ? 'coil' : undefined)) ??
+    eng.guitarTabScope ??
+    eng.guitarTabPhraseScope ??
+    (eng.crossCoilGuitarTab === true ? 'continuous' : (eng.crossCoilGuitarTab === false ? 'coil' : undefined)) ??
+    knotDef.guitarTabScope ??
+    knotDef.guitarTabPhraseScope ??
+    (knotDef.crossCoilGuitarTab === true ? 'continuous' : (knotDef.crossCoilGuitarTab === false ? 'coil' : undefined)) ??
+    'coil';
+  const guitarVoicing = guitarTabObj.voicing ?? eng.guitarVoicing ?? knotDef.guitarVoicing;
   const maximumFretSpan =
+    guitarTabObj.fretSpan ??
+    guitarTabObj.maxFretSpan ??
     eng.maximumFretSpan ??
     eng.maxFretSpan ??
     knotDef.maximumFretSpan ??
     knotDef.maxFretSpan;
   const maxFretSpan = maximumFretSpan;
-  const guitarTuning = eng.guitarTuning ?? knotDef.guitarTuning;
-  const tabStaffStyle = eng.tabStaffStyle ?? knotDef.tabStaffStyle;
+  const guitarTuning = guitarTabObj.tuning ?? eng.guitarTuning ?? knotDef.guitarTuning;
+  const tabStaffStyle = guitarTabObj.style ?? eng.tabStaffStyle ?? knotDef.tabStaffStyle;
   const zoom = eng.zoom ?? knotDef.zoom;
   const indent = eng.indent ?? knotDef.indent;
   const chordChanges = eng.chordChanges ?? knotDef.chordChanges;
@@ -408,6 +431,8 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
       noteheadStyle,
       harmonyChangesOnly,
       harmonyVoicing,
+      guitarTabMovement,
+      guitarTabScope,
       guitarVoicing,
       maximumFretSpan,
       maxFretSpan,

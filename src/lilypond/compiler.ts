@@ -33,8 +33,13 @@ import {
 } from "../solfege/pitch.js";
 import {
   solveGuitarGrip,
+  solveGuitarPassage,
   solveStandaloneHarmonyGrip,
   type GuitarVoicing,
+  type GuitarTabMovement,
+  type GuitarTabScope,
+  type GuitarPassageOnset,
+  type GuitarNotePosition,
 } from "../solfege/guitar.js";
 import {
   beatsToLilyPondDuration,
@@ -78,6 +83,10 @@ export interface CompileOptions {
   showTraditionalHarmony?: boolean;
   /** Whether to show the guitar tablature staff */
   showGuitarTab?: boolean;
+  /** Movement priority for guitar tablature phrasing ('vertical' | 'horizontal') */
+  guitarTabMovement?: GuitarTabMovement;
+  /** Phrasing solver scope ('coil' | 'continuous') */
+  guitarTabScope?: GuitarTabScope;
   /** Guitar tablature voicing style: 'melodyOnly' | 'root' | 'triad' | 'shell' | 'rootChordTones' | 'guideTones' | 'bassAndMelody' | 'auto' */
   guitarVoicing?: GuitarVoicing;
   /** Maximum allowable fret distance between simultaneous fretted notes (default: 4) */
@@ -1287,6 +1296,7 @@ export function compileToLilyPond(
   }
 
   const showGuitarTab = options.showGuitarTab ?? false;
+  const guitarTabMovement = options.guitarTabMovement ?? "vertical";
   const guitarVoicing = options.guitarVoicing ?? "melodyOnly";
   const maxFretSpan = options.maximumFretSpan ?? options.maxFretSpan ?? 4;
   const guitarTuning = options.guitarTuning;
@@ -1295,9 +1305,8 @@ export function compileToLilyPond(
 
   function formatTabNote(
     onset: Onset,
+    grip: GuitarNotePosition[] | undefined,
     beamBracket: string = "",
-    isChordChange: boolean = true,
-    isStrongBeat: boolean = false,
   ): string {
     const onsetDur =
       traditionalRhythms && onset.durationBeats !== undefined
@@ -1308,62 +1317,51 @@ export function compileToLilyPond(
       tabStaffStyle === "ppt" || (tabStaffStyle === "default" && noteheadStyle === "ppt");
 
     if (onset.isRest) {
-      if (
-        guitarVoicing !== "melodyOnly" &&
-        onset.chordRoot &&
-        (isChordChange || options.harmonyChangesOnly === false)
-      ) {
-        const grip = solveStandaloneHarmonyGrip(onset.chordRoot, {
-          voicing: guitarVoicing,
-          maxFretSpan,
-          knotDoMidi: resolvedDoMidi,
-        });
-        if (grip.length > 0) {
-          if (grip.length === 1) {
-            const pos = grip[0];
-            const pitchStr = midiToLilyPondPitch(pos.midiNote, accMode, forceAccidentals);
-            const semitoneOffset = ((pos.midiNote - resolvedDoMidi) % 12 + 12) % 12;
-            const chromaticDegree = SOLFEGE_POSITIONS[semitoneOffset];
-            const stencilTweak = isPptTab
-              ? `\\tweak TabNoteHead.stencil #${SOLFEGE_TO_PPT_TAB_STENCIL[chromaticDegree] ?? "tabStencilDo"} `
-              : "";
-            const colorTweak = colorNotes
-              ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[chromaticDegree] ?? "colorDo"} `
-              : "";
-            return `${stencilTweak}${colorTweak}${pitchStr}${onsetDur}\\${pos.stringNumber}${beamBracket}`;
-          }
-
-          const noteTokens = grip.map((pos) => {
-            const pitchStr = midiToLilyPondPitch(pos.midiNote, accMode, forceAccidentals);
-            const semitoneOffset = ((pos.midiNote - resolvedDoMidi) % 12 + 12) % 12;
-            const chromaticDegree = SOLFEGE_POSITIONS[semitoneOffset];
-            const stencilTweak = isPptTab
-              ? `\\tweak TabNoteHead.stencil #${SOLFEGE_TO_PPT_TAB_STENCIL[chromaticDegree] ?? "tabStencilDo"} `
-              : "";
-            const colorTweak = colorNotes
-              ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[chromaticDegree] ?? "colorDo"} `
-              : "";
-            return `${stencilTweak}${colorTweak}${pitchStr}\\${pos.stringNumber}`;
-          });
-
-          return `<${noteTokens.join(" ")}>${onsetDur}${beamBracket}`;
+      if (grip && grip.length > 0) {
+        if (grip.length === 1) {
+          const pos = grip[0];
+          const pitchStr = midiToLilyPondPitch(pos.midiNote, accMode, forceAccidentals);
+          const semitoneOffset = ((pos.midiNote - resolvedDoMidi) % 12 + 12) % 12;
+          const chromaticDegree = SOLFEGE_POSITIONS[semitoneOffset];
+          const stencilTweak = isPptTab
+            ? `\\tweak TabNoteHead.stencil #${SOLFEGE_TO_PPT_TAB_STENCIL[chromaticDegree] ?? "tabStencilDo"} `
+            : "";
+          const colorTweak = colorNotes
+            ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[chromaticDegree] ?? "colorDo"} `
+            : "";
+          return `${stencilTweak}${colorTweak}${pitchStr}${onsetDur}\\${pos.stringNumber}${beamBracket}`;
         }
+
+        const noteTokens = grip.map((pos) => {
+          const pitchStr = midiToLilyPondPitch(pos.midiNote, accMode, forceAccidentals);
+          const semitoneOffset = ((pos.midiNote - resolvedDoMidi) % 12 + 12) % 12;
+          const chromaticDegree = SOLFEGE_POSITIONS[semitoneOffset];
+          const stencilTweak = isPptTab
+            ? `\\tweak TabNoteHead.stencil #${SOLFEGE_TO_PPT_TAB_STENCIL[chromaticDegree] ?? "tabStencilDo"} `
+            : "";
+          const colorTweak = colorNotes
+            ? `\\tweak color #${SOLFEGE_TO_SCHEME_COLOR[chromaticDegree] ?? "colorDo"} `
+            : "";
+          return `${stencilTweak}${colorTweak}${pitchStr}\\${pos.stringNumber}`;
+        });
+
+        return `<${noteTokens.join(" ")}>${onsetDur}${beamBracket}`;
       }
       const restPrefix = traditionalRhythms ? "r" : "s";
       return `${restPrefix}${onsetDur}`;
     }
 
-    const grip = solveGuitarGrip(onset.midiNote, onset.scaleDegree, onset.chordRoot, {
-      voicing: guitarVoicing,
-      maxFretSpan,
-      knotDoMidi: resolvedDoMidi,
-      isChordChange,
-      isStrongBeat,
-      changesOnly: options.harmonyChangesOnly !== false,
-    });
+    const activeGrip = grip && grip.length > 0
+      ? grip
+      : [{
+          midiNote: onset.midiNote,
+          scaleDegree: onset.scaleDegree,
+          stringNumber: 1,
+          fretNumber: Math.max(0, onset.midiNote - 64),
+        }];
 
-    if (grip.length === 1) {
-      const pos = grip[0];
+    if (activeGrip.length === 1) {
+      const pos = activeGrip[0];
       const pitchStr = midiToLilyPondPitch(pos.midiNote, accMode, forceAccidentals);
       const semitoneOffset = ((pos.midiNote - resolvedDoMidi) % 12 + 12) % 12;
       const chromaticDegree = SOLFEGE_POSITIONS[semitoneOffset];
@@ -1376,7 +1374,7 @@ export function compileToLilyPond(
       return `${stencilTweak}${colorTweak}${pitchStr}${onsetDur}\\${pos.stringNumber}${beamBracket}`;
     }
 
-    const noteTokens = grip.map((pos) => {
+    const noteTokens = activeGrip.map((pos) => {
       const pitchStr = midiToLilyPondPitch(pos.midiNote, accMode, forceAccidentals);
       const semitoneOffset = ((pos.midiNote - resolvedDoMidi) % 12 + 12) % 12;
       const chromaticDegree = SOLFEGE_POSITIONS[semitoneOffset];
@@ -1408,7 +1406,9 @@ export function compileToLilyPond(
     tabLines.push("  \\cadenzaOn");
 
     if (isMultiVoice) {
+      const guitarTabScope: GuitarTabScope = options.guitarTabScope ?? "coil";
       const voiceCommands = ["\\voiceOne", "\\voiceTwo", "\\voiceThree", "\\voiceFour"];
+
       for (let vIdx = 0; vIdx < voiceIndices.length; vIdx++) {
         const vNum = voiceIndices[vIdx];
         const voiceCmd = voiceCommands[vIdx] ?? "\\voiceOne";
@@ -1426,8 +1426,50 @@ export function compileToLilyPond(
         }
         vLines.push("  \\cadenzaOn");
 
-        let lastChordKey: string | null = null;
-        let lastCoilId: string | null = null;
+        let solvedGripsForVoice: GuitarNotePosition[][] = [];
+        if (guitarTabScope === "continuous") {
+          const allVoiceOnsets: Onset[] = [];
+          for (const group of coilGroups) {
+            const vOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === vNum);
+            allVoiceOnsets.push(...vOnsets);
+          }
+          const passageOnsets: GuitarPassageOnset[] = allVoiceOnsets.map((onset, idx) => {
+            const prev = idx > 0 ? allVoiceOnsets[idx - 1] : undefined;
+            const chordKey = `${onset.chordRoot}_${(onset.chordMidi ?? []).join(",")}`;
+            const prevChordKey = prev ? `${prev.chordRoot}_${(prev.chordMidi ?? []).join(",")}` : null;
+            const isChordChange =
+              idx === 0
+                ? true
+                : chordKey !== prevChordKey || (onset.onsetIndex === 1 && onset.coilId !== prev?.coilId);
+            const isStrongBeat =
+              onset.startBeat === undefined ||
+              onset.startBeat % 2.0 === 0 ||
+              (onset.durationBeats !== undefined && onset.durationBeats >= 1.5);
+            return {
+              midiNote: onset.midiNote,
+              scaleDegree: onset.scaleDegree,
+              chordRoot: onset.chordRoot,
+              isRest: onset.isRest,
+              isChordChange,
+              isStrongBeat,
+              durationBeats: onset.durationBeats,
+              startBeat: onset.startBeat,
+              onsetIndex: onset.onsetIndex,
+              coilId: onset.coilId,
+            };
+          });
+
+          solvedGripsForVoice = solveGuitarPassage(passageOnsets, {
+            voicing: guitarVoicing,
+            movement: guitarTabMovement,
+            scope: "continuous",
+            maxFretSpan,
+            knotDoMidi: resolvedDoMidi,
+            changesOnly: options.harmonyChangesOnly !== false,
+          });
+        }
+
+        let voiceContinuousIdx = 0;
 
         for (let c = 0; c < coilGroups.length; c++) {
           const group = coilGroups[c];
@@ -1436,24 +1478,52 @@ export function compileToLilyPond(
           }
           const vOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === vNum);
           if (vOnsets.length > 0) {
+            let solvedGrips: GuitarNotePosition[][] = [];
+            if (guitarTabScope === "continuous") {
+              solvedGrips = vOnsets.map(() => solvedGripsForVoice[voiceContinuousIdx++]);
+            } else {
+              const passageOnsets: GuitarPassageOnset[] = vOnsets.map((onset, idx) => {
+                const prev = idx > 0 ? vOnsets[idx - 1] : undefined;
+                const chordKey = `${onset.chordRoot}_${(onset.chordMidi ?? []).join(",")}`;
+                const prevChordKey = prev ? `${prev.chordRoot}_${(prev.chordMidi ?? []).join(",")}` : null;
+                const isChordChange =
+                  idx === 0
+                    ? true
+                    : chordKey !== prevChordKey || onset.onsetIndex === 1;
+                const isStrongBeat =
+                  onset.startBeat === undefined ||
+                  onset.startBeat % 2.0 === 0 ||
+                  (onset.durationBeats !== undefined && onset.durationBeats >= 1.5);
+                return {
+                  midiNote: onset.midiNote,
+                  scaleDegree: onset.scaleDegree,
+                  chordRoot: onset.chordRoot,
+                  isRest: onset.isRest,
+                  isChordChange,
+                  isStrongBeat,
+                  durationBeats: onset.durationBeats,
+                  startBeat: onset.startBeat,
+                  onsetIndex: onset.onsetIndex,
+                  coilId: onset.coilId,
+                };
+              });
+
+              solvedGrips = solveGuitarPassage(passageOnsets, {
+                voicing: guitarVoicing,
+                movement: guitarTabMovement,
+                scope: "coil",
+                maxFretSpan,
+                knotDoMidi: resolvedDoMidi,
+                changesOnly: options.harmonyChangesOnly !== false,
+              });
+            }
+
             const beamMap = computeOnsetBeaming(vOnsets);
             for (let idx = 0; idx < vOnsets.length; idx++) {
               const onset = vOnsets[idx];
               const beamBracket = beamMap.get(idx) ?? "";
-              const chordKey = `${onset.chordRoot}_${(onset.chordMidi ?? []).join(",")}`;
-              const isChordChange =
-                idx === 0 && c === 0
-                  ? true
-                  : chordKey !== lastChordKey || (onset.onsetIndex === 1 && onset.coilId !== lastCoilId);
-              lastChordKey = chordKey;
-              lastCoilId = onset.coilId;
-
-              const isStrongBeat =
-                onset.startBeat === undefined ||
-                onset.startBeat % 2.0 === 0 ||
-                (onset.durationBeats !== undefined && onset.durationBeats >= 1.5);
-
-              const formatted = formatTabNote(onset, beamBracket, isChordChange, isStrongBeat);
+              const grip = solvedGrips[idx];
+              const formatted = formatTabNote(onset, grip, beamBracket);
               vLines.push(
                 `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_tab_v${vNum}_${onset.onsetIndex} ${formatted}`,
               );
@@ -1473,32 +1543,102 @@ export function compileToLilyPond(
         tabVoiceMap.set(vNum, vLines.join("\n"));
       }
     } else {
-      let lastChordKey: string | null = null;
-      let lastCoilId: string | null = null;
+      const guitarTabScope: GuitarTabScope = options.guitarTabScope ?? "coil";
+      let solvedGripsContinuous: GuitarNotePosition[][] = [];
+      if (guitarTabScope === "continuous") {
+        const allOnsets: Onset[] = [];
+        for (const group of coilGroups) {
+          allOnsets.push(...group.onsets);
+        }
+        const passageOnsets: GuitarPassageOnset[] = allOnsets.map((onset, idx) => {
+          const prev = idx > 0 ? allOnsets[idx - 1] : undefined;
+          const chordKey = `${onset.chordRoot}_${(onset.chordMidi ?? []).join(",")}`;
+          const prevChordKey = prev ? `${prev.chordRoot}_${(prev.chordMidi ?? []).join(",")}` : null;
+          const isChordChange =
+            idx === 0
+              ? true
+              : chordKey !== prevChordKey || (onset.onsetIndex === 1 && onset.coilId !== prev?.coilId);
+          const isStrongBeat =
+            onset.startBeat === undefined ||
+            onset.startBeat % 2.0 === 0 ||
+            (onset.durationBeats !== undefined && onset.durationBeats >= 1.5);
+          return {
+            midiNote: onset.midiNote,
+            scaleDegree: onset.scaleDegree,
+            chordRoot: onset.chordRoot,
+            isRest: onset.isRest,
+            isChordChange,
+            isStrongBeat,
+            durationBeats: onset.durationBeats,
+            startBeat: onset.startBeat,
+            onsetIndex: onset.onsetIndex,
+            coilId: onset.coilId,
+          };
+        });
+
+        solvedGripsContinuous = solveGuitarPassage(passageOnsets, {
+          voicing: guitarVoicing,
+          movement: guitarTabMovement,
+          scope: "continuous",
+          maxFretSpan,
+          knotDoMidi: resolvedDoMidi,
+          changesOnly: options.harmonyChangesOnly !== false,
+        });
+      }
+
+      let singleContinuousIdx = 0;
 
       for (let c = 0; c < coilGroups.length; c++) {
         const group = coilGroups[c];
         if (c > 0) {
           tabLines.push('  \\bar "|"');
         }
+        let solvedGrips: GuitarNotePosition[][] = [];
+        if (guitarTabScope === "continuous") {
+          solvedGrips = group.onsets.map(() => solvedGripsContinuous[singleContinuousIdx++]);
+        } else {
+          const passageOnsets: GuitarPassageOnset[] = group.onsets.map((onset, idx) => {
+            const prev = idx > 0 ? group.onsets[idx - 1] : undefined;
+            const chordKey = `${onset.chordRoot}_${(onset.chordMidi ?? []).join(",")}`;
+            const prevChordKey = prev ? `${prev.chordRoot}_${(prev.chordMidi ?? []).join(",")}` : null;
+            const isChordChange =
+              idx === 0
+                ? true
+                : chordKey !== prevChordKey || onset.onsetIndex === 1;
+            const isStrongBeat =
+              onset.startBeat === undefined ||
+              onset.startBeat % 2.0 === 0 ||
+              (onset.durationBeats !== undefined && onset.durationBeats >= 1.5);
+            return {
+              midiNote: onset.midiNote,
+              scaleDegree: onset.scaleDegree,
+              chordRoot: onset.chordRoot,
+              isRest: onset.isRest,
+              isChordChange,
+              isStrongBeat,
+              durationBeats: onset.durationBeats,
+              startBeat: onset.startBeat,
+              onsetIndex: onset.onsetIndex,
+              coilId: onset.coilId,
+            };
+          });
+
+          solvedGrips = solveGuitarPassage(passageOnsets, {
+            voicing: guitarVoicing,
+            movement: guitarTabMovement,
+            scope: "coil",
+            maxFretSpan,
+            knotDoMidi: resolvedDoMidi,
+            changesOnly: options.harmonyChangesOnly !== false,
+          });
+        }
+
         const beamMap = computeOnsetBeaming(group.onsets);
         for (let idx = 0; idx < group.onsets.length; idx++) {
           const onset = group.onsets[idx];
           const beamBracket = beamMap.get(idx) ?? "";
-          const chordKey = `${onset.chordRoot}_${(onset.chordMidi ?? []).join(",")}`;
-          const isChordChange =
-            idx === 0 && c === 0
-              ? true
-              : chordKey !== lastChordKey || (onset.onsetIndex === 1 && onset.coilId !== lastCoilId);
-          lastChordKey = chordKey;
-          lastCoilId = onset.coilId;
-
-          const isStrongBeat =
-            onset.startBeat === undefined ||
-            onset.startBeat % 2.0 === 0 ||
-            (onset.durationBeats !== undefined && onset.durationBeats >= 1.5);
-
-          const formatted = formatTabNote(onset, beamBracket, isChordChange, isStrongBeat);
+          const grip = solvedGrips[idx];
+          const formatted = formatTabNote(onset, grip, beamBracket);
           tabLines.push(
             `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_tab_${onset.onsetIndex} ${formatted}`,
           );

@@ -116,6 +116,16 @@ export const ENUMS_GUITAR_VOICING = [
   { text: 'auto', displayText: 'auto', type: 'enum', desc: 'Richest playable grip fitting maxFretSpan' }
 ];
 
+export const ENUMS_GUITAR_TAB_MOVEMENT = [
+  { text: 'vertical', displayText: 'vertical', type: 'enum', desc: 'Position-based box playing (limits horizontal fret shifts)' },
+  { text: 'horizontal', displayText: 'horizontal', type: 'enum', desc: 'Linear single-string playing (limits string changes)' }
+];
+
+export const ENUMS_GUITAR_TAB_SCOPE = [
+  { text: 'coil', displayText: 'coil', type: 'enum', desc: 'Solve within each coil/motif independently (default)' },
+  { text: 'continuous', displayText: 'continuous', type: 'enum', desc: 'Solve continuously across coil boundaries across the song' }
+];
+
 export const ENUMS_TAB_STAFF_STYLE = [
   { text: 'ppt', displayText: 'ppt', type: 'enum', desc: 'Fret numbers with PPT Solfège shape noteheads' },
   { text: 'numbersOnly', displayText: 'numbersOnly', type: 'enum', desc: 'Standard numerical fret numbers' },
@@ -299,6 +309,13 @@ export const ENGRAVING_KEYS = [
   { text: 'showMelody:', displayText: 'showMelody: true', type: 'prop', desc: 'Show melody staff' },
   { text: 'showHarmonyCoil:', displayText: 'showHarmonyCoil: true', type: 'prop', desc: 'Show harmony coil staff' },
   { text: 'showTraditionalHarmony:', displayText: 'showTraditionalHarmony: true', type: 'prop', desc: 'Show traditional harmony staff' },
+  { text: 'guitarTab:', displayText: 'guitarTab: true', type: 'prop', desc: 'Guitar tablature configuration' },
+  { text: 'guitarTabMovement:', displayText: 'guitarTabMovement: vertical', type: 'prop', desc: 'Movement priority (vertical | horizontal)' },
+  { text: 'guitarTabScope:', displayText: 'guitarTabScope: coil', type: 'prop', desc: 'Solver scope (coil | continuous)' },
+  { text: 'guitarVoicing:', displayText: 'guitarVoicing: melodyOnly', type: 'prop', desc: 'Guitar tab voicing style' },
+  { text: 'maximumFretSpan:', displayText: 'maximumFretSpan: 4', type: 'prop', desc: 'Max guitar fret stretch reach' },
+  { text: 'tabStaffStyle:', displayText: 'tabStaffStyle: ppt', type: 'prop', desc: 'Tab notehead stencil style' },
+  { text: 'showGuitarTab:', displayText: 'showGuitarTab: true', type: 'prop', desc: 'Show guitar tab staff' },
   { text: 'showMelodyCoilAbsolute:', displayText: 'showMelodyCoilAbsolute: true', type: 'prop', desc: 'Show absolute melody coil' },
   { text: 'showMelodyCoilInterval:', displayText: 'showMelodyCoilInterval: true', type: 'prop', desc: 'Show interval melody coil' },
   { text: 'showRhythmCoil:', displayText: 'showRhythmCoil: true', type: 'prop', desc: 'Show rhythm coil staff' },
@@ -388,8 +405,10 @@ export function getContextSuggestions(cm, cursor) {
     const afterColon = propMatch[2];
 
     if (/^harmonyVoicing$/i.test(propName)) return ENUMS_HARMONY_VOICING;
-    if (/^guitarVoicing$/i.test(propName)) return ENUMS_GUITAR_VOICING;
-    if (/^tabStaffStyle$/i.test(propName)) return ENUMS_TAB_STAFF_STYLE;
+    if (/^(guitarTabMovement|movement)$/i.test(propName)) return ENUMS_GUITAR_TAB_MOVEMENT;
+    if (/^(guitarTabScope|scope|phraseScope)$/i.test(propName)) return ENUMS_GUITAR_TAB_SCOPE;
+    if (/^(guitarVoicing|voicing)$/i.test(propName)) return ENUMS_GUITAR_VOICING;
+    if (/^(tabStaffStyle|style)$/i.test(propName)) return ENUMS_TAB_STAFF_STYLE;
     if (/^melodyAugmentation$/i.test(propName)) return ENUMS_MELODY_AUGMENTATION;
     if (/^melodyAugmentationDisplay$/i.test(propName)) return ENUMS_MELODY_AUGMENTATION_DISPLAY;
     if (/^projection$/i.test(propName)) return ENUMS_PROJECTION;
@@ -397,7 +416,7 @@ export function getContextSuggestions(cm, cursor) {
     if (/^noteheadStyle$/i.test(propName)) return ENUMS_NOTEHEAD_STYLE;
     if (/^harmonyStaffStyle$/i.test(propName)) return ENUMS_HARMONY_STAFF_STYLE;
     if (/^layout$/i.test(propName)) return ENUMS_LAYOUT;
-    if (/^(abstract|hidden|visible|colorNotes|noteheadOutline|omitStem|traditionalRhythms|traditionalDurations|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showGuitarTab|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil|showPulseCoil|showTimeSignature|showPulseSignature|excludeGridDoSymbol|gridSymbolExcludeDo|strongBeatGridWeight|gridBeatWeights|showChordNames)$/i.test(propName)) {
+    if (/^(abstract|hidden|visible|colorNotes|noteheadOutline|omitStem|traditionalRhythms|traditionalDurations|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showGuitarTab|guitarTab|crossCoil|crossCoilGuitarTab|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil|showPulseCoil|showTimeSignature|showPulseSignature|excludeGridDoSymbol|gridSymbolExcludeDo|strongBeatGridWeight|gridBeatWeights|showChordNames)$/i.test(propName)) {
       return [
         { text: 'true', displayText: 'true', type: 'enum', desc: 'Enable' },
         { text: 'false', displayText: 'false', type: 'enum', desc: 'Disable' },

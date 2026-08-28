@@ -206,6 +206,10 @@ export interface ResolvedKnot {
   showTraditionalHarmony?: boolean;
   /** Whether to show the guitar tablature staff */
   showGuitarTab?: boolean;
+  /** Guitar tablature movement priority ('vertical' | 'horizontal') */
+  guitarTabMovement?: 'vertical' | 'horizontal';
+  /** Phrasing solver scope ('coil' | 'continuous') */
+  guitarTabScope?: 'coil' | 'continuous';
   /** Guitar tablature voicing style */
   guitarVoicing?: 'melodyOnly' | 'root' | 'triad' | 'shell' | 'chordMelody' | 'rootChordTones' | 'guideTones' | 'bassAndMelody' | 'auto';
   /** Maximum allowable fret distance between simultaneous fretted notes (default: 4) */

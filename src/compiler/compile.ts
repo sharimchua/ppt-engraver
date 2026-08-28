@@ -172,6 +172,8 @@ export function compileYamlString(
     showHarmonyCoil: knot?.showHarmonyCoil,
     showTraditionalHarmony: knot?.showTraditionalHarmony,
     showGuitarTab: knot?.showGuitarTab,
+    guitarTabMovement: knot?.guitarTabMovement,
+    guitarTabScope: knot?.guitarTabScope,
     guitarVoicing: knot?.guitarVoicing,
     maximumFretSpan: knot?.maximumFretSpan,
     maxFretSpan: knot?.maxFretSpan,

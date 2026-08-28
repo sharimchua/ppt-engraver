@@ -411,6 +411,34 @@ describe('TapestrySchema', () => {
       expect(result.data.tapestry.weave.layout).toBe('parallelPeriod');
     }
   });
+
+  it('accepts consolidated guitarTab object configuration and guitarTabMovement in engraving and knot', () => {
+    const tap = {
+      tapestry: {
+        knot: {
+          do: 'C4',
+          guitarTab: {
+            show: true,
+            movement: 'horizontal',
+            scope: 'continuous',
+            voicing: 'chordMelody',
+            fretSpan: 4,
+            style: 'ppt',
+          },
+          guitarTabMovement: 'horizontal',
+          guitarTabScope: 'continuous',
+        },
+        weave: {
+          id: 'guitar_weave',
+          stitch: [
+            { coil: { id: 'c1', melody: ['Do', 'Re', 'Mi'], rhythm: 'DoRe' } },
+          ],
+        },
+      },
+    };
+    const result = TapestrySchema.safeParse(tap);
+    expect(result.success).toBe(true);
+  });
 });
 
 

@@ -1058,6 +1058,122 @@ describe('computeOnsetBeaming & LilyPond Beaming', () => {
     // For C4 (Do) over Do (C major), root voicing generates a multi-note grip with string numbers
     expect(lyRoot).toMatch(/<.*\\tweak TabNoteHead\.stencil.*>/);
   });
+
+  it('compiles guitar tab with horizontal movement priority keeping phrase on a single string', () => {
+    // 3 onsets on string 2: C4 (60), D4 (62), E4 (64)
+    const scaleOnsets: any[] = [
+      {
+        tag: 'ppt_song_motif_1',
+        weaveId: 'song',
+        coilId: 'motif',
+        onsetIndex: 1,
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        startBeat: 0,
+        durationBeats: 1,
+        isRest: false,
+      },
+      {
+        tag: 'ppt_song_motif_2',
+        weaveId: 'song',
+        coilId: 'motif',
+        onsetIndex: 2,
+        pitch: 'D4',
+        midiNote: 62,
+        scaleDegree: 'Re',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        startBeat: 1,
+        durationBeats: 1,
+        isRest: false,
+      },
+      {
+        tag: 'ppt_song_motif_3',
+        weaveId: 'song',
+        coilId: 'motif',
+        onsetIndex: 3,
+        pitch: 'E4',
+        midiNote: 64,
+        scaleDegree: 'Mi',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        startBeat: 2,
+        durationBeats: 1,
+        isRest: false,
+      },
+    ];
+
+    const ly = compileToLilyPond(scaleOnsets, {
+      showGuitarTab: true,
+      guitarTabMovement: 'horizontal',
+    });
+
+    expect(ly).toContain('tabVoice = {');
+    // All 3 notes should be engraved on string \2 (B string)
+    expect(ly).toContain('\\2');
+    // Shouldn't switch to open E string (\1) for E4 in horizontal mode
+    const string1Matches = (ly.match(/\\1/g) || []).length;
+    expect(string1Matches).toBe(0);
+  });
+
+  it('supports guitarTabScope: "coil" (default) vs "continuous" across multiple coil groups', () => {
+    // Coil 1 has C4(60), Coil 2 has E4(64)
+    const twoCoils: any[] = [
+      {
+        tag: 'ppt_intro_c1_1',
+        weaveId: 'intro',
+        coilId: 'c1',
+        onsetIndex: 1,
+        pitch: 'C4',
+        midiNote: 60,
+        scaleDegree: 'Do',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        startBeat: 0,
+        durationBeats: 1,
+        isRest: false,
+      },
+      {
+        tag: 'ppt_intro_c2_1',
+        weaveId: 'intro',
+        coilId: 'c2',
+        onsetIndex: 1,
+        pitch: 'E4',
+        midiNote: 64,
+        scaleDegree: 'Mi',
+        chordTones: ['C4', 'E4', 'G4'],
+        chordMidi: [60, 64, 67],
+        chordRoot: 'Do',
+        startBeat: 1,
+        durationBeats: 1,
+        isRest: false,
+      },
+    ];
+
+    // In default coil scope, Coil 2 is solved independently and can pick open E (string 1)
+    const lyCoil = compileToLilyPond(twoCoils, {
+      showGuitarTab: true,
+      guitarTabScope: 'coil',
+    });
+    expect(lyCoil).toContain("tag #'ppt_intro_c1_tab_1 c'4\\2");
+    expect(lyCoil).toContain("tag #'ppt_intro_c2_tab_1 e'4\\1");
+
+    // In continuous scope with horizontal movement, Coil 2 continues on string 2 (e'4\2)
+    const lyContinuous = compileToLilyPond(twoCoils, {
+      showGuitarTab: true,
+      guitarTabScope: 'continuous',
+      guitarTabMovement: 'horizontal',
+    });
+    expect(lyContinuous).toContain("tag #'ppt_intro_c1_tab_1 c'4\\2");
+    expect(lyContinuous).toContain("tag #'ppt_intro_c2_tab_1 e'4\\2");
+  });
 });
 
 

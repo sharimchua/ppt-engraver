@@ -141,6 +141,54 @@ export const GuitarVoicingEnum = z.enum([
 export type GuitarVoicing = z.infer<typeof GuitarVoicingEnum>;
 
 /**
+ * Movement priority modes for guitar tablature phrasing.
+ */
+export const GuitarTabMovementEnum = z.enum([
+  'vertical',    // Position-based box playing: minimizes horizontal hand shifts along neck (default)
+  'horizontal',  // String-linear playing: minimizes string changes for scalar/interval visualization
+]);
+
+export type GuitarTabMovement = z.infer<typeof GuitarTabMovementEnum>;
+
+/**
+ * Phrasing scope for guitar tablature solving.
+ */
+export const GuitarTabScopeEnum = z.enum([
+  'coil',        // Solve within each coil/motif independently (default: stable, local position per motif)
+  'continuous',  // Solve continuously across coil boundaries across the entire passage/song
+]);
+
+export type GuitarTabScope = z.infer<typeof GuitarTabScopeEnum>;
+
+/**
+ * Consolidated configuration for guitar tablature engraving.
+ */
+export const GuitarTabConfigSchema = z.object({
+  /** Whether to show the guitar tablature staff */
+  show: z.boolean().optional(),
+  /** Movement priority: 'vertical' (limits horizontal fret shifts) | 'horizontal' (limits string changes) */
+  movement: GuitarTabMovementEnum.optional(),
+  /** Phrasing solver scope: 'coil' (default: per-coil independent motifs) | 'continuous' (across coil boundaries) */
+  scope: GuitarTabScopeEnum.optional(),
+  /** Alias for scope */
+  phraseScope: GuitarTabScopeEnum.optional(),
+  /** Convenience boolean for scope: true -> 'continuous', false -> 'coil' */
+  crossCoil: z.boolean().optional(),
+  /** Guitar tablature voicing style */
+  voicing: GuitarVoicingEnum.optional(),
+  /** Maximum fret span / reach distance across simultaneous fretted notes (default: 4) */
+  fretSpan: z.number().int().min(1).max(10).optional(),
+  /** Alias for fretSpan */
+  maxFretSpan: z.number().int().min(1).max(10).optional(),
+  /** Custom guitar tuning (default: standard 6-string EADGBE) */
+  tuning: z.string().optional(),
+  /** Tablature notehead styling: 'ppt' (geometric shapes) | 'numbersOnly' | 'default' */
+  style: z.enum(['ppt', 'numbersOnly', 'default']).optional(),
+});
+
+export type GuitarTabConfig = z.infer<typeof GuitarTabConfigSchema>;
+
+/**
  * Voicing styles for projecting abstract harmony chords onto concrete staves and MIDI.
  */
 export const HarmonyVoicingEnum = z.enum([
@@ -267,6 +315,16 @@ export const EngravingSchema = z.object({
   showHarmonyCoil: z.boolean().optional(),
   /** Whether to show the traditional 5-line harmony staff */
   showTraditionalHarmony: z.boolean().optional(),
+  /** Consolidated guitar tablature configuration or boolean toggle */
+  guitarTab: z.union([z.boolean(), GuitarTabConfigSchema]).optional(),
+  /** Movement priority for guitar tablature phrasing: 'vertical' (default) | 'horizontal' */
+  guitarTabMovement: GuitarTabMovementEnum.optional(),
+  /** Phrasing solver scope: 'coil' (default: per-coil independent motifs) | 'continuous' (across coil boundaries) */
+  guitarTabScope: GuitarTabScopeEnum.optional(),
+  /** Alias for guitarTabScope */
+  guitarTabPhraseScope: GuitarTabScopeEnum.optional(),
+  /** Convenience boolean for guitarTabScope: true -> 'continuous', false -> 'coil' */
+  crossCoilGuitarTab: z.boolean().optional(),
   /** Whether to show the guitar tablature staff */
   showGuitarTab: z.boolean().optional(),
   /** Guitar tablature voicing style */
@@ -377,6 +435,11 @@ export const KnotSchema = z.object({
   noteheadStyle: z.enum(['ppt', 'sacredHarp', 'aiken', 'funk', 'walker', 'diamond', 'default']).optional(),
   harmonyChangesOnly: z.boolean().optional(),
   harmonyVoicing: HarmonyVoicingEnum.optional(),
+  guitarTab: z.union([z.boolean(), GuitarTabConfigSchema]).optional(),
+  guitarTabMovement: GuitarTabMovementEnum.optional(),
+  guitarTabScope: GuitarTabScopeEnum.optional(),
+  guitarTabPhraseScope: GuitarTabScopeEnum.optional(),
+  crossCoilGuitarTab: z.boolean().optional(),
   guitarVoicing: GuitarVoicingEnum.optional(),
   maximumFretSpan: z.number().int().min(1).max(10).optional(),
   maxFretSpan: z.number().int().min(1).max(10).optional(),

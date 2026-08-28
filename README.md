@@ -14,7 +14,7 @@ Compiles [Prime Period Theory](https://ppt.midlifemuso.com/) Tapestry source fil
 - 🔗 **Coil Concatenation & In-Place Maps**: Compose complex phrases using `concat: [...]` with automatic downbeat rhythm boundary collapsing.
 - 📐 **Solfège Rhythmic Grammar**: Full sub-beat subdivisions via 12 chromatic degrees (`Fi` = 8th note, `Me`/`La` = 16th notes, `Mi`/`Le` = triplets, `Re`/`Te` = sextuplets), recursive compound suffixes (`LeFi`, `MeFi`), downbeat skips/rests (`Dox`, `DoxDo`, `DoxFi`), and repeat lookback windows (`X.Y`).
 - 🎹 **Harmonic Grammar, Inversions & Slash Chords**: 12-chromatic Solfège chord qualities, explicit bass notes and inversions via Axis Bass prefix (`${Bass}x${Root}${Quality}`, e.g., `SoxDo` = C/G, `MiexDo` = C/E, `MexDoMe` = Cm/Eb, `FaxDo` = C/F), chord voicing styles (`close`, `rootless`, `shell`, `open`, `smoothLead`, `bassOnly`, `walkingBass`), and melody harmonic augmentations (`thirdsBelow`, `drop2`, `triadClose`).
-- 🎸 **Guitar Tablature & Voicings (`TabStaff`)**: Automatic string/fret fingering solver (`showGuitarTab: true`) placed underneath traditional harmony, with PPT geometric noteheads rendered behind fret numbers, customizable guitar voicings (`melodyOnly`, `root`, `triad`, `shell`, `auto`), open string handling, and hand reach span limits (`maximumFretSpan: 3` or `4`).
+- 🎸 **Guitar Tablature & Voicings (`TabStaff`)**: Phrase-level dynamic programming (Viterbi) fingering solver (`guitarTab: { movement: vertical | horizontal, voicing: ... }` / `showGuitarTab: true`) placed underneath traditional harmony, with PPT geometric noteheads rendered behind fret numbers, customizable movement priorities (`vertical` box position vs `horizontal` linear string), guitar voicings (`melodyOnly`, `root`, `triad`, `shell`, `chordMelody`, `auto`), open string handling, and hand reach span limits (`maximumFretSpan: 3` or `4`).
 - 📄 **LilyPond Engine**: Compiles to `.notation.ly`, vector `.svg`, `.pdf`, and `.ppt-map.json` provenance sidecars with standard MIDI export.
 
 ---
@@ -526,37 +526,56 @@ Control how the harmony layer realizes chord tokens:
 
 ## Guitar Tablature & Voicings (`TabStaff`)
 
-PPT Engraver features a full-featured guitar fretboard engine and grip solver that renders standard tablature staves directly underneath the traditional harmony staff.
+PPT Engraver features a full-featured guitar fretboard engine and phrase-level grip solver that renders standard tablature staves directly underneath the traditional harmony staff.
 
 ### Enabling Guitar Tablature
-Add `guitarTab` (or `tablature` / `tabStaff`) to `knot.engraving.show` or set `showGuitarTab: true`:
+Configure guitar tab using either the consolidated `guitarTab` block, `show: [guitarTab]`, or `showGuitarTab: true`:
 
 ```yaml
 knot:
   engraving:
-    show:
-      - melody
-      - harmony
-      - guitarTab
-      - chordNames
-    guitarVoicing: chordMelody # melodyOnly | root | triad | shell | chordMelody | auto
-    maximumFretSpan: 4         # Hand stretch reach limit (e.g. 3 for smaller hands)
-    tabStaffStyle: ppt         # ppt (geometric noteheads behind numbers) | numbersOnly
+    guitarTab:
+      show: true
+      movement: vertical       # vertical (box position / limits fret shifts) | horizontal (limits string changes)
+      scope: coil              # coil (default: within motif) | continuous (across coil boundaries across song)
+      voicing: chordMelody     # melodyOnly | root | triad | shell | chordMelody | auto
+      fretSpan: 4              # Hand stretch reach limit (e.g. 3 for smaller hands)
+      style: ppt               # ppt (geometric shape noteheads behind numbers) | numbersOnly
 ```
+
+Flat properties remain supported for compatibility:
+```yaml
+knot:
+  engraving:
+    showGuitarTab: true
+    guitarTabMovement: vertical # vertical | horizontal
+    guitarTabScope: coil        # coil | continuous
+    guitarVoicing: chordMelody
+    maximumFretSpan: 4
+    tabStaffStyle: ppt
+```
+
+### Movement Priority Modes (`guitarTabMovement` / `guitarTab.movement`)
+- **`vertical`** (default): Optimizes for **position-based box playing**. Uses Dynamic Programming (Viterbi) across entire phrases to minimize horizontal hand shifts along the neck ($|fret_t - fret_{t-1}|$) and keep fingering within a comfortable 4-fret hand position. Open strings ($f=0$) incur a position-break penalty when jumping out of upper positions ($f \ge 5$), preventing unidiomatic jumps down to open strings during high-position motifs.
+- **`horizontal`**: Optimizes for **linear single-string playing**. Heavily penalizes string changes ($string_t \ne string_{t-1}$) to keep melodic lines along the same guitar string as long as playable. Ideal for pedagogy, slide techniques, and teaching students linear scale and interval geometry along individual strings.
+
+### Phrasing Solver Scope (`guitarTabScope` / `guitarTab.scope`)
+- **`coil`** (default): Solves fingering within each coil/motif independently. Prevents future high/low notes in distant song sections from warping the fingering of earlier phrases, keeping repeated motifs and intro lines cleanly anchored in their local box.
+- **`continuous`**: Solves fingering globally across coil boundaries throughout the entire song. Best when an arrangement is fully realized and you want the solver to prepare smooth hand shifts ahead of section changes.
 
 ### PPT Shaped Fret Noteheads
 In `tabStaffStyle: ppt` (or when `noteheadStyle: ppt`), fret numbers on the `TabStaff` are engraved with PPT chromatic geometric notehead shapes (Circle, Squares, Triangles, Crosses, Diamonds, Half-Circles) drawn behind the numbers with 8-directional contrast outlines and full chromatic coloring.
 
-### Guitar Voicing Options (`guitarVoicing`)
+### Guitar Voicing Options (`guitarVoicing` / `guitarTab.voicing`)
 - **`melodyOnly`**: Solves optimal single-note string/fret positions prioritizing lower frets and open strings.
 - **`root`** (alias **`bassAndMelody`**): Automatically plays the harmonic bass root note on the beat/onset that the harmony changes, while intermediate melody notes during the sustained chord remain clean single notes.
 - **`triad`** (alias **`rootChordTones`**): Adds chord root, 3rd, and 5th tones to form compact playable chord grips on chord changes under the melody.
 - **`shell`** (alias **`guideTones`**): Voices melody along with 3rd and 7th guide tones on chord changes.
 - **`chordMelody`**: Jazz chord melody projection that voices rich 3-to-4 note Drop-2 chord grips (with melody as the highest sounding note) on chord changes and strong beat downbeats, while keeping passing sub-beat notes single and fluid.
-- **`auto`**: Dynamically chooses the richest chord voicing that fits within the configured `maximumFretSpan`.
+- **`auto`**: Dynamically chooses the richest chord voicing that fits within the configured `maximumFretSpan` / `fretSpan`.
 
-### Hand Reach Constraints (`maximumFretSpan`)
-The grip solver computes physical fret distance across active frets, excluding open strings ($f = 0$). Setting `maximumFretSpan: 3` ensures fingerings are tailored for younger students or smaller hands without requiring wide stretches.
+### Hand Reach Constraints (`maximumFretSpan` / `fretSpan`)
+The grip solver computes physical fret distance across active frets, excluding open strings ($f = 0$). Setting `fretSpan: 3` (or `maximumFretSpan: 3`) ensures fingerings are tailored for younger students or smaller hands without requiring wide stretches.
 
 Coils support modular composition through **Layer Injection**, **Priority Parent Inheritance**, and **Concat Composition**:
 

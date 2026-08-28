@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   solveGuitarGrip,
+  solveGuitarPassage,
   calculateFretSpan,
   isGripPlayable,
   scoreGrip,
@@ -135,5 +136,63 @@ describe('Guitar Fretboard & Grip Solver', () => {
       knotDoMidi: 60,
     });
     expect(gripPassing.length).toBe(1);
+  });
+
+  it('solves passages with vertical movement priority (staying in position box / limiting fret shifts)', () => {
+    // C Major Scale: C4(60), D4(62), E4(64), F4(65), G4(67), A4(69), B4(71), C5(72)
+    const scalePassage = [
+      { midiNote: 60, scaleDegree: 'Do' },
+      { midiNote: 62, scaleDegree: 'Re' },
+      { midiNote: 64, scaleDegree: 'Mi' },
+      { midiNote: 65, scaleDegree: 'Fa' },
+      { midiNote: 67, scaleDegree: 'So' },
+      { midiNote: 69, scaleDegree: 'La' },
+      { midiNote: 71, scaleDegree: 'Ti' },
+      { midiNote: 72, scaleDegree: 'Do' },
+    ];
+
+    const solvedVertical = solveGuitarPassage(scalePassage, {
+      movement: 'vertical',
+      voicing: 'melodyOnly',
+    });
+
+    expect(solvedVertical.length).toBe(8);
+
+    // Verify all fretted notes have small fret shifts between adjacent notes (<= 4 frets)
+    for (let i = 1; i < solvedVertical.length; i++) {
+      const prev = solvedVertical[i - 1][0];
+      const curr = solvedVertical[i][0];
+      if (prev.fretNumber > 0 && curr.fretNumber > 0) {
+        const fretShift = Math.abs(curr.fretNumber - prev.fretNumber);
+        expect(fretShift).toBeLessThanOrEqual(4);
+      }
+    }
+  });
+
+  it('solves passages with horizontal movement priority (limiting string changes / linear single-string playing)', () => {
+    // 5-note phrase starting on B string (string 2): C4(60), D4(62), E4(64), F4(65), G4(67)
+    const phrase = [
+      { midiNote: 60, scaleDegree: 'Do' },
+      { midiNote: 62, scaleDegree: 'Re' },
+      { midiNote: 64, scaleDegree: 'Mi' },
+      { midiNote: 65, scaleDegree: 'Fa' },
+      { midiNote: 67, scaleDegree: 'So' },
+    ];
+
+    const solvedHorizontal = solveGuitarPassage(phrase, {
+      movement: 'horizontal',
+      voicing: 'melodyOnly',
+    });
+
+    expect(solvedHorizontal.length).toBe(5);
+
+    // In horizontal mode, notes should stay on the same string (String 2: frets 1, 3, 5, 6, 8)
+    const strings = solvedHorizontal.map(grip => grip[0].stringNumber);
+    const uniqueStrings = new Set(strings);
+    expect(uniqueStrings.size).toBe(1);
+    expect(strings[0]).toBe(2); // String 2 (B string)
+
+    const frets = solvedHorizontal.map(grip => grip[0].fretNumber);
+    expect(frets).toEqual([1, 3, 5, 6, 8]);
   });
 });

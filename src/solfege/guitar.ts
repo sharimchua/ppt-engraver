@@ -12,8 +12,8 @@ import {
   getChordIntervals,
   SOLFEGE_POSITIONS,
 } from './pitch.js';
-import type { GuitarVoicing } from '../schema/tapestry.js';
-export type { GuitarVoicing };
+import type { GuitarVoicing, GuitarTabMovement, GuitarTabScope } from '../schema/tapestry.js';
+export type { GuitarVoicing, GuitarTabMovement, GuitarTabScope };
 
 export interface GuitarStringTuning {
   /** 1-based string number: 1 is highest pitch (high E), 6 is lowest pitch (low E) */
@@ -41,9 +41,26 @@ export interface GuitarNotePosition {
   fretNumber: number;   // 0 to 22
 }
 
+export interface GuitarPassageOnset {
+  midiNote: number;
+  scaleDegree: string;
+  chordRoot?: string;
+  isRest?: boolean;
+  isChordChange?: boolean;
+  isStrongBeat?: boolean;
+  durationBeats?: number;
+  startBeat?: number;
+  onsetIndex?: number;
+  coilId?: string;
+}
+
 export interface GuitarGripSolveOptions {
   /** Guitar voicing style */
   voicing?: GuitarVoicing;
+  /** Movement priority: 'vertical' (limits horizontal fret shifts) | 'horizontal' (limits string changes) */
+  movement?: GuitarTabMovement;
+  /** Phrasing solver scope: 'coil' (default: within coil) | 'continuous' (across coil boundaries) */
+  scope?: GuitarTabScope;
   /** Maximum allowable fret distance between simultaneous fretted notes (default: 4, e.g. 3 for smaller hands) */
   maxFretSpan?: number;
   /** Custom string tunings (defaults to standard 6-string tuning) */
@@ -59,6 +76,8 @@ export interface GuitarGripSolveOptions {
   /** Whether to only voice chord grips on chord changes (default: true) */
   changesOnly?: boolean;
 }
+
+export type GuitarPassageSolveOptions = GuitarGripSolveOptions;
 
 /**
  * Finds all playable (string, fret) positions for a single target MIDI note.
@@ -160,227 +179,164 @@ export function findBestSingleNotePosition(
 }
 
 /**
- * Solves the optimal guitar grip combining a primary melody note with
- * harmonic accompaniment notes (root, chord tones, guide tones) adhering to maxFretSpan.
+ * Generates all valid candidate guitar grips for a passage onset.
  */
-export function solveGuitarGrip(
-  melodyMidi: number,
-  melodyScaleDegree: string,
-  chordRootToken?: string,
-  options: GuitarGripSolveOptions = {},
-): GuitarNotePosition[] {
+export function getCandidateGripsForOnset(
+  onset: GuitarPassageOnset,
+  options: GuitarPassageSolveOptions = {},
+): GuitarNotePosition[][] {
   const voicing = options.voicing ?? 'melodyOnly';
   const maxFretSpan = options.maxFretSpan ?? 4;
   const tunings = options.tunings ?? STANDARD_GUITAR_TUNING;
   const knotDoMidi = options.knotDoMidi ?? 60;
+  const maxFret = options.maxFret ?? 20;
+
+  if (onset.isRest) {
+    if (voicing !== 'melodyOnly' && onset.chordRoot && (onset.isChordChange || options.changesOnly === false)) {
+      const standalone = solveStandaloneHarmonyGrip(onset.chordRoot, {
+        voicing,
+        maxFretSpan,
+        knotDoMidi,
+        tunings,
+        maxFret,
+      });
+      return standalone.length > 0 ? [standalone] : [[]];
+    }
+    return [[]];
+  }
 
   const changesOnly = options.changesOnly ?? true;
-  const isChordChange = options.isChordChange ?? true;
-  const isStrongBeat = options.isStrongBeat ?? false;
+  const isChordChange = onset.isChordChange ?? true;
+  const isStrongBeat = onset.isStrongBeat ?? false;
 
-  // If voicing is changesOnly and this onset is not a chord change (and not a strong beat in chordMelody mode),
-  // return single melody note
-  if (voicing !== 'melodyOnly' && chordRootToken && changesOnly) {
-    if (!isChordChange) {
-      if (voicing === 'chordMelody') {
-        if (!isStrongBeat) {
-          const pos = findBestSingleNotePosition(melodyMidi, tunings);
-          return [{
-            midiNote: melodyMidi,
-            scaleDegree: melodyScaleDegree,
-            stringNumber: pos?.stringNumber ?? 1,
-            fretNumber: pos?.fretNumber ?? Math.max(0, melodyMidi - 64),
-          }];
-        }
-      } else {
-        const pos = findBestSingleNotePosition(melodyMidi, tunings);
-        return [{
-          midiNote: melodyMidi,
-          scaleDegree: melodyScaleDegree,
-          stringNumber: pos?.stringNumber ?? 1,
-          fretNumber: pos?.fretNumber ?? Math.max(0, melodyMidi - 64),
-        }];
-      }
-    }
+  const melodyPositions = getPlayablePositionsForMidi(onset.midiNote, tunings, maxFret);
+  if (melodyPositions.length === 0) {
+    return [[{
+      midiNote: onset.midiNote,
+      scaleDegree: onset.scaleDegree,
+      stringNumber: 1,
+      fretNumber: Math.max(0, onset.midiNote - 64),
+    }]];
   }
-
-  // 1. Melody Only: single note
-  if (voicing === 'melodyOnly' || !chordRootToken) {
-    const pos = findBestSingleNotePosition(melodyMidi, tunings);
-    if (!pos) {
-      // Fallback: assign to string 1 or nearest
-      return [{
-        midiNote: melodyMidi,
-        scaleDegree: melodyScaleDegree,
-        stringNumber: 1,
-        fretNumber: Math.max(0, melodyMidi - 64),
-      }];
-    }
-    return [{
-      midiNote: melodyMidi,
-      scaleDegree: melodyScaleDegree,
-      stringNumber: pos.stringNumber,
-      fretNumber: pos.fretNumber,
-    }];
-  }
-
-  // Parse active harmony
-  const parsedChord = parseHarmonyChord(chordRootToken);
-  const rootOffset = solfegeToHarmonyRootOffset(parsedChord.rootSyllable);
-  const intervals = getChordIntervals(parsedChord.quality);
-
-  // Determine candidate accompaniment pitches in guitar bass / tenor registers (MIDI 40-60)
-  let rawRootMidi = knotDoMidi + rootOffset + (parsedChord.octaveShift * 12);
-  while (rawRootMidi >= 55) rawRootMidi -= 12;
-  while (rawRootMidi < 40) rawRootMidi += 12;
-
-  // Derive accompaniment candidates based on voicing style
-  interface AccCandidate {
-    midiNote: number;
-    scaleDegree: string;
-    priority: number; // 1 = highest
-    isRoot?: boolean;
-  }
-  const accCandidates: AccCandidate[] = [];
-
-  const thirdInterval = intervals.find(i => i === 3 || i === 4) ?? 4;
-  const seventhInterval = intervals.find(i => i === 10 || i === 11);
-  const fifthInterval = intervals.find(i => i === 7 || i === 6 || i === 8) ?? 7;
 
   function midiToChromaticDegree(midi: number): string {
     const semitone = ((midi - knotDoMidi) % 12 + 12) % 12;
     return SOLFEGE_POSITIONS[semitone];
   }
 
-  const rootPitchClass = ((rawRootMidi % 12) + 12) % 12;
-  const melodyPitchClass = ((melodyMidi % 12) + 12) % 12;
+  const isSingleNoteOnset =
+    voicing === 'melodyOnly' ||
+    !onset.chordRoot ||
+    (changesOnly && !isChordChange && (voicing !== 'chordMelody' || !isStrongBeat));
+
+  if (isSingleNoteOnset) {
+    return melodyPositions.map((pos) => [{
+      midiNote: onset.midiNote,
+      scaleDegree: onset.scaleDegree || midiToChromaticDegree(onset.midiNote),
+      stringNumber: pos.stringNumber,
+      fretNumber: pos.fretNumber,
+    }]);
+  }
+
+  // Harmonic accompaniment grips for each candidate melody position
+  const parsedChord = parseHarmonyChord(onset.chordRoot!);
+  const rootOffset = solfegeToHarmonyRootOffset(parsedChord.rootSyllable);
+  const intervals = getChordIntervals(parsedChord.quality);
+
+  let rawRootMidi = knotDoMidi + rootOffset + (parsedChord.octaveShift * 12);
+  while (rawRootMidi >= 55) rawRootMidi -= 12;
+  while (rawRootMidi < 40) rawRootMidi += 12;
+
+  interface AccCandidate {
+    midiNote: number;
+    scaleDegree: string;
+    priority: number;
+    isRoot?: boolean;
+  }
+  const accCandidates: AccCandidate[] = [];
+
+  const thirdInterval = intervals.find((i) => i === 3 || i === 4) ?? 4;
+  const seventhInterval = intervals.find((i) => i === 10 || i === 11);
+  const fifthInterval = intervals.find((i) => i === 7 || i === 6 || i === 8) ?? 7;
+
+  const melodyPitchClass = ((onset.midiNote % 12) + 12) % 12;
 
   if (voicing === 'root' || voicing === 'bassAndMelody') {
-    // Melody + Bass Root only (pure 2-part bass & melody)
     accCandidates.push({ midiNote: rawRootMidi, scaleDegree: midiToChromaticDegree(rawRootMidi), priority: 1, isRoot: true });
   } else if (voicing === 'shell' || voicing === 'guideTones') {
-    // 1. Bass Root
     accCandidates.push({ midiNote: rawRootMidi, scaleDegree: midiToChromaticDegree(rawRootMidi), priority: 1, isRoot: true });
-    if (rawRootMidi + 12 < melodyMidi) {
+    if (rawRootMidi + 12 < onset.midiNote) {
       accCandidates.push({ midiNote: rawRootMidi + 12, scaleDegree: midiToChromaticDegree(rawRootMidi + 12), priority: 1, isRoot: true });
     }
-    // 2. 7th guide tone
     if (seventhInterval !== undefined) {
       let sevMidi = rawRootMidi + seventhInterval;
-      while (sevMidi >= melodyMidi) sevMidi -= 12;
-      if (sevMidi > 40) {
-        accCandidates.push({ midiNote: sevMidi, scaleDegree: midiToChromaticDegree(sevMidi), priority: 2 });
-      }
+      while (sevMidi >= onset.midiNote) sevMidi -= 12;
+      if (sevMidi > 40) accCandidates.push({ midiNote: sevMidi, scaleDegree: midiToChromaticDegree(sevMidi), priority: 2 });
     }
-    // 3. 3rd guide tone
     let thirdMidi = rawRootMidi + thirdInterval;
-    while (thirdMidi >= melodyMidi) thirdMidi -= 12;
-    if (thirdMidi > 40) {
-      accCandidates.push({ midiNote: thirdMidi, scaleDegree: midiToChromaticDegree(thirdMidi), priority: 2 });
-    }
+    while (thirdMidi >= onset.midiNote) thirdMidi -= 12;
+    if (thirdMidi > 40) accCandidates.push({ midiNote: thirdMidi, scaleDegree: midiToChromaticDegree(thirdMidi), priority: 2 });
   } else if (voicing === 'chordMelody') {
-    // Jazz Chord Melody:
-    // 1. Bass Root (Priority 1 - foundation on string 6, 5, or 4)
     accCandidates.push({ midiNote: rawRootMidi, scaleDegree: midiToChromaticDegree(rawRootMidi), priority: 1, isRoot: true });
-    if (rawRootMidi + 12 < melodyMidi) {
+    if (rawRootMidi + 12 < onset.midiNote) {
       accCandidates.push({ midiNote: rawRootMidi + 12, scaleDegree: midiToChromaticDegree(rawRootMidi + 12), priority: 1, isRoot: true });
     }
-
-    // 2. 7th guide tone
     if (seventhInterval !== undefined) {
       let sevMidi = rawRootMidi + seventhInterval;
-      while (sevMidi >= melodyMidi) sevMidi -= 12;
-      if (sevMidi > 40) {
-        accCandidates.push({ midiNote: sevMidi, scaleDegree: midiToChromaticDegree(sevMidi), priority: 2 });
-      }
-      if (sevMidi + 12 < melodyMidi) {
-        accCandidates.push({ midiNote: sevMidi + 12, scaleDegree: midiToChromaticDegree(sevMidi + 12), priority: 2 });
-      }
+      while (sevMidi >= onset.midiNote) sevMidi -= 12;
+      if (sevMidi > 40) accCandidates.push({ midiNote: sevMidi, scaleDegree: midiToChromaticDegree(sevMidi), priority: 2 });
+      if (sevMidi + 12 < onset.midiNote) accCandidates.push({ midiNote: sevMidi + 12, scaleDegree: midiToChromaticDegree(sevMidi + 12), priority: 2 });
     }
-
-    // 3. 3rd guide tone (if not already the melody note)
     let thirdMidi = rawRootMidi + thirdInterval;
-    while (thirdMidi >= melodyMidi) thirdMidi -= 12;
+    while (thirdMidi >= onset.midiNote) thirdMidi -= 12;
     if (thirdMidi > 40 && ((thirdMidi % 12 + 12) % 12 !== melodyPitchClass)) {
       accCandidates.push({ midiNote: thirdMidi, scaleDegree: midiToChromaticDegree(thirdMidi), priority: 2 });
     }
-    if (thirdMidi + 12 < melodyMidi && (((thirdMidi + 12) % 12 + 12) % 12 !== melodyPitchClass)) {
+    if (thirdMidi + 12 < onset.midiNote && (((thirdMidi + 12) % 12 + 12) % 12 !== melodyPitchClass)) {
       accCandidates.push({ midiNote: thirdMidi + 12, scaleDegree: midiToChromaticDegree(thirdMidi + 12), priority: 2 });
     }
-
-    // 4. 5th degree
     let fifthMidi = rawRootMidi + fifthInterval;
-    while (fifthMidi >= melodyMidi) fifthMidi -= 12;
-    if (fifthMidi > 40) {
-      accCandidates.push({ midiNote: fifthMidi, scaleDegree: midiToChromaticDegree(fifthMidi), priority: 3 });
-    }
-    if (fifthMidi + 12 < melodyMidi) {
-      accCandidates.push({ midiNote: fifthMidi + 12, scaleDegree: midiToChromaticDegree(fifthMidi + 12), priority: 3 });
-    }
-  } else if (voicing === 'triad' || voicing === 'rootChordTones' || voicing === 'auto') {
-    // 1. Bass Root
+    while (fifthMidi >= onset.midiNote) fifthMidi -= 12;
+    if (fifthMidi > 40) accCandidates.push({ midiNote: fifthMidi, scaleDegree: midiToChromaticDegree(fifthMidi), priority: 3 });
+    if (fifthMidi + 12 < onset.midiNote) accCandidates.push({ midiNote: fifthMidi + 12, scaleDegree: midiToChromaticDegree(fifthMidi + 12), priority: 3 });
+  } else {
+    // triad / auto
     accCandidates.push({ midiNote: rawRootMidi, scaleDegree: midiToChromaticDegree(rawRootMidi), priority: 1, isRoot: true });
-    if (rawRootMidi + 12 < melodyMidi) {
+    if (rawRootMidi + 12 < onset.midiNote) {
       accCandidates.push({ midiNote: rawRootMidi + 12, scaleDegree: midiToChromaticDegree(rawRootMidi + 12), priority: 1, isRoot: true });
     }
-    // 2. 3rd
     let thirdMidi = rawRootMidi + thirdInterval;
-    while (thirdMidi >= melodyMidi) thirdMidi -= 12;
-    if (thirdMidi > 40) {
-      accCandidates.push({ midiNote: thirdMidi, scaleDegree: midiToChromaticDegree(thirdMidi), priority: 2 });
-    }
-    // 3. 5th
+    while (thirdMidi >= onset.midiNote) thirdMidi -= 12;
+    if (thirdMidi > 40) accCandidates.push({ midiNote: thirdMidi, scaleDegree: midiToChromaticDegree(thirdMidi), priority: 2 });
     let fifthMidi = rawRootMidi + fifthInterval;
-    while (fifthMidi >= melodyMidi) fifthMidi -= 12;
-    if (fifthMidi > 40) {
-      accCandidates.push({ midiNote: fifthMidi, scaleDegree: midiToChromaticDegree(fifthMidi), priority: 3 });
-    }
+    while (fifthMidi >= onset.midiNote) fifthMidi -= 12;
+    if (fifthMidi > 40) accCandidates.push({ midiNote: fifthMidi, scaleDegree: midiToChromaticDegree(fifthMidi), priority: 3 });
   }
 
-  // Find candidate positions for melody note (prefer strings 1, 2, 3)
-  const melodyPositions = getPlayablePositionsForMidi(melodyMidi, tunings, 20);
-  if (melodyPositions.length === 0) {
-    return [{
-      midiNote: melodyMidi,
-      scaleDegree: midiToChromaticDegree(melodyMidi),
-      stringNumber: 1,
-      fretNumber: Math.max(0, melodyMidi - 64),
-    }];
-  }
+  const candidateGrips: GuitarNotePosition[][] = [];
 
-  let bestGrip: GuitarNotePosition[] = [];
-  let bestScore = Infinity;
-
-  // Try each melody position and attempt to build a playable accompaniment grip
   for (const melPos of melodyPositions) {
     const currentMelodyItem: GuitarNotePosition = {
-      midiNote: melodyMidi,
-      scaleDegree: midiToChromaticDegree(melodyMidi),
+      midiNote: onset.midiNote,
+      scaleDegree: onset.scaleDegree || midiToChromaticDegree(onset.midiNote),
       stringNumber: melPos.stringNumber,
       fretNumber: melPos.fretNumber,
     };
 
-    // Filter accompaniment candidates that don't clash with melody string
     const availableStrings = tunings
-      .map(t => t.stringNumber)
-      .filter(s => s > melPos.stringNumber); // Lower pitched strings only
+      .map((t) => t.stringNumber)
+      .filter((s) => s > melPos.stringNumber);
 
     const gripItems: GuitarNotePosition[] = [currentMelodyItem];
-
-    // Sort accCandidates so priority 1 (Root) is placed first
     const sortedCandidates = [...accCandidates].sort((a, b) => a.priority - b.priority);
 
     for (const acc of sortedCandidates) {
-      // Don't duplicate pitches already in grip
-      if (gripItems.some(item => item.midiNote === acc.midiNote)) continue;
-
-      // Find best playable string for this accompaniment note
-      const accPositions = getPlayablePositionsForMidi(acc.midiNote, tunings, 20)
-        .filter(pos => availableStrings.includes(pos.stringNumber) && !gripItems.some(i => i.stringNumber === pos.stringNumber));
+      if (gripItems.some((item) => item.midiNote === acc.midiNote)) continue;
+      const accPositions = getPlayablePositionsForMidi(acc.midiNote, tunings, maxFret)
+        .filter((pos) => availableStrings.includes(pos.stringNumber) && !gripItems.some((i) => i.stringNumber === pos.stringNumber));
 
       if (accPositions.length === 0) continue;
 
-      // Check which candidate position works within maxFretSpan
       let bestAccPos: { stringNumber: number; fretNumber: number } | null = null;
       let minAccScore = Infinity;
 
@@ -391,7 +347,6 @@ export function solveGuitarGrip(
           stringNumber: pos.stringNumber,
           fretNumber: pos.fretNumber,
         }];
-
         const s = scoreGrip(testGrip, maxFretSpan);
         if (s < minAccScore) {
           minAccScore = s;
@@ -409,34 +364,263 @@ export function solveGuitarGrip(
       }
     }
 
-    const totalScore = scoreGrip(gripItems, maxFretSpan);
-    // Find lowest pitch (bass note) in grip
-    const lowestNote = [...gripItems].sort((a, b) => a.midiNote - b.midiNote)[0];
-    const hasRootInBass = lowestNote && ((lowestNote.midiNote % 12 + 12) % 12 === rootPitchClass);
+    const sortedGrip = gripItems.sort((a, b) => b.stringNumber - a.stringNumber);
+    candidateGrips.push(sortedGrip);
+  }
 
-    // Prefer grips with root in the bass, and more notes if scores are comparable
-    let adjustedScore = totalScore - (gripItems.length * 6);
-    if (hasRootInBass) {
-      adjustedScore -= 20; // Major bonus for root in the bass
-    } else if (gripItems.length > 1) {
-      adjustedScore += 15; // Penalty for inverted bass
+  return candidateGrips.length > 0
+    ? candidateGrips
+    : melodyPositions.map((pos) => [{
+        midiNote: onset.midiNote,
+        scaleDegree: onset.scaleDegree || midiToChromaticDegree(onset.midiNote),
+        stringNumber: pos.stringNumber,
+        fretNumber: pos.fretNumber,
+      }]);
+}
+
+/**
+ * Scores an individual guitar grip candidate within a passage (lower = better).
+ */
+export function scorePassageNode(
+  grip: GuitarNotePosition[],
+  options: GuitarPassageSolveOptions = {},
+): number {
+  if (grip.length === 0) return 0;
+  const maxFretSpan = options.maxFretSpan ?? 4;
+  const movement = options.movement ?? 'vertical';
+
+  if (!isGripPlayable(grip, maxFretSpan)) return Infinity;
+
+  const frets = grip.map((p) => p.fretNumber);
+  const span = calculateFretSpan(frets);
+
+  let score = span * 10;
+
+  // Open string bonus
+  const openCount = frets.filter((f) => f === 0).length;
+  score -= openCount * 2;
+
+  // Melody note position
+  const melNote = grip.find((n) => n.stringNumber <= 2) ?? grip[grip.length - 1] ?? grip[0];
+
+  if (movement === 'vertical') {
+    // In vertical mode, gently prefer lower/middle neck positions (frets 0 to 8)
+    score += melNote.fretNumber * 0.3;
+    if (melNote.fretNumber > 12) {
+      score += (melNote.fretNumber - 12) * 6;
     }
-
-    if (adjustedScore < bestScore) {
-      bestScore = adjustedScore;
-      bestGrip = gripItems;
+  } else {
+    // In horizontal mode, allow higher frets more freely (up to 15 without big penalty)
+    if (melNote.fretNumber > 15) {
+      score += (melNote.fretNumber - 15) * 5;
     }
   }
 
-  // Return sorted from lowest string (string 6) to highest string (string 1)
-  return bestGrip.length > 0
-    ? bestGrip.sort((a, b) => b.stringNumber - a.stringNumber)
-    : [{
-        midiNote: melodyMidi,
-        scaleDegree: melodyScaleDegree,
-        stringNumber: melodyPositions[0]?.stringNumber ?? 1,
-        fretNumber: melodyPositions[0]?.fretNumber ?? 0,
-      }];
+  // Chord richness bonus
+  if (grip.length > 1) {
+    score -= (grip.length * 5);
+  }
+
+  return score;
+}
+
+/**
+ * Computes the ergonomic transition cost between two successive grips in a passage.
+ */
+export function scorePassageTransition(
+  prevGrip: GuitarNotePosition[],
+  currGrip: GuitarNotePosition[],
+  movement: GuitarTabMovement = 'vertical',
+): number {
+  if (prevGrip.length === 0 || currGrip.length === 0) return 0;
+
+  const prevMel = prevGrip.find((n) => n.stringNumber <= 2) ?? prevGrip[prevGrip.length - 1] ?? prevGrip[0];
+  const currMel = currGrip.find((n) => n.stringNumber <= 2) ?? currGrip[currGrip.length - 1] ?? currGrip[0];
+
+  const prevString = prevMel.stringNumber;
+  const prevFret = prevMel.fretNumber;
+  const currString = currMel.stringNumber;
+  const currFret = currMel.fretNumber;
+
+  const stringDiff = Math.abs(currString - prevString);
+  const fretDiff = Math.abs(currFret - prevFret);
+
+  if (movement === 'horizontal') {
+    // Horizontal Mode: Minimize string changes, maximize linear single-string playing
+    if (stringDiff === 0) {
+      // Same string: ideal linear flow
+      return fretDiff * 0.4;
+    } else {
+      // String change: penalize heavily to discourage leaving the current string
+      const stringChangePenalty = 50 + (stringDiff - 1) * 25;
+      return stringChangePenalty + (fretDiff * 1.5);
+    }
+  } else {
+    // Vertical Mode (default): Minimize horizontal fret shifts, stay in hand position box
+    let fretShiftCost = 0;
+    if (prevFret === 0 && currFret === 0) {
+      fretShiftCost = 0;
+    } else if (prevFret === 0) {
+      // Transitioning from open string to fretted note
+      if (currFret <= 4) {
+        fretShiftCost = currFret * 0.8;
+      } else {
+        fretShiftCost = 8 + (currFret - 4) * 1.5;
+      }
+    } else if (currFret === 0) {
+      // Transitioning from fretted note to open string
+      if (prevFret <= 4) {
+        fretShiftCost = prevFret * 0.8;
+      } else {
+        // Active hand position is at upper frets; jumping down to open string disrupts position
+        fretShiftCost = 14 + (prevFret - 4) * 2.0;
+      }
+    } else {
+      // Both are fretted notes
+      if (stringDiff === 0 && fretDiff >= 3) {
+        // Shifting 3+ frets on the exact same string requires finger movement along the string
+        fretShiftCost = fretDiff * 2.2;
+      } else if (fretDiff <= 3) {
+        // Comfortably inside standard 4-fret hand position box
+        fretShiftCost = fretDiff * 1.0;
+      } else if (fretDiff === 4) {
+        fretShiftCost = 5;
+      } else {
+        // Position shift along neck: quadratic penalty
+        fretShiftCost = 18 + (fretDiff - 4) * 8;
+      }
+    }
+
+    // Moving vertically across strings in position
+    let stringMoveCost = 0;
+    if (stringDiff <= 2) {
+      stringMoveCost = stringDiff * 1.2;
+    } else {
+      // Skipping 3+ strings
+      stringMoveCost = stringDiff * 3.5;
+    }
+
+    return fretShiftCost + stringMoveCost;
+  }
+}
+
+/**
+ * Solves the globally optimal string/fret trajectory for an entire melodic & harmonic passage
+ * using Dynamic Programming (Viterbi algorithm).
+ */
+export function solveGuitarPassage(
+  onsets: GuitarPassageOnset[],
+  options: GuitarPassageSolveOptions = {},
+): GuitarNotePosition[][] {
+  if (onsets.length === 0) return [];
+
+  const movement = options.movement ?? 'vertical';
+  const resolvedOptions: GuitarPassageSolveOptions = { ...options, movement };
+
+  // Generate candidate grips for all onsets
+  const allCandidates: GuitarNotePosition[][][] = onsets.map((onset) =>
+    getCandidateGripsForOnset(onset, resolvedOptions)
+  );
+
+  const N = onsets.length;
+  const dp: number[][] = [];
+  const backpointer: number[][] = [];
+
+  // Initialize first onset
+  dp[0] = [];
+  backpointer[0] = [];
+  for (let k = 0; k < allCandidates[0].length; k++) {
+    const candidate = allCandidates[0][k];
+    dp[0][k] = scorePassageNode(candidate, resolvedOptions);
+    backpointer[0][k] = -1;
+  }
+
+  // DP forward pass
+  for (let i = 1; i < N; i++) {
+    dp[i] = [];
+    backpointer[i] = [];
+    const currentCandidates = allCandidates[i];
+    const prevCandidates = allCandidates[i - 1];
+    const isNewCoilBoundary =
+      resolvedOptions.scope !== 'continuous' &&
+      Boolean(onsets[i].coilId && onsets[i - 1].coilId && onsets[i].coilId !== onsets[i - 1].coilId);
+
+    for (let currIdx = 0; currIdx < currentCandidates.length; currIdx++) {
+      const currGrip = currentCandidates[currIdx];
+      const nodeCost = scorePassageNode(currGrip, resolvedOptions);
+
+      let bestPrevCost = Infinity;
+      let bestPrevIdx = 0;
+
+      for (let prevIdx = 0; prevIdx < prevCandidates.length; prevIdx++) {
+        const prevGrip = prevCandidates[prevIdx];
+        const prevCumulative = dp[i - 1][prevIdx];
+        if (prevCumulative === Infinity) continue;
+
+        const transCost = isNewCoilBoundary
+          ? 0
+          : scorePassageTransition(prevGrip, currGrip, movement);
+        const total = prevCumulative + transCost;
+
+        if (total < bestPrevCost) {
+          bestPrevCost = total;
+          bestPrevIdx = prevIdx;
+        }
+      }
+
+      dp[i][currIdx] = (bestPrevCost < Infinity ? bestPrevCost : 0) + nodeCost;
+      backpointer[i][currIdx] = bestPrevIdx;
+    }
+  }
+
+  // Find minimum in the last step
+  let minFinalCost = Infinity;
+  let bestFinalIdx = 0;
+  for (let k = 0; k < allCandidates[N - 1].length; k++) {
+    if (dp[N - 1][k] < minFinalCost) {
+      minFinalCost = dp[N - 1][k];
+      bestFinalIdx = k;
+    }
+  }
+
+  // Backtrack optimal path
+  const result: GuitarNotePosition[][] = new Array(N);
+  let currentBest = bestFinalIdx;
+  for (let i = N - 1; i >= 0; i--) {
+    result[i] = allCandidates[i][currentBest] ?? allCandidates[i][0] ?? [];
+    currentBest = backpointer[i][currentBest];
+    if (currentBest === -1 && i > 0) currentBest = 0;
+  }
+
+  return result;
+}
+
+/**
+ * Solves the optimal guitar grip combining a primary melody note with
+ * harmonic accompaniment notes (root, chord tones, guide tones) adhering to maxFretSpan.
+ */
+export function solveGuitarGrip(
+  melodyMidi: number,
+  melodyScaleDegree: string,
+  chordRootToken?: string,
+  options: GuitarGripSolveOptions = {},
+): GuitarNotePosition[] {
+  const solved = solveGuitarPassage(
+    [{
+      midiNote: melodyMidi,
+      scaleDegree: melodyScaleDegree,
+      chordRoot: chordRootToken,
+      isChordChange: options.isChordChange ?? true,
+      isStrongBeat: options.isStrongBeat ?? false,
+    }],
+    options,
+  );
+  return solved[0] ?? [{
+    midiNote: melodyMidi,
+    scaleDegree: melodyScaleDegree,
+    stringNumber: 1,
+    fretNumber: Math.max(0, melodyMidi - 64),
+  }];
 }
 
 /**
