@@ -600,6 +600,10 @@ export function canonicalChordToPianoTriangleMarkup(
     return `\\bold "${chordToken}"`;
   }
 
+  const parsed = parseHarmonyChord(chordToken);
+  const rootSyllable = parsed.rootSyllable.replace(/x$/i, '');
+  const rootColorVar = SOLFEGE_TO_SCHEME_COLOR[rootSyllable] ?? 'colorDo';
+
   const stencils = segments.map((seg) => {
     const v1 = seg.vertices[1]?.schemeColorVar ?? '#f';
     const v2 = seg.vertices[2]?.schemeColorVar ?? '#f';
@@ -607,10 +611,12 @@ export function canonicalChordToPianoTriangleMarkup(
     return `\\stencil #(make-piano-triangle-stencil "${seg.triangle}" ${v1} ${v2} ${v3})`;
   });
 
-  if (stencils.length === 1) {
-    return stencils[0];
-  }
-  return `\\line \\vcenter { ${stencils.join(' \\hspace #0.3 ')} }`;
+  const innerContent =
+    stencils.length === 1
+      ? stencils[0]
+      : `\\line \\vcenter { ${stencils.join(' \\hspace #0.3 ')} }`;
+
+  return `\\override #'(box-padding . 0.25) \\override #'(thickness . 1.4) \\with-color #${rootColorVar} \\box ${innerContent}`;
 }
 
 /**

@@ -276,6 +276,7 @@ describe('Piano Triangle Notation Engine', () => {
 
       // D major triad (D, F#, A) in D -> D2 (Do), L3 (Mi), U3 (So)
       expect(lyOutput).toContain('chordTrianglesVoice');
+      expect(lyOutput).toContain('\\with-color #colorDo \\box');
       expect(lyOutput).toContain('make-piano-triangle-stencil "D" #f colorDo #f');
       expect(lyOutput).toContain('make-piano-triangle-stencil "L" #f #f colorMi');
       expect(lyOutput).toContain('make-piano-triangle-stencil "U" #f #f colorSo');
