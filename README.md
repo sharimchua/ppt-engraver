@@ -198,9 +198,14 @@ tapestry:
 | `harmonyChangesOnly`| `boolean` | `true` | Display harmony chords only when changed and at bar starts. |
 | `chordChanges` | `boolean` | `false` | Display chord symbol names only when changed. |
 | `showChordNames` | `boolean` | `false` | Display chord symbol names above harmony staff. |
+| `scale` | `string \| string[]` | `'Do'` | Pure Solfège scale definition (e.g. `'Do'`, `'Re'`, `'La'`, `'DoMe'`, `'LaTi'`, `['Do', 'Re', 'Me', 'Fa', 'So', 'Le', 'Ti']`). |
+| `showKeySignature` | `boolean` | `false` | Display traditional key signature on notation staves (also via `show: [keySignature]`). |
+| `keySignature` | `string` | `undefined` | Custom traditional key signature override string (e.g. `"C major"`, `"D minor"`). |
+| `showScaleSignature` | `boolean` | `false` | Display Solfège scale signature glyphs in score header (also via `show: [scaleSignature]`). |
+| `showScaleSignaturePianoTriangle` | `boolean` | `false` | Display Piano Triangle scale map in score header (also via `show: [scaleSignaturePianoTriangle]`). |
 | `zoom` | `number` | `1.0` | Global staff scaling factor (e.g. `1.2` for +20%) or absolute pt size. |
 | `indent` | `number` | `0` | First-line score indentation in mm (`0` for flush alignment). |
-| `show` | `string[]` | `['melody']` | Visible score layers: `melody`, `harmony`, `melodyCoilAbsolute`, `melodyCoilInterval`, `harmonyCoil`, `rhythmCoil`, `rhythmGrid`, `chordNames`. |
+| `show` | `string[]` | `['melody']` | Visible score layers: `melody`, `harmony`, `melodyCoilAbsolute`, `melodyCoilInterval`, `harmonyCoil`, `rhythmCoil`, `pulseCoil`, `rhythmGrid`, `chordNames`, `chordTriangles`, `timeSignature`, `pulseSignature`, `scaleSignature`, `scaleSignaturePianoTriangle`, `keySignature`, `guitarTab`. |
 
 ---
 
@@ -547,9 +552,14 @@ Chords are dynamically deconstructed into physical keyboard hand shapes:
 Enable Piano Triangle chord spellings in score engraving via `show: [chordTriangles]` (or `showChordTriangles: true`):
 ```yaml
 knot:
+  scale: DoMe
   engraving:
     keyAnchorStyle: pianoTriangle # Formats score header key anchor with single tonic triangle
-    show: [melody, chordTriangles, keySignature] # Shows melody, Piano Triangle chords, and Diatonic Key Signature
+    show:
+      - melody
+      - chordTriangles
+      - scaleSignaturePianoTriangle
+      - keySignature
 ```
 
 ### Tetrachord Chaining Heptatonic Scale Encoding
@@ -557,9 +567,35 @@ Encodes scales via `[5, 6, 7] + [1] + [2, 3, 4]`:
 - **D Major**: `[A, B, C#] + [D] + [E, F#, G]` $\to$ `U3R2D12L13U1`
 - **C Major**: `[G, A, B] + [C] + [D, E, F]` $\to$ `U13R23D2L12`
 
-### Configurable Vector SVG & Diatonic Key Signature
+### Configurable Vector SVG & Scale Signature
 - `createPianoTriangleSvg(triangle, { vertices: { 1: { active: true, color: '#E13610', shading: 'solid' } } })`
-- `createPianoTriangleKeySignatureSvg(tonicMidi, mode)` renders the tetrachord-chained sequence of triangles with the 7 diatonic scale tones colored in their PPT chromatic Solfège colors and non-diatonic vertices ghosted (gated behind `show: [keySignature]` or `showKeySignature: true`).
+- `createPianoTriangleKeySignatureSvg(tonicMidi, scale)` renders the tetrachord-chained sequence of triangles with the diatonic scale tones colored in their PPT chromatic Solfège colors and non-diatonic vertices ghosted (gated behind `show: [scaleSignaturePianoTriangle]` or `showScaleSignaturePianoTriangle: true`).
+
+---
+
+## Pure Solfège Scale Grammar & Signatures (`scale: ...`)
+
+Scales are defined purely with Solfège notation at either the Knot or Weave level:
+- **Default Ionian / Major 13th**: `scale: "Do"` (degrees `DoReMiFaSoLaTi`)
+- **Mode Offsets**:
+  - `scale: "Re"`: Dorian ($\flat 3, \flat 7$)
+  - `scale: "Mi"`: Phrygian ($\flat 2, \flat 3, \flat 6, \flat 7$)
+  - `scale: "Fa"`: Lydian ($\sharp 4$)
+  - `scale: "So"`: Mixolydian ($\flat 7$)
+  - `scale: "La"`: Aeolian / Natural Minor ($\flat 3, \flat 6, \flat 7$)
+  - `scale: "Ti"`: Locrian ($\flat 2, \flat 3, \flat 5, \flat 6, \flat 7$)
+- **Degree Alterations & Suffixes**:
+  - `scale: "DoMe"`: Minor 3rd ($\flat 3$)
+  - `scale: "LaTi"`: Harmonic Minor (Aeolian with major 7th `Ti`)
+  - `scale: "DoMeLe"`: Natural Minor / Aeolian
+  - `scale: [Do, Re, Me, Fa, So, Le, Ti]`: Full Solfège degree array
+- **Header Scale Row**:
+  - `show: [scaleSignature]`: Emits the 7 Solfège chromatic glyph stencils in the score header.
+  - `show: [scaleSignaturePianoTriangle]`: Emits the Piano Triangle tetrachord chain in the score header.
+  - When both are active, they render on a single composite `Scale:` header row.
+- **Traditional Staff Key Signatures**:
+  - `show: [keySignature]` (or `showKeySignature: true`): Emits `\key <pitch> \<mode>` on traditional 5-line staves (`melodyVoice`, `harmonyVoice`).
+  - **Mid-Score Weave Boundary Key Transitions**: When weaves declare different scales, LilyPond emits in-place `\key` changes at the section barline.
 
 ---
 

@@ -11,7 +11,7 @@ The `src/resolver/` directory resolves high-level declarative PPT constructs int
 1. **`resolveTapestry()`**:
    - Master orchestrator resolving knots and recursively descending through weave trees.
 2. **`resolveKnot()`**:
-   - Resolves anchor pitch, tempo, root weave selection, and visual engraving settings.
+   - Resolves anchor pitch, tempo, scale, root weave selection, and visual engraving settings.
    - Supports ordered arrays/dictionaries (`knots:`), single/multi-parent inheritance (`parent`, `parents`), abstract base templates (`abstract: true`, `hidden: true` un-inherited by children), deep engraving config merging, cycle detection, and projection selection (`selectedKnotId`).
 3. **`resolveCoil()`**:
    - Computes musical alignment across primary layers (start composing from any layer: Melody, Harmony, or Rhythm):
@@ -23,17 +23,18 @@ The `src/resolver/` directory resolves high-level declarative PPT constructs int
      - *Harmony-only with `melody: []`*: Implicit root melody is suppressed (onsets are rests/silent on the melody staff), allowing pure accompaniment tracks in parallel/parallelPeriod weaves.
      - *Rhythm-only coils*: Harmony defaults to tonic `Do`, melody defaults to chord root `Do`.
      - *Rhythm + Harmony coils (No Melody)*: Rhythm defines the strumming pattern / timing; harmony changes occur on pulse boundaries (or via `harmony.rhythm`); melody pitch dynamically matches each active chord root.
-3. **`resolveWeave()`**:
+4. **`resolveWeave()`**:
    - Traverses a Weave's `stitch: [...]` list (coils and nested weaves) and evaluates onset streams according to `layout: 'concatenate'` (sequential), `layout: 'parallel'` (concurrent / simultaneous), or `layout: 'parallelPeriod'` (period-matched polyrhythms).
+   - Inherits and propagates weave-level `scale:` declarations (`scale: "Do"`, `scale: "La"`, `scale: "DoMe"`, `scale: "LaTi"`) to all child stitches and onsets, enabling section-level key and modal shifts.
    - In `parallel` and `parallelPeriod` modes:
      - In `parallelPeriod`: scales each stitch's onsets so their total duration matches the target overall period duration, allowing natural-meter polyrhythm definitions.
      - Merges separate harmony and melody/rhythm coils into unified onsets across matching timestamps.
      - Merges multiple melodic coils into distinct polyphonic voices (`voiceIndex: 1`, `voiceIndex: 2`).
-4. **`resolveConcat()` (`resolveConcatCoil()`)**:
+5. **`resolveConcat()` (`resolveConcatCoil()`)**:
    - Combines multiple sub-coils into a single continuous weave structure, ensuring timing offsets and voice alignment remain continuous.
    - Accepts string coil IDs (`part1`), wrapped coil references (`- coil: part1`), standard indented inline coils (`- coil:\n    melody: [...]`), and raw inline coils (`- melody: [...]`).
    - Fully inherits and resolves composite-level layers (such as phrase-wide harmony changes or augmentation) via `inheritCoilLayers()`, allowing `concat` coils to use `harmony: changes` or `parents: changes`.
-5. **`resolveInheritance()` (`inheritCoilLayers()`) & Layer Injection**:
+6. **`resolveInheritance()` (`inheritCoilLayers()`) & Layer Injection**:
    - Explicit Layer Injection: Directly injects specific layers from other coils (`harmony: changes`, `rhythm: { from: 'groove_1' }`, cross-layer `melody: { from: 'changes.harmony' }`) with local property overrides.
    - Priority Parent Inheritance: Merges attributes from parent coils (`parents: [...]`) into child coils, allowing reusable templates (e.g. base rhythm templates inherited by melodic variations).
 
@@ -47,6 +48,7 @@ Each onset resolved by this subsystem contains:
 - `tag`: Tag string matching LilyPond `ppt_${weaveId}_${coilId}_${layer}_${onsetIndex}` or `ppt_${weaveId}_${coilId}_${layer}_v${voiceIndex}_${onsetIndex}`.
 - `melodyMidi`: Absolute MIDI pitch number.
 - `scaleDegree`: Solfège syllable (e.g. `Do`, `Rex`).
+- `scale`: Active scale definition for the onset (e.g. `Do`, `La`, `DoMe`, `LaTi`).
 - `chordRoot` & `chordMidi`: Active harmony triad.
 - `rhythmToken` & `duration`: Temporal duration value.
 - `isRest`: Boolean flag indicating silence.

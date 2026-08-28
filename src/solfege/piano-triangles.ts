@@ -14,6 +14,7 @@
  */
 
 import { SOLFEGE_POSITIONS, SOLFEGE_GLYPH_MAP } from './pitch.js';
+import { parseScaleDefinition, type ParsedScale } from './scale.js';
 
 export type PianoTriangleType = 'D' | 'L' | 'U' | 'R';
 
@@ -262,6 +263,25 @@ export const SCALE_MODE_INTERVALS: Record<string, number[]> = {
   locrian: [0, 1, 3, 5, 6, 8, 10],
 };
 
+function resolveScaleIntervals(scaleOrIntervals?: string | string[] | number[] | ParsedScale): number[] {
+  if (!scaleOrIntervals) {
+    return [0, 2, 4, 5, 7, 9, 11];
+  }
+  if (typeof scaleOrIntervals === 'string' && SCALE_MODE_INTERVALS[scaleOrIntervals.toLowerCase()]) {
+    return SCALE_MODE_INTERVALS[scaleOrIntervals.toLowerCase()];
+  }
+  if (Array.isArray(scaleOrIntervals)) {
+    if (scaleOrIntervals.length > 0 && typeof scaleOrIntervals[0] === 'number') {
+      return scaleOrIntervals as number[];
+    }
+    return parseScaleDefinition(scaleOrIntervals as string[]).semitoneIntervals;
+  }
+  if (typeof scaleOrIntervals === 'object' && 'semitoneIntervals' in scaleOrIntervals) {
+    return scaleOrIntervals.semitoneIntervals;
+  }
+  return parseScaleDefinition(scaleOrIntervals).semitoneIntervals;
+}
+
 /**
  * Encodes a heptatonic scale into Piano Triangle notation using Tetrachord Chaining around Tonic:
  * Sequence: [5, 6, 7] (dominant fragment) + [1] (tonic) + [2, 3, 4] (tonic fragment).
@@ -271,8 +291,11 @@ export const SCALE_MODE_INTERVALS: Record<string, number[]> = {
  * - D Major -> "U3R2D12L13U1"
  * - C Major -> "U13R23D2L12"
  */
-export function encodePianoTriangleScale(tonicMidi: number, mode = 'ionian'): string {
-  const intervals = SCALE_MODE_INTERVALS[mode.toLowerCase()] ?? SCALE_MODE_INTERVALS.ionian;
+export function encodePianoTriangleScale(
+  tonicMidi: number,
+  scaleOrMode: string | string[] | number[] | ParsedScale = 'Do'
+): string {
+  const intervals = resolveScaleIntervals(scaleOrMode);
   const tonicPc = ((tonicMidi % 12) + 12) % 12;
 
   // Compute 7 pitch classes (indices 0..6 correspond to degrees 1..7)
@@ -281,7 +304,7 @@ export function encodePianoTriangleScale(tonicMidi: number, mode = 'ionian'): st
   // Tetrachord chaining order: [5, 6, 7] + [1] + [2, 3, 4]
   // 1-indexed degrees: 5 -> index 4, 6 -> index 5, 7 -> index 6, 1 -> index 0, 2 -> index 1, 3 -> index 2, 4 -> index 3
   const chainIndices = [4, 5, 6, 0, 1, 2, 3];
-  const chainedPcs = chainIndices.map(idx => scalePcs[idx]);
+  const chainedPcs = chainIndices.map(idx => scalePcs[idx % scalePcs.length]);
 
   // Convert to triangle points
   const rawSegments = chainedPcs.map(pc => PITCH_CLASS_TO_PIANO_TRIANGLE[pc]);
@@ -466,15 +489,15 @@ export interface PianoTriangleScaleSegment {
  */
 export function getScaleTetrachordChainTriangles(
   tonicMidi: number,
-  mode = 'ionian'
+  scaleOrMode: string | string[] | number[] | ParsedScale = 'Do'
 ): PianoTriangleScaleSegment[] {
-  const intervals = SCALE_MODE_INTERVALS[mode.toLowerCase()] ?? SCALE_MODE_INTERVALS.ionian;
+  const intervals = resolveScaleIntervals(scaleOrMode);
   // Tetrachord chain degree order: [5, 6, 7] (indices 4, 5, 6), [1] (index 0), [2, 3, 4] (indices 1, 2, 3)
   const chainIndices = [4, 5, 6, 0, 1, 2, 3];
   const tonicPc = ((tonicMidi % 12) + 12) % 12;
 
   const chainNotes = chainIndices.map((idx) => {
-    const semitonesFromDo = intervals[idx];
+    const semitonesFromDo = intervals[idx % intervals.length];
     const pc = (tonicPc + semitonesFromDo) % 12;
     const syllable = SOLFEGE_POSITIONS[semitonesFromDo];
     const spec = SOLFEGE_GLYPH_MAP[syllable];
@@ -531,7 +554,7 @@ export function getScaleTetrachordChainTriangles(
  */
 export function createPianoTriangleKeySignatureSvg(
   tonicMidi: number,
-  mode = 'ionian',
+  scaleOrMode: string | string[] | number[] | ParsedScale = 'Do',
   options: KeySignatureOptions = {}
 ): string {
   const triangleSize = options.triangleSize ?? 40;
@@ -540,7 +563,7 @@ export function createPianoTriangleKeySignatureSvg(
   const darkMode = options.darkMode ?? false;
   const className = options.className ?? 'piano-triangle-key-signature';
 
-  const segments = getScaleTetrachordChainTriangles(tonicMidi, mode);
+  const segments = getScaleTetrachordChainTriangles(tonicMidi, scaleOrMode);
   const svgTriangles: string[] = [];
 
   for (const seg of segments) {

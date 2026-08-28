@@ -278,9 +278,14 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
   let showRhythmGrid = eng.showRhythmGrid ?? knotDef.showRhythmGrid;
   let showChordNames = eng.showChordNames ?? knotDef.showChordNames;
   let showChordTriangles = eng.showChordTriangles ?? knotDef.showChordTriangles;
-
   let showPulseSignature = eng.showPulseSignature ?? knotDef.showPulseSignature;
+  let showScaleSignature = eng.showScaleSignature ?? knotDef.showScaleSignature;
+  let showScaleSignaturePianoTriangle = eng.showScaleSignaturePianoTriangle ?? knotDef.showScaleSignaturePianoTriangle;
+  let scaleSignature = eng.scaleSignature ?? knotDef.scaleSignature;
+  let scaleSignaturePianoTriangle = eng.scaleSignaturePianoTriangle ?? knotDef.scaleSignaturePianoTriangle;
   let showKeySignature = eng.showKeySignature ?? knotDef.showKeySignature;
+  let keySignature = eng.keySignature ?? knotDef.keySignature;
+  let scale = eng.scale ?? knotDef.scale;
   let pulseSignature = eng.pulseSignature ?? knotDef.pulseSignature;
   let showTimeSignature = eng.showTimeSignature ?? knotDef.showTimeSignature;
   let timeSignature = eng.timeSignature ?? knotDef.timeSignature;
@@ -311,6 +316,12 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
     }
     if (eng.show.includes('pulseSignature') && showPulseSignature === undefined) {
       showPulseSignature = true;
+    }
+    if (eng.show.includes('scaleSignature') && showScaleSignature === undefined) {
+      showScaleSignature = true;
+    }
+    if (eng.show.includes('scaleSignaturePianoTriangle') && showScaleSignaturePianoTriangle === undefined) {
+      showScaleSignaturePianoTriangle = true;
     }
     if (eng.show.includes('keySignature') && showKeySignature === undefined) {
       showKeySignature = true;
@@ -463,7 +474,13 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
       showTimeSignature,
       timeSignature,
       showPulseSignature,
+      showScaleSignature,
+      showScaleSignaturePianoTriangle,
+      scaleSignature,
+      scaleSignaturePianoTriangle,
       showKeySignature,
+      keySignature,
+      scale,
       pulseSignature,
       pulse,
       meter,

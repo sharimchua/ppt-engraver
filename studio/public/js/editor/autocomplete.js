@@ -37,7 +37,9 @@ export const ENUMS_SHOW = [
   { text: 'gridSymbols', displayText: 'gridSymbols', type: 'enum', desc: 'Annotate grid lines with notehead shapes' },
   { text: 'timeSignature', displayText: 'timeSignature', type: 'enum', desc: 'Traditional time signature on staff' },
   { text: 'pulseSignature', displayText: 'pulseSignature', type: 'enum', desc: 'PPT pulse declaration in header' },
-  { text: 'keySignature', displayText: 'keySignature', type: 'enum', desc: 'Diatonic Key Signature map in header' },
+  { text: 'scaleSignature', displayText: 'scaleSignature', type: 'enum', desc: 'Solfège scale glyphs in header' },
+  { text: 'scaleSignaturePianoTriangle', displayText: 'scaleSignaturePianoTriangle', type: 'enum', desc: 'Piano Triangle scale map in header' },
+  { text: 'keySignature', displayText: 'keySignature', type: 'enum', desc: 'Traditional key signature on staff' },
 ];
 
 export const ENUMS_CLEF = [
@@ -283,6 +285,12 @@ export const KNOT_KEYS = [
   { text: 'showTimeSignature:', displayText: 'showTimeSignature: true', type: 'prop', desc: 'Show time signature on staff' },
   { text: 'pulseSignature:', displayText: 'pulseSignature: "DoLa"', type: 'prop', desc: 'Pulse signature in header' },
   { text: 'showPulseSignature:', displayText: 'showPulseSignature: true', type: 'prop', desc: 'Show pulse signature in header' },
+  { text: 'scale:', displayText: 'scale: "Do"', type: 'prop', desc: 'Solfège scale grammar (e.g. "Do", "La", "DoMe", "LaTi")' },
+  { text: 'keySignature:', displayText: 'keySignature: "C major"', type: 'prop', desc: 'Traditional staff key signature' },
+  { text: 'showKeySignature:', displayText: 'showKeySignature: true', type: 'prop', desc: 'Show traditional key signature on staff' },
+  { text: 'scaleSignature:', displayText: 'scaleSignature: "DoReMiFaSoLaTi"', type: 'prop', desc: 'Solfège scale signature in header' },
+  { text: 'showScaleSignature:', displayText: 'showScaleSignature: true', type: 'prop', desc: 'Show Solfège scale signature in header' },
+  { text: 'showScaleSignaturePianoTriangle:', displayText: 'showScaleSignaturePianoTriangle: true', type: 'prop', desc: 'Show Piano Triangle scale map in header' },
   { text: 'showPulseCoil:', displayText: 'showPulseCoil: true', type: 'prop', desc: 'Show Pulse / Metric coil row' },
   { text: 'gridSymbols:', displayText: 'gridSymbols: true', type: 'prop', desc: 'Annotate grid lines with notehead shapes' },
   { text: 'excludeGridDoSymbol:', displayText: 'excludeGridDoSymbol: true', type: 'prop', desc: 'Omit circle on Do downbeats' },
@@ -326,6 +334,12 @@ export const ENGRAVING_KEYS = [
   { text: 'timeSignature:', displayText: 'timeSignature: "4/4"', type: 'prop', desc: 'Time signature for notation staff' },
   { text: 'showPulseSignature:', displayText: 'showPulseSignature: true', type: 'prop', desc: 'Show pulse signature in header' },
   { text: 'pulseSignature:', displayText: 'pulseSignature: "DoLa"', type: 'prop', desc: 'Pulse signature in header' },
+  { text: 'scale:', displayText: 'scale: "Do"', type: 'prop', desc: 'Solfège scale grammar (e.g. "Do", "La", "DoMe", "LaTi")' },
+  { text: 'keySignature:', displayText: 'keySignature: "C major"', type: 'prop', desc: 'Traditional staff key signature' },
+  { text: 'showKeySignature:', displayText: 'showKeySignature: true', type: 'prop', desc: 'Show traditional key signature on staff' },
+  { text: 'scaleSignature:', displayText: 'scaleSignature: "DoReMiFaSoLaTi"', type: 'prop', desc: 'Solfège scale signature in header' },
+  { text: 'showScaleSignature:', displayText: 'showScaleSignature: true', type: 'prop', desc: 'Show Solfège scale signature in header' },
+  { text: 'showScaleSignaturePianoTriangle:', displayText: 'showScaleSignaturePianoTriangle: true', type: 'prop', desc: 'Show Piano Triangle scale map in header' },
   { text: 'pulse:', displayText: 'pulse: "DoLa"', type: 'prop', desc: 'Metric pulse grammar' },
   { text: 'meter:', displayText: 'meter: "DoLa"', type: 'prop', desc: 'Alias for pulse' },
   { text: 'gridSymbols:', displayText: 'gridSymbols: true', type: 'prop', desc: 'Annotate grid lines with notehead shapes' },
@@ -359,6 +373,7 @@ export const ENUMS_LAYOUT = [
 
 export const WEAVE_KEYS = [
   { text: 'id:', displayText: 'id: ...', type: 'prop', desc: 'Weave identifier' },
+  { text: 'scale:', displayText: 'scale: "Do"', type: 'prop', desc: 'Weave-level Solfège scale definition (e.g. "Do", "La", "DoMe", "LaTi")' },
   { text: 'layout:', displayText: 'layout: concatenate', type: 'prop', desc: 'Stitch sequencing layout (concatenate, parallel, or parallelPeriod)' },
   { text: 'defaultCoil:', displayText: 'defaultCoil: ...', type: 'prop', desc: 'Default fallback coil' },
   { text: 'pulse:', displayText: 'pulse: ...', type: 'prop', desc: 'Weave-level metric pulse pattern' },
@@ -418,7 +433,7 @@ export function getContextSuggestions(cm, cursor) {
     if (/^noteheadStyle$/i.test(propName)) return ENUMS_NOTEHEAD_STYLE;
     if (/^harmonyStaffStyle$/i.test(propName)) return ENUMS_HARMONY_STAFF_STYLE;
     if (/^layout$/i.test(propName)) return ENUMS_LAYOUT;
-    if (/^(abstract|hidden|visible|colorNotes|noteheadOutline|omitStem|traditionalRhythms|traditionalDurations|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showGuitarTab|guitarTab|crossCoil|crossCoilGuitarTab|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil|showPulseCoil|showTimeSignature|showPulseSignature|excludeGridDoSymbol|gridSymbolExcludeDo|strongBeatGridWeight|gridBeatWeights|showChordNames)$/i.test(propName)) {
+    if (/^(abstract|hidden|visible|colorNotes|noteheadOutline|omitStem|traditionalRhythms|traditionalDurations|harmonyChangesOnly|chordChanges|showRhythmGrid|showMelody|showHarmonyCoil|showTraditionalHarmony|showGuitarTab|guitarTab|crossCoil|crossCoilGuitarTab|showMelodyCoilAbsolute|showMelodyCoilInterval|showRhythmCoil|showPulseCoil|showTimeSignature|showPulseSignature|showScaleSignature|showScaleSignaturePianoTriangle|showKeySignature|excludeGridDoSymbol|gridSymbolExcludeDo|strongBeatGridWeight|gridBeatWeights|showChordNames)$/i.test(propName)) {
       return [
         { text: 'true', displayText: 'true', type: 'enum', desc: 'Enable' },
         { text: 'false', displayText: 'false', type: 'enum', desc: 'Disable' },

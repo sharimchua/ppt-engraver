@@ -14,6 +14,7 @@ export const RESERVED_SCHEMA_KEYS = new Set([
   'visible', 'hidden', 'abstract', 'id', 'name', 'use', 'from', 'coil', 'weave',
   'excludegriddosymbol', 'strongbeatgridweight', 'gridsymbols', 'rhythmgrid',
   'chordnames', 'pulsecoil', 'pulsesignature', 'rhythmcoil',
+  'scalesignature', 'scalesignaturepianotriangle', 'keysignature', 'scale',
   'melodycoilabsolute', 'melodycoilinterval'
 ]);
 

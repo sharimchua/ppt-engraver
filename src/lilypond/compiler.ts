@@ -41,6 +41,11 @@ import {
   SOLFEGE_TO_SEMITONE,
 } from "../solfege/pitch.js";
 import {
+  parseScaleDefinition,
+  inferLilyPondModeFromIntervals,
+  type ParsedScale,
+} from "../solfege/scale.js";
+import {
   solveGuitarGrip,
   solveGuitarPassage,
   solveStandaloneHarmonyGrip,
@@ -122,8 +127,20 @@ export interface CompileOptions {
   timeSignature?: string;
   /** Whether to show the PPT pulse signature in the score header next to key anchor */
   showPulseSignature?: boolean;
-  /** Whether to show the Diatonic Key Signature map in the score header */
+  /** Whether to show the Solfège Scale signature in the score header */
+  showScaleSignature?: boolean;
+  /** Whether to show the Piano Triangle Scale Signature map in the score header */
+  showScaleSignaturePianoTriangle?: boolean;
+  /** Custom scale signature override for score header */
+  scaleSignature?: string | string[];
+  /** Custom scale signature piano triangle override */
+  scaleSignaturePianoTriangle?: string | string[];
+  /** Whether to show the traditional key signature on traditional 5-line staves */
   showKeySignature?: boolean;
+  /** Custom key signature string override (e.g. "C major", "D minor") */
+  keySignature?: string;
+  /** Scale definition for piece / initial weave (e.g. "Do", "La", "DoMe", "LaTi") */
+  scale?: string | string[];
   /** Scale mode (e.g. 'ionian', 'aeolian', 'dorian') for key signature generation */
   mode?: string;
   /** Custom pulse signature label override for the score header (e.g. "DoLa", "DoRe", "[Dox, Re, So]") */
@@ -1103,24 +1120,38 @@ export function compileToLilyPond(
     `  \\accidentalStyle ${accStyle}`,
   ];
 
+  let tonicDutch = "c";
+  if (options.doPitch) {
+    try {
+      const midi = pitchNameToMidi(options.doPitch);
+      const pc = ((midi % 12) + 12) % 12;
+      const tonicAccMode = getAccidentalModeFromPitchName(options.doPitch);
+      tonicDutch = (
+        tonicAccMode === "flats" ? LILYPOND_FLAT_NOTES : LILYPOND_SHARP_NOTES
+      )[pc];
+    } catch {
+      tonicDutch = "c";
+    }
+  }
+
+  const primaryOnsets = onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
+  const initialScaleDef = options.scale ?? (primaryOnsets.length > 0 ? primaryOnsets[0].scale : undefined) ?? 'Do';
+  const initialParsedScale = parseScaleDefinition(initialScaleDef);
+  const initialLilypondKeyMode = initialParsedScale.lilypondMode;
+
+  const showKeySignature =
+    options.showKeySignature === true || options.keySignature !== undefined;
+  const initialStaffKey = options.keySignature ?? `${tonicDutch} \\${initialLilypondKeyMode}`;
+
+  if (options.doPitch || isTraditionalShapeNote) {
+    melodyLines.push(`  \\key ${initialStaffKey}`);
+    if (!showKeySignature) {
+      melodyLines.push("  \\omit Staff.KeySignature");
+    }
+  }
+
   // Configure shape noteheads aligned with Do (tonic)
   if (isTraditionalShapeNote) {
-    let tonicDutch = "c";
-    if (options.doPitch) {
-      try {
-        const midi = pitchNameToMidi(options.doPitch);
-        const pc = ((midi % 12) + 12) % 12;
-        const tonicAccMode = getAccidentalModeFromPitchName(options.doPitch);
-        tonicDutch = (
-          tonicAccMode === "flats" ? LILYPOND_FLAT_NOTES : LILYPOND_SHARP_NOTES
-        )[pc];
-      } catch {
-        tonicDutch = "c";
-      }
-    }
-
-    melodyLines.push(`  \\key ${tonicDutch} \\major`);
-    melodyLines.push("  \\omit Staff.KeySignature");
     if (noteheadStyle === "sacredHarp") {
       melodyLines.push("  \\sacredHarpHeads");
     } else if (noteheadStyle === "aiken") {
@@ -1294,6 +1325,16 @@ export function compileToLilyPond(
         const group = coilGroups[c];
         if (c > 0) {
           melodyLines.push('      \\bar "|"');
+          const prevGroup = coilGroups[c - 1];
+          if (group.onsets[0]?.weaveId !== prevGroup.onsets[0]?.weaveId) {
+            const prevScale = prevGroup.onsets[0]?.scale ?? options.scale ?? 'Do';
+            const currScale = group.onsets[0]?.scale ?? options.scale ?? 'Do';
+            const prevScaleStr = parseScaleDefinition(prevScale).scaleString;
+            const currParsed = parseScaleDefinition(currScale);
+            if (prevScaleStr !== currParsed.scaleString && showKeySignature) {
+              melodyLines.push(`      \\key ${tonicDutch} \\${currParsed.lilypondMode}`);
+            }
+          }
         }
         const vOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === vNum);
         if (vOnsets.length > 0) {
@@ -1327,6 +1368,16 @@ export function compileToLilyPond(
       const group = coilGroups[c];
       if (c > 0) {
         melodyLines.push('  \\bar "|"');
+        const prevGroup = coilGroups[c - 1];
+        if (group.onsets[0]?.weaveId !== prevGroup.onsets[0]?.weaveId) {
+          const prevScale = prevGroup.onsets[0]?.scale ?? options.scale ?? 'Do';
+          const currScale = group.onsets[0]?.scale ?? options.scale ?? 'Do';
+          const prevScaleStr = parseScaleDefinition(prevScale).scaleString;
+          const currParsed = parseScaleDefinition(currScale);
+          if (prevScaleStr !== currParsed.scaleString && showKeySignature) {
+            melodyLines.push(`  \\key ${tonicDutch} \\${currParsed.lilypondMode}`);
+          }
+        }
       }
       const beamMap = computeOnsetBeaming(group.onsets);
       for (let idx = 0; idx < group.onsets.length; idx++) {
@@ -1718,8 +1769,6 @@ export function compileToLilyPond(
     "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
   ];
   const voiceNumberToWord = (n: number) => VOICE_NUMBER_WORDS[n] ?? `V${n}`;
-
-  const primaryOnsets = isMultiVoice ? onsets.filter((o) => (o.voiceIndex ?? 1) === 1) : onsets;
 
   // ---------------------------------------------------------------------------
   // 1. Melody Coil Absolute Voice(s) (Row band displaying absolute Solfège pitch classes)
@@ -2135,6 +2184,12 @@ export function compileToLilyPond(
     `  \\clef ${formatClef(harmClef)}`,
     `  \\accidentalStyle ${accStyle}`,
   ];
+  if (options.doPitch || isTraditionalShapeNote) {
+    harmonyLines.push(`  \\key ${initialStaffKey}`);
+    if (!showKeySignature) {
+      harmonyLines.push("  \\omit Staff.KeySignature");
+    }
+  }
   const chordNamesLines: string[] = [];
   const chordTrianglesLines: string[] = [];
 
@@ -2166,6 +2221,7 @@ export function compileToLilyPond(
       spanCount: number;
       totalDurationBeats?: number;
       isBarStart: boolean;
+      scale?: string | string[];
     }> = [];
 
     let currentHarmonyChunk: typeof harmonyChunks[0] | null = null;
@@ -2204,6 +2260,7 @@ export function compileToLilyPond(
           spanCount: 1,
           totalDurationBeats: onset.durationBeats,
           isBarStart: isNewCoil,
+          scale: onset.scale,
         };
       }
     }
@@ -2211,9 +2268,19 @@ export function compileToLilyPond(
       harmonyChunks.push(currentHarmonyChunk);
     }
 
-    for (const chunk of harmonyChunks) {
+    for (let cIdx = 0; cIdx < harmonyChunks.length; cIdx++) {
+      const chunk = harmonyChunks[cIdx];
       if (chunk.isBarStart) {
         harmonyLines.push('  \\bar "|"');
+        if (cIdx > 0 && chunk.weaveId !== harmonyChunks[cIdx - 1].weaveId) {
+          const prevScale = harmonyChunks[cIdx - 1].scale ?? options.scale ?? 'Do';
+          const currScale = chunk.scale ?? options.scale ?? 'Do';
+          const prevScaleStr = parseScaleDefinition(prevScale).scaleString;
+          const currParsed = parseScaleDefinition(currScale);
+          if (prevScaleStr !== currParsed.scaleString && showKeySignature) {
+            harmonyLines.push(`  \\key ${tonicDutch} \\${currParsed.lilypondMode}`);
+          }
+        }
       }
       const chordDuration =
         chunk.totalDurationBeats !== undefined
@@ -2334,6 +2401,16 @@ export function compileToLilyPond(
         harmonyLines.push('  \\bar "|"');
         chordNamesLines.push('  \\bar "|"');
         chordTrianglesLines.push('  \\bar "|"');
+        const prevGroup = coilGroups[c - 1];
+        if (group.onsets[0]?.weaveId !== prevGroup.onsets[0]?.weaveId) {
+          const prevScale = prevGroup.onsets[0]?.scale ?? options.scale ?? 'Do';
+          const currScale = group.onsets[0]?.scale ?? options.scale ?? 'Do';
+          const prevScaleStr = parseScaleDefinition(prevScale).scaleString;
+          const currParsed = parseScaleDefinition(currScale);
+          if (prevScaleStr !== currParsed.scaleString && showKeySignature) {
+            harmonyLines.push(`  \\key ${tonicDutch} \\${currParsed.lilypondMode}`);
+          }
+        }
       }
       const groupPrimaryOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
       const beamMap = computeOnsetBeaming(groupPrimaryOnsets);
@@ -2884,11 +2961,11 @@ ${coilStaffLines.join("\n")}
       `  copyright = "${options.copyright.replace(/"/g, '\\"')}"`,
     );
 
-  // Key anchor & Pulse Signature: vertically aligned with composer/artist on the left side (poet), with vertical padding
+  // Key anchor, Scale Signature & Pulse Signature: vertically aligned with composer/artist on the left side (poet), with vertical padding
   // Each row is stored as its markup body (without the leading \markup keyword)
   // so they can be placed inside \markup \column { ... } without double-\markup.
   let keyAnchorBody: string | null = null;
-  let keySignatureBody: string | null = null;
+  let scaleSignatureBody: string | null = null;
   let pulseSignatureBody: string | null = null;
   if (options.piece) {
     headerLines.push(`  piece = "${options.piece.replace(/"/g, '\\"')}"`);
@@ -2914,15 +2991,57 @@ ${coilStaffLines.join("\n")}
       keyAnchorBody = `\\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = ${doPitchClass}" }`;
     }
 
-    if (options.showKeySignature) {
-      const segments = getScaleTetrachordChainTriangles(doMidiNum, options.mode ?? 'ionian');
-      const stencils = segments.map((seg) => {
-        const v1 = seg.vertices[1]?.schemeColorVar ?? '#f';
-        const v2 = seg.vertices[2]?.schemeColorVar ?? '#f';
-        const v3 = seg.vertices[3]?.schemeColorVar ?? '#f';
-        return `\\stencil #(make-piano-triangle-stencil "${seg.triangle}" ${v1} ${v2} ${v3})`;
-      });
-      keySignatureBody = `\\line \\vcenter { \\fontsize #-1.5 "Key:" \\hspace #0.3 ${stencils.join(" \\hspace #0.4 ")} }`;
+    const showScaleSig = options.showScaleSignature ?? false;
+    const showScalePT = options.showScaleSignaturePianoTriangle ?? false;
+
+    if (showScaleSig || showScalePT) {
+      const activeScaleDef =
+        options.scaleSignature ??
+        options.scaleSignaturePianoTriangle ??
+        options.scale ??
+        (primaryOnsets.length > 0 ? primaryOnsets[0].scale : undefined) ??
+        'Do';
+      const parsedScale = parseScaleDefinition(activeScaleDef);
+      const scaleElements: string[] = [];
+
+      if (showScaleSig) {
+        const glyphStencils = parsedScale.syllables.map((syl) => {
+          const hasAxis = syl.endsWith("x") || syl.endsWith("X");
+          try {
+            const spec = getSolfegeGlyphSpec(syl, hasAxis);
+            const basePathVar =
+              spec.glyphType === "base"
+                ? "pptPathBase"
+                : spec.glyphType === "sharp"
+                  ? "pptPathSharp"
+                  : "pptPathFlat";
+            const axisBool = hasAxis ? "#t" : "#f";
+            return `\\stencil #(make-solfege-glyph ${basePathVar} ${spec.rotation} ${spec.colorSchemeVar} ${axisBool})`;
+          } catch {
+            return `\\bold "${syl}"`;
+          }
+        });
+        if (glyphStencils.length > 0) {
+          scaleElements.push(glyphStencils.join(" "));
+        }
+      }
+
+      if (showScalePT) {
+        const segments = getScaleTetrachordChainTriangles(doMidiNum, parsedScale);
+        const ptStencils = segments.map((seg) => {
+          const v1 = seg.vertices[1]?.schemeColorVar ?? '#f';
+          const v2 = seg.vertices[2]?.schemeColorVar ?? '#f';
+          const v3 = seg.vertices[3]?.schemeColorVar ?? '#f';
+          return `\\stencil #(make-piano-triangle-stencil "${seg.triangle}" ${v1} ${v2} ${v3})`;
+        });
+        if (ptStencils.length > 0) {
+          scaleElements.push(ptStencils.join(" \\hspace #0.4 "));
+        }
+      }
+
+      if (scaleElements.length > 0) {
+        scaleSignatureBody = `\\line \\vcenter { \\fontsize #-1.5 "Scale:" \\hspace #0.3 ${scaleElements.join(" \\hspace #0.8 ")} }`;
+      }
     }
 
     if (options.showPulseSignature || options.pulseSignature) {
@@ -2972,7 +3091,7 @@ ${coilStaffLines.join("\n")}
   const poetRowBodies: string[] = [];
   if (options.poet) poetRowBodies.push(`"${options.poet.replace(/"/g, '\\"')}"`);
   if (keyAnchorBody) poetRowBodies.push(keyAnchorBody);
-  if (keySignatureBody) poetRowBodies.push(keySignatureBody);
+  if (scaleSignatureBody) poetRowBodies.push(scaleSignatureBody);
   if (pulseSignatureBody) poetRowBodies.push(pulseSignatureBody);
 
   if (poetRowBodies.length === 1) {

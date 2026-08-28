@@ -236,8 +236,20 @@ export interface ResolvedKnot {
   timeSignature?: string;
   /** Whether to show the PPT pulse signature in the score header next to key anchor */
   showPulseSignature?: boolean;
-  /** Whether to show the Diatonic Key Signature map in the score header */
+  /** Whether to show the Solfège Scale signature in the score header */
+  showScaleSignature?: boolean;
+  /** Whether to show the Piano Triangle Scale Signature map in the score header */
+  showScaleSignaturePianoTriangle?: boolean;
+  /** Custom scale signature override for score header */
+  scaleSignature?: string | string[];
+  /** Custom scale signature piano triangle override */
+  scaleSignaturePianoTriangle?: string | string[];
+  /** Whether to show the traditional key signature on 5-line notation staves */
   showKeySignature?: boolean;
+  /** Custom traditional key signature string override (e.g. "C major", "D minor") */
+  keySignature?: string;
+  /** Scale definition for knot (e.g. "Do", "La", "DoMe", "LaTi") */
+  scale?: string | string[];
   /** Custom pulse signature label override for the score header (e.g. "DoLa", "DoRe", "[Dox, Re, So]") */
   pulseSignature?: string;
   /** Metric pulse grammar specification for knot */

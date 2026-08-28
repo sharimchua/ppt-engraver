@@ -192,9 +192,28 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
 - **Inferred Chord Encoding (`encodePianoTriangleChord`, `canonicalChordToPianoTriangle`)**:
   - Encodes chords into tactile keyboard hand shapes (e.g. C Major $\to$ `R3L1U1`, Dm $\to$ `D2L2U3`, Dm7 $\to$ `D2L2U3R3`, Dmaj7/C# $\to$ `D12L3U3`).
   - Supported as an alternative chord spelling row layer via `show: [chordTriangles]` / `showChordTriangles: true`.
-- **Configurable Vector Rendering & Diatonic Key Signature (`createPianoTriangleSvg`, `createPianoTriangleKeySignatureSvg`)**:
+- **Configurable Vector Rendering & Scale Signature (`createPianoTriangleSvg`, `createPianoTriangleKeySignatureSvg`)**:
   - Configurable vertex circles at Points 1, 2, and 3 (presence, radius, stroke, fill color, and shading: `solid`, `shaded`, `outline`, `ghosted`).
-  - Diatonic Key Signature displays the tetrachord-chained sequence of triangles with the 7 diatonic scale tones colored with their PPT chromatic Solfège colors and non-diatonic vertices ghosted, gated behind `show: [keySignature]` / `showKeySignature: true`.
+  - Scale Signature displays the tetrachord-chained sequence of triangles with the diatonic scale tones colored with their PPT chromatic Solfège colors and non-diatonic vertices ghosted, gated behind `show: [scaleSignaturePianoTriangle]` / `showScaleSignaturePianoTriangle: true`.
+
+---
+
+## Pure Solfège Scale Grammar (`scale.ts`)
+
+- **Scale Specification**:
+  - Scales are specified purely using Solfège notation (e.g. `scale: "Do"`, `scale: "Re"`, `scale: "La"`, `scale: "DoMe"`, `scale: "LaTi"`, `scale: "DoMeLe"`).
+  - Standard default `Do` specifies a major 13th / Ionian scale (`DoReMiFaSoLaTi`).
+  - Base offset degrees specify relative scale shapes:
+    - `Re`: Dorian ($\flat 3, \flat 7$)
+    - `Mi`: Phrygian ($\flat 2, \flat 3, \flat 6, \flat 7$)
+    - `Fa`: Lydian ($\sharp 4$)
+    - `So`: Mixolydian ($\flat 7$)
+    - `La`: Aeolian / Natural Minor ($\flat 3, \flat 6, \flat 7$)
+    - `Ti`: Locrian ($\flat 2, \flat 3, \flat 5, \flat 6, \flat 7$)
+  - Suffix modifiers alter specific scale degrees (e.g. `DoMe` $\to$ C minor/Dorian 3rd alteration, `LaTi` $\to$ Harmonic Minor with major 7th `Ti`, `DoFi` $\to$ Lydian $\sharp 4$).
+  - Full Solfège arrays are also supported: `scale: [Do, Re, Me, Fa, So, Le, Ti]`.
+- **LilyPond Mode Inference (`inferLilyPondModeFromIntervals`)**:
+  - Infers corresponding LilyPond key signature mode (`'major'`, `'minor'`, `'dorian'`, `'phrygian'`, `'lydian'`, `'mixolydian'`, `'locrian'`) from the scale's semitone intervals for traditional notation engraving.
 
 
 

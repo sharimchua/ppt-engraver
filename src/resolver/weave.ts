@@ -134,6 +134,10 @@ export function resolveWeave(
         childWeave.pulse = effectiveWeavePulse;
         childWeave.meter = effectiveWeavePulse;
       }
+      const effectiveWeaveScale = weave.scale ?? knot.scale;
+      if (childWeave.scale === undefined && effectiveWeaveScale !== undefined) {
+        childWeave.scale = effectiveWeaveScale;
+      }
 
       const childResult = resolveWeave(
         childWeave,
@@ -244,6 +248,7 @@ export function resolveWeave(
           melodyAugmentationNotes: onset.melodyAugmentationNotes ? [...onset.melodyAugmentationNotes] : undefined,
           pulse: effectiveCoilPulse,
           meter: effectiveCoilPulse,
+          scale: weave.scale ?? knot.scale,
         });
       }
 

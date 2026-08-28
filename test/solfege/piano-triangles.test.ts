@@ -323,7 +323,7 @@ describe('Piano Triangle Notation Engine', () => {
       expect(lyBothAnchor).toContain('" = D ("');
     });
 
-    it('renders tetrachord-chained Key Signature in header when showKeySignature is true', () => {
+    it('renders tetrachord-chained Scale Signature in header when showScaleSignaturePianoTriangle is true', () => {
       const onsets: Onset[] = [
         {
           onsetIndex: 1,
@@ -341,12 +341,42 @@ describe('Piano Triangle Notation Engine', () => {
 
       const ly = compileToLilyPond(onsets, {
         doPitch: 'D4',
-        showKeySignature: true,
+        showScaleSignaturePianoTriangle: true,
       });
 
-      expect(ly).toContain('"Key:"');
+      expect(ly).toContain('"Scale:"');
       expect(ly).toContain('make-piano-triangle-stencil');
       expect(ly).not.toContain('"(D2)"');
+    });
+
+    it('renders staff key signature without omitting it when showKeySignature is true', () => {
+      const onsets: Onset[] = [
+        {
+          onsetIndex: 1,
+          voiceIndex: 1,
+          tag: 'test_1',
+          weaveId: 'w',
+          coilId: 'c',
+          scaleDegree: 'Do',
+          midiNote: 62,
+          chordTones: ['D4'],
+          chordMidi: [62],
+          durationBeats: 4,
+        },
+      ];
+
+      const lyWithKey = compileToLilyPond(onsets, {
+        doPitch: 'D4',
+        showKeySignature: true,
+      });
+      expect(lyWithKey).toContain('\\key d \\major');
+      expect(lyWithKey).not.toContain('\\omit Staff.KeySignature');
+
+      const lyWithoutKey = compileToLilyPond(onsets, {
+        doPitch: 'D4',
+        showKeySignature: false,
+      });
+      expect(lyWithoutKey).toContain('\\omit Staff.KeySignature');
     });
   });
 });

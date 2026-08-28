@@ -651,6 +651,8 @@ chordNamesVoice = {
 melodyVoice = {
   \clef treble
   \accidentalStyle forget
+  \key c \major
+  \omit Staff.KeySignature
   \override NoteHead.duration-log = #2
   \cadenzaOn
   \tag #'ppt_verse_introMotif_melody_1 c'4
@@ -667,6 +669,8 @@ melodyVoice = {
 harmonyVoice = {
   \clef treble
   \accidentalStyle forget
+  \key c \major
+  \omit Staff.KeySignature
   \override NoteHead.duration-log = #2
   \cadenzaOn
   \tag #'ppt_verse_introMotif_harmonyStaff_1 <c' e' g'>1

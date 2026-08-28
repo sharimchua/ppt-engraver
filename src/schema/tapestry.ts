@@ -119,6 +119,8 @@ export const EngravingElementSchema = z.enum([
   'gridSymbols',
   'timeSignature',
   'pulseSignature',
+  'scaleSignature',
+  'scaleSignaturePianoTriangle',
   'keySignature',
   'guitarTab',
 ]);
@@ -361,8 +363,20 @@ export const EngravingSchema = z.object({
   timeSignature: z.string().optional(),
   /** Whether to show the PPT pulse signature in the score header next to key anchor */
   showPulseSignature: z.boolean().optional(),
-  /** Whether to show the Diatonic Key Signature map in the score header */
+  /** Whether to show the Solfège Scale signature in the score header */
+  showScaleSignature: z.boolean().optional(),
+  /** Whether to show the Piano Triangle Scale signature in the score header */
+  showScaleSignaturePianoTriangle: z.boolean().optional(),
+  /** Custom scale signature override for score header */
+  scaleSignature: z.union([z.string(), z.array(z.string())]).optional(),
+  /** Custom scale signature piano triangle override */
+  scaleSignaturePianoTriangle: z.union([z.string(), z.array(z.string())]).optional(),
+  /** Whether to show the traditional key signature on the traditional notation staff */
   showKeySignature: z.boolean().optional(),
+  /** Custom key signature string override (e.g. "C major", "D minor") */
+  keySignature: z.string().optional(),
+  /** Scale definition for knot / engraving (e.g. "Do", "La", "DoMe", "LaTi") */
+  scale: z.union([z.string(), z.array(z.string())]).optional(),
   /** Custom pulse signature label override for the score header (e.g. "DoLa", "DoRe", "[Dox, Re, So]") */
   pulseSignature: z.string().optional(),
   /** Metric pulse grammar specification for knot */
@@ -474,7 +488,13 @@ export const KnotSchema = z.object({
   showTimeSignature: z.boolean().optional(),
   timeSignature: z.string().optional(),
   showPulseSignature: z.boolean().optional(),
+  showScaleSignature: z.boolean().optional(),
+  showScaleSignaturePianoTriangle: z.boolean().optional(),
+  scaleSignature: z.union([z.string(), z.array(z.string())]).optional(),
+  scaleSignaturePianoTriangle: z.union([z.string(), z.array(z.string())]).optional(),
   showKeySignature: z.boolean().optional(),
+  keySignature: z.string().optional(),
+  scale: z.union([z.string(), z.array(z.string())]).optional(),
   pulseSignature: z.string().optional(),
   gridSymbols: z.union([z.boolean(), z.enum(['all', 'no-do', 'off'])]).optional(),
   excludeGridDoSymbol: z.boolean().optional(),
@@ -734,6 +754,8 @@ export interface Weave {
   melodyAugmentationDisplay?: MelodyAugmentationDisplay;
   /** Optional projection preset override for this weave */
   projection?: ProjectionPreset;
+  /** Scale definition for this weave (e.g. "Do", "La", "DoMe", "LaTi") */
+  scale?: string | string[];
 }
 
 /**
@@ -795,6 +817,8 @@ export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
     melodyAugmentationDisplay: MelodyAugmentationDisplayEnum.optional(),
     /** Optional projection preset override for this weave */
     projection: ProjectionPresetEnum.optional(),
+    /** Scale definition for this weave (e.g. "Do", "La", "DoMe", "LaTi") */
+    scale: z.union([z.string(), z.array(z.string())]).optional(),
   }).refine(
     data => (data.stitch && data.stitch.length > 0) || (data.stitches && data.stitches.length > 0) || (data.children && data.children.length > 0),
     { message: 'Weave must contain at least one stitch entry (stitch: [...])', path: ['stitch'] }

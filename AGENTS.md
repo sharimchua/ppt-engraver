@@ -56,10 +56,14 @@ The repository consists of:
 - **Dual Melody Coil Representations**:
   - **Melody Absolute**: Displays absolute scale degrees with octave displacement triangles for each onset.
   - **Melody Interval**: Anchor note at start with axis (`${scaleDegree}x`), followed by interval tokens computed via `semitoneIntervalToSolfege(diff)` with directional octave triangles.
+- **Pure Solfège Scale Grammar & Signatures (`scale: ...`)**:
+  - Scales are specified with pure Solfège notation (e.g. `scale: "Do"` for major 13th / Ionian, `scale: "Re"` for Dorian, `scale: "La"` for Aeolian/Minor, `scale: "DoMe"` for flat 3rd, `scale: "LaTi"` for harmonic minor, `scale: [Do, Re, Me, Fa, So, Le, Ti]`).
+  - Knot-level and weave-level scale definitions propagate to onsets and control traditional staff key signatures (`show: [keySignature]`) as well as in-place mid-score key signature changes across weave boundaries.
+  - Score header Scale row displays Solfège glyph scale signature (`show: [scaleSignature]`) and/or Piano Triangle tetrachord chain (`show: [scaleSignaturePianoTriangle]`) in a single composite `Scale:` row.
 - **Piano Triangle Notation Layer**:
   - Inferred chord deconstruction & spelling (e.g. C Major $\to$ `R3L1U1`, Dm $\to$ `D2L2U3`, Dm7 $\to$ `D2L2U3R3`, Dmaj7 $\to$ `D2L3U3D1`, Inversions $\to$ `D12L3U3`), enclosed in a Solfège root-colored rectangular box outline, enabled via `show: [chordTriangles]` / `showChordTriangles: true`.
   - Heptatonic scale tetrachord chaining (`[5, 6, 7] + [1] + [2, 3, 4]`, e.g. D Major $\to$ `U3R2D12L13U1`, C Major $\to$ `U13R23D2L12`).
-  - Configurable vector SVG rendering with customizable vertex circles (presence, radius, stroke, fill color, and shading: `solid`, `shaded`, `outline`, `ghosted`) and Diatonic Key Signature visualization (`show: [keySignature]`).
+  - Configurable vector SVG rendering with customizable vertex circles (presence, radius, stroke, fill color, and shading: `solid`, `shaded`, `outline`, `ghosted`) and Scale Signature visualization (`show: [scaleSignaturePianoTriangle]`).
 
 ---
 

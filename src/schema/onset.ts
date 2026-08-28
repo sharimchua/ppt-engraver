@@ -70,6 +70,8 @@ export const OnsetSchema = z.object({
   pulse: z.union([z.string(), z.array(z.string())]).optional(),
   /** Alias for pulse */
   meter: z.union([z.string(), z.array(z.string())]).optional(),
+  /** Scale definition active for this onset (e.g. "Do", "La", "DoMe", "LaTi") */
+  scale: z.union([z.string(), z.array(z.string())]).optional(),
 });
 
 /**
