@@ -115,9 +115,11 @@ export const EngravingElementSchema = z.enum([
   'harmonyStaff',
   'rhythmGrid',
   'chordNames',
+  'chordTriangles',
   'gridSymbols',
   'timeSignature',
   'pulseSignature',
+  'keySignature',
   'guitarTab',
 ]);
 
@@ -307,6 +309,10 @@ export const EngravingSchema = z.object({
   show: z.array(EngravingElementSchema).optional(),
   /** Whether to show chord names above the staff */
   showChordNames: z.boolean().optional(),
+  /** Whether to show Piano Triangle chord spellings above the staff */
+  showChordTriangles: z.boolean().optional(),
+  /** Key anchor notation style in score header: 'standard' (Do glyph = PitchClass) or 'pianoTriangle' (single tonic triangle) or 'both' */
+  keyAnchorStyle: z.enum(['standard', 'pianoTriangle', 'both']).optional(),
   /** Whether to only display chord names when chord changes */
   chordChanges: z.boolean().optional(),
   /** Accidental spelling mode ('sharps' or 'flats', auto-detected if omitted) */
@@ -355,6 +361,8 @@ export const EngravingSchema = z.object({
   timeSignature: z.string().optional(),
   /** Whether to show the PPT pulse signature in the score header next to key anchor */
   showPulseSignature: z.boolean().optional(),
+  /** Whether to show the Diatonic Key Signature map in the score header */
+  showKeySignature: z.boolean().optional(),
   /** Custom pulse signature label override for the score header (e.g. "DoLa", "DoRe", "[Dox, Re, So]") */
   pulseSignature: z.string().optional(),
   /** Metric pulse grammar specification for knot */
@@ -466,6 +474,7 @@ export const KnotSchema = z.object({
   showTimeSignature: z.boolean().optional(),
   timeSignature: z.string().optional(),
   showPulseSignature: z.boolean().optional(),
+  showKeySignature: z.boolean().optional(),
   pulseSignature: z.string().optional(),
   gridSymbols: z.union([z.boolean(), z.enum(['all', 'no-do', 'off'])]).optional(),
   excludeGridDoSymbol: z.boolean().optional(),
@@ -475,6 +484,9 @@ export const KnotSchema = z.object({
   zoom: z.number().positive().optional(),
   indent: z.number().nonnegative().optional(),
   showRhythmGrid: z.boolean().optional(),
+  showChordNames: z.boolean().optional(),
+  showChordTriangles: z.boolean().optional(),
+  keyAnchorStyle: z.enum(['standard', 'pianoTriangle', 'both']).optional(),
   chordChanges: z.boolean().optional(),
 });
 

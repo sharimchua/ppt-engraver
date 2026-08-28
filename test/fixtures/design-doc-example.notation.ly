@@ -456,6 +456,38 @@
 #(define pptGlyphDo (make-path-stencil pptPathBase 0.0 0.9 0.9 #t))
 #(define pptGlyphDoOutlined (make-solfege-glyph pptPathBase 0 colorDo #f))
 
+#(define pptPianoTriDownPath '(moveto -0.7 0.6 lineto 0.7 0.6 lineto 0.0 -0.7 closepath))
+#(define pptPianoTriLeftPath '(moveto -0.7 -0.6 lineto 0.7 -0.6 lineto 0.7 0.7 closepath))
+#(define pptPianoTriUpPath   '(moveto -0.7 -0.6 lineto 0.0 0.7 lineto 0.7 -0.6 closepath))
+#(define pptPianoTriRightPath '(moveto -0.7 0.7 lineto -0.7 -0.6 lineto 0.7 -0.6 closepath))
+
+#(define (make-piano-triangle-stencil tri-type v1-col v2-col v3-col)
+   (let* ((tri-path (cond
+                      ((equal? tri-type "D") pptPianoTriDownPath)
+                      ((equal? tri-type "L") pptPianoTriLeftPath)
+                      ((equal? tri-type "U") pptPianoTriUpPath)
+                      (else pptPianoTriRightPath)))
+          (tri-outline (stencil-with-color (make-path-stencil tri-path 0.08 1.0 1.0 #f) (rgb-color 0.25 0.25 0.25)))
+          (make-v-dot (lambda (col x y)
+                        (if col
+                            (let* ((dot (stencil-with-color (make-circle-stencil 0.22 0.0 #t) col))
+                                   (out (stencil-with-color (make-circle-stencil 0.22 0.05 #f) (rgb-color 0.1 0.1 0.1))))
+                              (ly:stencil-translate (ly:stencil-add dot out) (cons x y)))
+                            (ly:stencil-translate (stencil-with-color (make-circle-stencil 0.15 0.04 #f) (rgb-color 0.75 0.75 0.75)) (cons x y))))))
+     (let* ((coords (cond
+                      ((equal? tri-type "D") '((-0.50 . 0.50) (0.0 . -0.55) (0.50 . 0.50)))
+                      ((equal? tri-type "L") '((-0.50 . -0.50) (0.50 . -0.50) (0.50 . 0.55)))
+                      ((equal? tri-type "U") '((-0.50 . -0.50) (0.0 . 0.55) (0.50 . -0.50)))
+                      (else                  '((-0.50 . 0.55) (-0.50 . -0.50) (0.50 . -0.50)))))
+            (c1 (list-ref coords 0))
+            (c2 (list-ref coords 1))
+            (c3 (list-ref coords 2))
+            (dot1 (make-v-dot v1-col (car c1) (cdr c1)))
+            (dot2 (make-v-dot v2-col (car c2) (cdr c2)))
+            (dot3 (make-v-dot v3-col (car c3) (cdr c3)))
+            (raw-stc (ly:stencil-add tri-outline dot1 dot2 dot3)))
+       (ly:stencil-aligned-to raw-stc X LEFT))))
+
 #(define (color-notehead-with-outline grob)
    (let* ((orig (ly:note-head::print grob))
           (col (ly:grob-property grob 'color #f))
@@ -613,7 +645,9 @@ harmonyVoice = {
 
 \score {
   <<
-    \new ChordNames {
+    \new ChordNames \with {
+      \override ChordName.self-alignment-X = #LEFT
+    } {
       \chordNamesVoice
     }
   \new PianoStaff \with {

@@ -128,12 +128,12 @@ describe('compileToLilyPond', () => {
 
   it('emits ChordNames reading from chordNamesVoice, showing all chords by default', () => {
     const ly = compileToLilyPond(sampleOnsets);
-    expect(ly).toContain('\\new ChordNames {\n      \\chordNamesVoice\n    }');
+    expect(ly).toContain('\\new ChordNames \\with {\n      \\override ChordName.self-alignment-X = #LEFT\n    } {\n      \\chordNamesVoice\n    }');
   });
 
   it('allows enabling chordChanges: true to suppress duplicate consecutive chord names', () => {
     const ly = compileToLilyPond(sampleOnsets, { chordChanges: true });
-    expect(ly).toContain('\\new ChordNames {\n      \\set chordChanges = ##t\n      \\chordNamesVoice\n    }');
+    expect(ly).toContain('\\new ChordNames \\with {\n      \\override ChordName.self-alignment-X = #LEFT\n    } {\n      \\set chordChanges = ##t\n      \\chordNamesVoice\n    }');
   });
 
   it('renders repeated coil onsets with new barline when onset index resets to 1', () => {

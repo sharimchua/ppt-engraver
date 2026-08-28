@@ -524,6 +524,45 @@ Control how the harmony layer realizes chord tokens:
 
 ---
 
+## Piano Triangle Notation (Tactile Keyboard Topography)
+
+Piano Triangle Notation solves the challenge of **piano-hand ergonomics and keyboard topography** by partitioning the twelve chromatic pitches from C# to C into four three-key groups anchored centrally around D:
+
+| Triangle | Letter | Pitches (Points 1, 2, 3) | Geometric Shape | Apex Direction |
+|---|---|---|---|---|
+| **Down** | `D` | 1: C#, 2: D, 3: D# | Inverted equilateral triangle | Points down (into the central white key D) |
+| **Left** | `L` | 1: E, 2: F, 3: F# | Right triangle (right angle on right) | Points up |
+| **Up** | `U` | 1: G, 2: G#, 3: A | Equilateral triangle | Points up |
+| **Right** | `R` | 1: A#, 2: B, 3: C | Right triangle (right angle on left) | Points up |
+
+### Inferred Chord Deconstruction & Spelling
+Chords are dynamically deconstructed into physical keyboard hand shapes:
+- **C Major triad (`C - E - G`)**: `R3L1U1`
+- **D Major triad (`D - F# - A`)**: `D2L3U3`
+- **D Minor triad (`D - F - A`)**: `D2L2U3`
+- **Dm7 close position (`D - F - A - C`)**: `D2L2U3R3`
+- **Dmaj7 (`D - F# - A - C#`)**: `D2L3U3D1`
+- **Dmaj7 / C# (`C# - D - F# - A`)**: `D12L3U3` (Points 1 and 2 merged into `D12`)
+
+Enable Piano Triangle chord spellings in score engraving via `show: [chordTriangles]` (or `showChordTriangles: true`):
+```yaml
+knot:
+  engraving:
+    keyAnchorStyle: pianoTriangle # Formats score header key anchor with single tonic triangle
+    show: [melody, chordTriangles, keySignature] # Shows melody, Piano Triangle chords, and Diatonic Key Signature
+```
+
+### Tetrachord Chaining Heptatonic Scale Encoding
+Encodes scales via `[5, 6, 7] + [1] + [2, 3, 4]`:
+- **D Major**: `[A, B, C#] + [D] + [E, F#, G]` $\to$ `U3R2D12L13U1`
+- **C Major**: `[G, A, B] + [C] + [D, E, F]` $\to$ `U13R23D2L12`
+
+### Configurable Vector SVG & Diatonic Key Signature
+- `createPianoTriangleSvg(triangle, { vertices: { 1: { active: true, color: '#E13610', shading: 'solid' } } })`
+- `createPianoTriangleKeySignatureSvg(tonicMidi, mode)` renders the tetrachord-chained sequence of triangles with the 7 diatonic scale tones colored in their PPT chromatic Solfège colors and non-diatonic vertices ghosted (gated behind `show: [keySignature]` or `showKeySignature: true`).
+
+---
+
 ## Guitar Tablature & Voicings (`TabStaff`)
 
 PPT Engraver features a full-featured guitar fretboard engine and phrase-level grip solver that renders standard tablature staves directly underneath the traditional harmony staff.

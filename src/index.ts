@@ -23,6 +23,7 @@ export * from './solfege/rhythm.js';
 export * from './solfege/voicings.js';
 export * from './solfege/guitar.js';
 export * from './solfege/augmentation.js';
+export * from './solfege/piano-triangles.js';
 export * from './parser/yaml-loader.js';
 export * from './resolver/knot.js';
 export * from './resolver/coil.js';

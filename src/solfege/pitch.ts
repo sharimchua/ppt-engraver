@@ -236,6 +236,8 @@ export interface ResolvedKnot {
   timeSignature?: string;
   /** Whether to show the PPT pulse signature in the score header next to key anchor */
   showPulseSignature?: boolean;
+  /** Whether to show the Diatonic Key Signature map in the score header */
+  showKeySignature?: boolean;
   /** Custom pulse signature label override for the score header (e.g. "DoLa", "DoRe", "[Dox, Re, So]") */
   pulseSignature?: string;
   /** Metric pulse grammar specification for knot */
@@ -258,6 +260,10 @@ export interface ResolvedKnot {
   chordChanges?: boolean;
   /** Whether to display chord names row */
   showChordNames?: boolean;
+  /** Whether to display Piano Triangle chord spellings row */
+  showChordTriangles?: boolean;
+  /** Key anchor notation style: 'standard' or 'pianoTriangle' or 'both' */
+  keyAnchorStyle?: 'standard' | 'pianoTriangle' | 'both';
   /** Root weave identifier specified in Knot */
   rootWeaveId?: string;
   /** Tonic MIDI number (alias for doMidi) */

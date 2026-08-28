@@ -16,12 +16,21 @@ import {
   midiToLilyPondPitch,
   chordMidiToLilyPond,
   canonicalChordToLilyPond,
+  canonicalChordToPianoTriangle,
+  canonicalChordToPianoTriangleMarkup,
   LILYPOND_FLAT_NOTES,
   LILYPOND_SHARP_NOTES,
   SOLFEGE_TO_SCHEME_COLOR,
   SOLFEGE_TO_PPT_STENCIL,
   SOLFEGE_TO_PPT_TAB_STENCIL,
 } from "./pitch.js";
+import {
+  midiToPianoTriangleString,
+  midiToPianoTrianglePitch,
+  encodePianoTriangleScale,
+  encodePianoTriangleChord,
+  getScaleTetrachordChainTriangles,
+} from "../solfege/piano-triangles.js";
 import {
   pitchNameToMidi,
   getAccidentalModeFromPitchName,
@@ -113,6 +122,10 @@ export interface CompileOptions {
   timeSignature?: string;
   /** Whether to show the PPT pulse signature in the score header next to key anchor */
   showPulseSignature?: boolean;
+  /** Whether to show the Diatonic Key Signature map in the score header */
+  showKeySignature?: boolean;
+  /** Scale mode (e.g. 'ionian', 'aeolian', 'dorian') for key signature generation */
+  mode?: string;
   /** Custom pulse signature label override for the score header (e.g. "DoLa", "DoRe", "[Dox, Re, So]") */
   pulseSignature?: string;
   /** Metric pulse grammar specification for knot */
@@ -127,6 +140,10 @@ export interface CompileOptions {
   strongBeatGridWeight?: boolean;
   /** Whether to show chord names above the staff (default: true, reads directly from harmonyVoice) */
   showChordNames?: boolean;
+  /** Whether to show Piano Triangle chord spellings above the staff */
+  showChordTriangles?: boolean;
+  /** Key anchor notation style in score header: 'standard' or 'pianoTriangle' or 'both' */
+  keyAnchorStyle?: 'standard' | 'pianoTriangle' | 'both';
   /** Whether to only display chord names when the chord changes (default: false, displaying every chord) */
   chordChanges?: boolean;
   /** Accidental spelling mode ('sharps' or 'flats', auto-detected if omitted) */
@@ -651,6 +668,38 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 #(define pptGlyphDo (make-path-stencil pptPathBase 0.0 0.9 0.9 #t))
 #(define pptGlyphDoOutlined (make-solfege-glyph pptPathBase 0 colorDo #f))
 
+#(define pptPianoTriDownPath '(moveto -0.7 0.6 lineto 0.7 0.6 lineto 0.0 -0.7 closepath))
+#(define pptPianoTriLeftPath '(moveto -0.7 -0.6 lineto 0.7 -0.6 lineto 0.7 0.7 closepath))
+#(define pptPianoTriUpPath   '(moveto -0.7 -0.6 lineto 0.0 0.7 lineto 0.7 -0.6 closepath))
+#(define pptPianoTriRightPath '(moveto -0.7 0.7 lineto -0.7 -0.6 lineto 0.7 -0.6 closepath))
+
+#(define (make-piano-triangle-stencil tri-type v1-col v2-col v3-col)
+   (let* ((tri-path (cond
+                      ((equal? tri-type "D") pptPianoTriDownPath)
+                      ((equal? tri-type "L") pptPianoTriLeftPath)
+                      ((equal? tri-type "U") pptPianoTriUpPath)
+                      (else pptPianoTriRightPath)))
+          (tri-outline (stencil-with-color (make-path-stencil tri-path 0.08 1.0 1.0 #f) (rgb-color 0.25 0.25 0.25)))
+          (make-v-dot (lambda (col x y)
+                        (if col
+                            (let* ((dot (stencil-with-color (make-circle-stencil 0.22 0.0 #t) col))
+                                   (out (stencil-with-color (make-circle-stencil 0.22 0.05 #f) (rgb-color 0.1 0.1 0.1))))
+                              (ly:stencil-translate (ly:stencil-add dot out) (cons x y)))
+                            (ly:stencil-translate (stencil-with-color (make-circle-stencil 0.15 0.04 #f) (rgb-color 0.75 0.75 0.75)) (cons x y))))))
+     (let* ((coords (cond
+                      ((equal? tri-type "D") '((-0.50 . 0.50) (0.0 . -0.55) (0.50 . 0.50)))
+                      ((equal? tri-type "L") '((-0.50 . -0.50) (0.50 . -0.50) (0.50 . 0.55)))
+                      ((equal? tri-type "U") '((-0.50 . -0.50) (0.0 . 0.55) (0.50 . -0.50)))
+                      (else                  '((-0.50 . 0.55) (-0.50 . -0.50) (0.50 . -0.50)))))
+            (c1 (list-ref coords 0))
+            (c2 (list-ref coords 1))
+            (c3 (list-ref coords 2))
+            (dot1 (make-v-dot v1-col (car c1) (cdr c1)))
+            (dot2 (make-v-dot v2-col (car c2) (cdr c2)))
+            (dot3 (make-v-dot v3-col (car c3) (cdr c3)))
+            (raw-stc (ly:stencil-add tri-outline dot1 dot2 dot3)))
+       (ly:stencil-aligned-to raw-stc X LEFT))))
+
 #(define (color-notehead-with-outline grob)
    (let* ((orig (ly:note-head::print grob))
           (col (ly:grob-property grob 'color #f))
@@ -995,6 +1044,7 @@ export function compileToLilyPond(
   const melClef = options.melodyClef ?? "treble";
   const harmClef = options.harmonyClef ?? "treble";
   const showChordNames = options.showChordNames ?? true;
+  const showChordTriangles = options.showChordTriangles ?? false;
   const accStyle = options.accidentalStyle ?? "forget";
   const harmShift =
     options.harmonyOctaveShift ?? getDefaultHarmonyOctaveShift(harmClef);
@@ -1028,9 +1078,9 @@ export function compileToLilyPond(
     options.accidentalMode ??
     (onsets.some(
       (o) =>
-        o.pitch.includes("b") ||
-        o.pitch.includes("♭") ||
-        o.chordTones.some((ct) => ct.includes("b")),
+        o.pitch?.includes("b") ||
+        o.pitch?.includes("♭") ||
+        o.chordTones?.some((ct) => ct.includes("b")),
     )
       ? "flats"
       : "sharps");
@@ -2086,6 +2136,7 @@ export function compileToLilyPond(
     `  \\accidentalStyle ${accStyle}`,
   ];
   const chordNamesLines: string[] = [];
+  const chordTrianglesLines: string[] = [];
 
   if (omitStem) {
     harmonyLines.push("  \\omit Stem");
@@ -2242,6 +2293,7 @@ export function compileToLilyPond(
     for (const chunk of chordNameChunks) {
       if (chunk.isBarStart) {
         chordNamesLines.push('  \\bar "|"');
+        chordTrianglesLines.push('  \\bar "|"');
       }
       const chordDuration =
         chunk.totalDurationBeats !== undefined
@@ -2254,6 +2306,7 @@ export function compileToLilyPond(
 
       if (!chunk.chordRoot) {
         chordNamesLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} s${chordDuration}`);
+        chordTrianglesLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordTriangle_${chunk.onsetIndex} s${chordDuration}`);
       } else {
         const canonicalChord = canonicalChordToLilyPond(
           chunk.chordRoot,
@@ -2267,6 +2320,11 @@ export function compileToLilyPond(
         chordNamesLines.push(
           `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} ${colorTweak}${canonicalChord}${chordDuration}`,
         );
+
+        const ptMarkup = canonicalChordToPianoTriangleMarkup(chunk.chordRoot, resolvedDoMidi);
+        chordTrianglesLines.push(
+          `  \\once \\override ChordName.text = \\markup ${ptMarkup} \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordTriangle_${chunk.onsetIndex} ${canonicalChord}${chordDuration}`,
+        );
       }
     }
   } else {
@@ -2275,6 +2333,7 @@ export function compileToLilyPond(
       if (c > 0) {
         harmonyLines.push('  \\bar "|"');
         chordNamesLines.push('  \\bar "|"');
+        chordTrianglesLines.push('  \\bar "|"');
       }
       const groupPrimaryOnsets = group.onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
       const beamMap = computeOnsetBeaming(groupPrimaryOnsets);
@@ -2300,6 +2359,9 @@ export function compileToLilyPond(
           chordNamesLines.push(
             `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordName_${onset.onsetIndex} s${onsetDur}`,
           );
+          chordTrianglesLines.push(
+            `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordTriangle_${onset.onsetIndex} s${onsetDur}`,
+          );
         } else {
           const canonicalChord = canonicalChordToLilyPond(
             onset.chordRoot,
@@ -2313,6 +2375,11 @@ export function compileToLilyPond(
           chordNamesLines.push(
             `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordName_${onset.onsetIndex} ${colorTweak}${canonicalChord}${onsetDur}`,
           );
+
+          const ptMarkup = canonicalChordToPianoTriangleMarkup(onset.chordRoot, resolvedDoMidi);
+          chordTrianglesLines.push(
+            `  \\once \\override ChordName.text = \\markup ${ptMarkup} \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordTriangle_${onset.onsetIndex} ${canonicalChord}${onsetDur}`,
+          );
         }
       }
     }
@@ -2321,6 +2388,7 @@ export function compileToLilyPond(
   if (primaryOnsets.length > 0) {
     harmonyLines.push('  \\bar "|."');
     chordNamesLines.push('  \\bar "|."');
+    chordTrianglesLines.push('  \\bar "|."');
   }
   harmonyLines.push("  \\cadenzaOff");
 
@@ -2332,6 +2400,7 @@ export function compileToLilyPond(
   const harmonyCoilVoiceStr = harmonyCoilLines.join("\n");
   const harmonyVoiceStr = harmonyLines.join("\n");
   const chordNamesVoiceStr = chordNamesLines.join("\n");
+  const chordTrianglesVoiceStr = chordTrianglesLines.join("\n");
 
   const gridSymbolsMode = options.gridSymbols;
   const hasGridSymbols =
@@ -2780,13 +2849,20 @@ ${coilStaffLines.join("\n")}
   const chordChangesDirective = options.chordChanges
     ? "      \\set chordChanges = ##t\n"
     : "";
-  const scoreBody = showChordNames
-    ? `  <<
-    \\new ChordNames {
-${chordChangesDirective}      \\chordNamesVoice
-    }
-  ${staffGroupBody.trim()}
-  >>`
+  const chordBlocks: string[] = [];
+  if (showChordNames) {
+    chordBlocks.push(`    \\new ChordNames \\with {
+      \\override ChordName.self-alignment-X = #LEFT
+    } {\n${chordChangesDirective}      \\chordNamesVoice\n    }`);
+  }
+  if (showChordTriangles) {
+    chordBlocks.push(`    \\new ChordNames \\with {
+      \\override ChordName.self-alignment-X = #LEFT
+    } {\n${chordChangesDirective}      \\chordTrianglesVoice\n    }`);
+  }
+
+  const scoreBody = chordBlocks.length > 0
+    ? `  <<\n${chordBlocks.join("\n")}\n  ${staffGroupBody.trim()}\n  >>`
     : `  ${staffGroupBody.trim()}`;
 
   // Generate \header block
@@ -2808,12 +2884,42 @@ ${chordChangesDirective}      \\chordNamesVoice
   // Each row is stored as its markup body (without the leading \markup keyword)
   // so they can be placed inside \markup \column { ... } without double-\markup.
   let keyAnchorBody: string | null = null;
+  let keySignatureBody: string | null = null;
   let pulseSignatureBody: string | null = null;
   if (options.piece) {
     headerLines.push(`  piece = "${options.piece.replace(/"/g, '\\"')}"`);
   } else if (options.doPitch && options.showKeyAnchor !== false) {
     const doPitchClass = options.doPitch.replace(/\d+$/, "");
-    keyAnchorBody = `\\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = ${doPitchClass}" }`;
+    const doMidiNum = options.doPitch ? pitchNameToMidi(options.doPitch) : 60;
+    const ptPitchStr = midiToPianoTriangleString(doMidiNum);
+    const keyAnchorStyle = options.keyAnchorStyle ?? 'standard';
+
+    if (keyAnchorStyle === 'pianoTriangle') {
+      const pt = midiToPianoTrianglePitch(doMidiNum);
+      const v1 = pt.point === 1 ? 'colorDo' : '#f';
+      const v2 = pt.point === 2 ? 'colorDo' : '#f';
+      const v3 = pt.point === 3 ? 'colorDo' : '#f';
+      keyAnchorBody = `\\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = " \\stencil #(make-piano-triangle-stencil "${pt.triangle}" ${v1} ${v2} ${v3}) }`;
+    } else if (keyAnchorStyle === 'both') {
+      const pt = midiToPianoTrianglePitch(doMidiNum);
+      const v1 = pt.point === 1 ? 'colorDo' : '#f';
+      const v2 = pt.point === 2 ? 'colorDo' : '#f';
+      const v3 = pt.point === 3 ? 'colorDo' : '#f';
+      keyAnchorBody = `\\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = ${doPitchClass} (" \\stencil #(make-piano-triangle-stencil "${pt.triangle}" ${v1} ${v2} ${v3}) \\fontsize #1.5 \\bold ")" }`;
+    } else {
+      keyAnchorBody = `\\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = ${doPitchClass}" }`;
+    }
+
+    if (options.showKeySignature) {
+      const segments = getScaleTetrachordChainTriangles(doMidiNum, options.mode ?? 'ionian');
+      const stencils = segments.map((seg) => {
+        const v1 = seg.vertices[1]?.schemeColorVar ?? '#f';
+        const v2 = seg.vertices[2]?.schemeColorVar ?? '#f';
+        const v3 = seg.vertices[3]?.schemeColorVar ?? '#f';
+        return `\\stencil #(make-piano-triangle-stencil "${seg.triangle}" ${v1} ${v2} ${v3})`;
+      });
+      keySignatureBody = `\\line \\vcenter { \\fontsize #-1.5 "Key:" \\hspace #0.3 ${stencils.join(" \\hspace #0.4 ")} }`;
+    }
 
     if (options.showPulseSignature || options.pulseSignature) {
       const pulseVal = options.pulse ?? options.meter;
@@ -2862,6 +2968,7 @@ ${chordChangesDirective}      \\chordNamesVoice
   const poetRowBodies: string[] = [];
   if (options.poet) poetRowBodies.push(`"${options.poet.replace(/"/g, '\\"')}"`);
   if (keyAnchorBody) poetRowBodies.push(keyAnchorBody);
+  if (keySignatureBody) poetRowBodies.push(keySignatureBody);
   if (pulseSignatureBody) poetRowBodies.push(pulseSignatureBody);
 
   if (poetRowBodies.length === 1) {
@@ -2927,6 +3034,9 @@ ${chordChangesDirective}      \\chordNamesVoice
   const voiceDefs: string[] = [];
   if (showChordNames) {
     voiceDefs.push(`chordNamesVoice = {\n${chordNamesVoiceStr}\n}`);
+  }
+  if (showChordTriangles) {
+    voiceDefs.push(`chordTrianglesVoice = {\n${chordTrianglesVoiceStr}\n}`);
   }
   if (showMelody) {
     voiceDefs.push(`melodyVoice = {\n${melodyVoiceStr}\n}`);

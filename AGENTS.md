@@ -56,6 +56,10 @@ The repository consists of:
 - **Dual Melody Coil Representations**:
   - **Melody Absolute**: Displays absolute scale degrees with octave displacement triangles for each onset.
   - **Melody Interval**: Anchor note at start with axis (`${scaleDegree}x`), followed by interval tokens computed via `semitoneIntervalToSolfege(diff)` with directional octave triangles.
+- **Piano Triangle Notation Layer**:
+  - Inferred chord deconstruction & spelling (e.g. C Major $\to$ `R3L1U1`, Dm $\to$ `D2L2U3`, Dm7 $\to$ `D2L2U3R3`, Dmaj7 $\to$ `D2L3U3D1`, Inversions $\to$ `D12L3U3`), enabled via `show: [chordTriangles]` / `showChordTriangles: true`.
+  - Heptatonic scale tetrachord chaining (`[5, 6, 7] + [1] + [2, 3, 4]`, e.g. D Major $\to$ `U3R2D12L13U1`, C Major $\to$ `U13R23D2L12`).
+  - Configurable vector SVG rendering with customizable vertex circles (presence, radius, stroke, fill color, and shading: `solid`, `shaded`, `outline`, `ghosted`) and Diatonic Key Signature visualization (`show: [keySignature]`).
 
 ---
 

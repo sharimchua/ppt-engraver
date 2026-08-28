@@ -7,6 +7,7 @@ The `studio/public/` directory contains the client-side single-page application 
 - **`js/core/`**:
   - `solfege.js`: 12-chromatic Solfège degree definitions, canonical colors, and whole-token validators.
   - `pitch.js`: Semitone intervals, transposition math, and Dual Melody mode conversions (Interval $\leftrightarrow$ Absolute).
+  - `piano-triangles.js`: Piano Triangle Notation engine (4-triangle topography, scale tetrachord chaining, chord encoding, configurable vertex circles, diatonic key signature SVG generation).
   - `rhythm.js`: PPT rhythm timeline resolution, lookback repeats, downbeat phase detection, and grammar optimization.
   - `glyphs.js`: SVG Solfège glyph generator (geometric rotations, axis anchors, octave triangles).
   - `ast-scanner.js`: Fast YAML structural scanner, enclosing coil/weave detectors, and LilyPond provenance tag resolvers.

@@ -32,10 +32,12 @@ export const ENUMS_SHOW = [
   { text: 'rhythmCoil', displayText: 'rhythmCoil', type: 'enum', desc: 'Solfège rhythm duration row' },
   { text: 'pulseCoil', displayText: 'pulseCoil', type: 'enum', desc: 'Metric pulse grammar row' },
   { text: 'chordNames', displayText: 'chordNames', type: 'enum', desc: 'Chord symbols above staff' },
+  { text: 'chordTriangles', displayText: 'chordTriangles', type: 'enum', desc: 'Piano Triangle chord shapes above staff' },
   { text: 'rhythmGrid', displayText: 'rhythmGrid', type: 'enum', desc: 'Vertical rhythm gridlines' },
   { text: 'gridSymbols', displayText: 'gridSymbols', type: 'enum', desc: 'Annotate grid lines with notehead shapes' },
   { text: 'timeSignature', displayText: 'timeSignature', type: 'enum', desc: 'Traditional time signature on staff' },
   { text: 'pulseSignature', displayText: 'pulseSignature', type: 'enum', desc: 'PPT pulse declaration in header' },
+  { text: 'keySignature', displayText: 'keySignature', type: 'enum', desc: 'Diatonic Key Signature map in header' },
 ];
 
 export const ENUMS_CLEF = [

@@ -178,5 +178,24 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
   - **Geometric Shape Mappings (`solfegeToGlyphShape`)**:
     - `Do` $\to$ `circle`, `Fi` / `Dix` $\to$ `cross`, `Re` $\to$ `square`, `Me` / `Le` $\to$ `triangleDown`, `Mi` / `La` $\to$ `triangleUp`, `So` $\to$ `halfCircleRight`, `Fa` $\to$ `halfCircleLeft`, `Te` / `Ti` $\to$ `diamond`.
 
+---
+
+## Piano Triangle Notation (`piano-triangles.ts`)
+
+- **Topographical Partitioning**:
+  - `Down` (`D`): C# (Point 1), D (Point 2), D# (Point 3) — Inverted equilateral triangle (apex pointing down into central white key D).
+  - `Left` (`L`): E (Point 1), F (Point 2), F# (Point 3) — Right triangle (right angle on right, apex up).
+  - `Up` (`U`): G (Point 1), G# (Point 2), A (Point 3) — Equilateral triangle (apex up).
+  - `Right` (`R`): A# (Point 1), B (Point 2), C (Point 3) — Right triangle (right angle on left, apex up).
+- **Scale Tetrachord Chaining (`encodePianoTriangleScale`, `getScaleTetrachordChainTriangles`)**:
+  - `[5, 6, 7] + [1] + [2, 3, 4]`. Centered around the tonic with 3 notes to the left and right. Adjacent notes within the same triangle merge into concatenated digits (e.g. D Major $\to$ `U3R2D12L13U1`, C Major $\to$ `U13R23D2L12`).
+- **Inferred Chord Encoding (`encodePianoTriangleChord`, `canonicalChordToPianoTriangle`)**:
+  - Encodes chords into tactile keyboard hand shapes (e.g. C Major $\to$ `R3L1U1`, Dm $\to$ `D2L2U3`, Dm7 $\to$ `D2L2U3R3`, Dmaj7/C# $\to$ `D12L3U3`).
+  - Supported as an alternative chord spelling row layer via `show: [chordTriangles]` / `showChordTriangles: true`.
+- **Configurable Vector Rendering & Diatonic Key Signature (`createPianoTriangleSvg`, `createPianoTriangleKeySignatureSvg`)**:
+  - Configurable vertex circles at Points 1, 2, and 3 (presence, radius, stroke, fill color, and shading: `solid`, `shaded`, `outline`, `ghosted`).
+  - Diatonic Key Signature displays the tetrachord-chained sequence of triangles with the 7 diatonic scale tones colored with their PPT chromatic Solfège colors and non-diatonic vertices ghosted, gated behind `show: [keySignature]` / `showKeySignature: true`.
+
+
 
 

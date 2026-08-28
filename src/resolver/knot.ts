@@ -276,9 +276,11 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
     ?? knotDef.showGuitarTab;
 
   let showRhythmGrid = eng.showRhythmGrid ?? knotDef.showRhythmGrid;
-  let showChordNames: boolean | undefined = undefined;
+  let showChordNames = eng.showChordNames ?? knotDef.showChordNames;
+  let showChordTriangles = eng.showChordTriangles ?? knotDef.showChordTriangles;
 
   let showPulseSignature = eng.showPulseSignature ?? knotDef.showPulseSignature;
+  let showKeySignature = eng.showKeySignature ?? knotDef.showKeySignature;
   let pulseSignature = eng.pulseSignature ?? knotDef.pulseSignature;
   let showTimeSignature = eng.showTimeSignature ?? knotDef.showTimeSignature;
   let timeSignature = eng.timeSignature ?? knotDef.timeSignature;
@@ -300,6 +302,7 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
     }
     showRhythmGrid = eng.show.includes('rhythmGrid');
     showChordNames = eng.show.includes('chordNames');
+    showChordTriangles = eng.show.includes('chordTriangles');
     if (eng.show.includes('gridSymbols') && gridSymbols === undefined) {
       gridSymbols = true;
     }
@@ -308,6 +311,9 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
     }
     if (eng.show.includes('pulseSignature') && showPulseSignature === undefined) {
       showPulseSignature = true;
+    }
+    if (eng.show.includes('keySignature') && showKeySignature === undefined) {
+      showKeySignature = true;
     }
   }
 
@@ -457,6 +463,7 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
       showTimeSignature,
       timeSignature,
       showPulseSignature,
+      showKeySignature,
       pulseSignature,
       pulse,
       meter,
@@ -464,6 +471,8 @@ export function resolveKnot(tapestry: Tapestry, selectedKnotId?: string): KnotRe
       excludeGridDoSymbol,
       strongBeatGridWeight,
       showChordNames,
+      showChordTriangles,
+      keyAnchorStyle: eng.keyAnchorStyle ?? knotDef.keyAnchorStyle,
       zoom,
       indent,
       showRhythmGrid,

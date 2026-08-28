@@ -16,7 +16,14 @@ import {
   parseHarmonyChord,
   solfegeToHarmonyRootOffset,
   getChordIntervals,
+  buildChordFromToken,
 } from '../solfege/pitch.js';
+import {
+  encodePianoTriangleChord,
+  midiToPianoTrianglePitch,
+  type PianoTriangleType,
+  type PianoTrianglePoint,
+} from '../solfege/piano-triangles.js';
 
 export const SOLFEGE_TO_SCHEME_COLOR: Record<string, string> = {
   Do: 'colorDo',
@@ -512,6 +519,118 @@ export function canonicalChordToLilyPond(
 
   return `<${notes.join(' ')}>${slashSuffix}`;
 }
+
+export interface PianoTriangleChordSegment {
+  triangle: PianoTriangleType;
+  points: PianoTrianglePoint[];
+  vertices: Partial<Record<PianoTrianglePoint, {
+    active: boolean;
+    syllable: string;
+    schemeColorVar: string;
+  }>>;
+}
+
+/**
+ * Deconstructs a Solfège chord token into constituent Piano Triangle segments
+ * with active vertices and their PPT chromatic Solfège colors.
+ */
+export function getChordPianoTriangleSegments(
+  chordToken: string,
+  knotDoMidi: number = 60,
+): PianoTriangleChordSegment[] {
+  try {
+    const parsed = parseHarmonyChord(chordToken);
+    const rootOffset = solfegeToHarmonyRootOffset(parsed.rootSyllable);
+    const rootMidi = knotDoMidi + rootOffset;
+    const chordNotes = buildChordFromToken(rootMidi, chordToken, knotDoMidi);
+    if (!chordNotes || chordNotes.length === 0) return [];
+
+    const segments: PianoTriangleChordSegment[] = [];
+    let currentSeg: PianoTriangleChordSegment | null = null;
+
+    for (const noteMidi of chordNotes) {
+      const semitonesFromDo = ((noteMidi - knotDoMidi) % 12 + 12) % 12;
+      const syllable = SOLFEGE_POSITIONS[semitonesFromDo] ?? 'Do';
+      const cleanSyl = syllable.replace(/x$/i, '');
+      const schemeColorVar = SOLFEGE_TO_SCHEME_COLOR[cleanSyl] ?? 'colorDo';
+      const pt = midiToPianoTrianglePitch(noteMidi);
+
+      if (!currentSeg || currentSeg.triangle !== pt.triangle) {
+        currentSeg = {
+          triangle: pt.triangle,
+          points: [pt.point],
+          vertices: {
+            [pt.point]: {
+              active: true,
+              syllable,
+              schemeColorVar,
+            },
+          },
+        };
+        segments.push(currentSeg);
+      } else {
+        if (!currentSeg.points.includes(pt.point)) {
+          currentSeg.points.push(pt.point);
+          currentSeg.points.sort((a, b) => a - b);
+        }
+        currentSeg.vertices[pt.point] = {
+          active: true,
+          syllable,
+          schemeColorVar,
+        };
+      }
+    }
+
+    return segments;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Generates a LilyPond markup string of vector Piano Triangle stencils
+ * representing the chord with each active vertex colored in its Solfège degree color.
+ */
+export function canonicalChordToPianoTriangleMarkup(
+  chordToken: string,
+  knotDoMidi: number = 60,
+): string {
+  const segments = getChordPianoTriangleSegments(chordToken, knotDoMidi);
+  if (segments.length === 0) {
+    return `\\bold "${chordToken}"`;
+  }
+
+  const stencils = segments.map((seg) => {
+    const v1 = seg.vertices[1]?.schemeColorVar ?? '#f';
+    const v2 = seg.vertices[2]?.schemeColorVar ?? '#f';
+    const v3 = seg.vertices[3]?.schemeColorVar ?? '#f';
+    return `\\stencil #(make-piano-triangle-stencil "${seg.triangle}" ${v1} ${v2} ${v3})`;
+  });
+
+  if (stencils.length === 1) {
+    return stencils[0];
+  }
+  return `\\line \\vcenter { ${stencils.join(' \\hspace #0.3 ')} }`;
+}
+
+/**
+ * Converts a Solfège chord token into Piano Triangle notation string (e.g. "Do" -> "R3L1U1", "DoMe" -> "D2L2U3").
+ */
+export function canonicalChordToPianoTriangle(
+  chordToken: string,
+  knotDoMidi: number = 60,
+): string {
+  try {
+    const parsed = parseHarmonyChord(chordToken);
+    const rootOffset = solfegeToHarmonyRootOffset(parsed.rootSyllable);
+    const rootMidi = knotDoMidi + rootOffset;
+    const chordNotes = buildChordFromToken(rootMidi, chordToken, knotDoMidi);
+    return encodePianoTriangleChord(chordNotes);
+  } catch {
+    return chordToken;
+  }
+}
+
 
 /**
  * Converts a chord root MIDI note + quality into a LilyPond chordmode token.

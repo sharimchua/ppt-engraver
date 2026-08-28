@@ -425,7 +425,8 @@ export function extractLayerFromTag(tag) {
     tag.includes('_harmony_') ||
     tag.includes('_harmCoil_') ||
     tag.includes('_harmonyStaff_') ||
-    tag.includes('_chordName_')
+    tag.includes('_chordName_') ||
+    tag.includes('_chordTriangle_')
   ) {
     return 'harmony';
   }

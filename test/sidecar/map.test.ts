@@ -109,6 +109,7 @@ describe('Point-and-Click & AST Scanner Navigation', () => {
     expect(extractLayerFromTag('ppt_song_verse_pulse_2')).toBe('pulse');
     expect(extractLayerFromTag('ppt_song_verse_harmony_1')).toBe('harmony');
     expect(extractLayerFromTag('ppt_song_verse_chordName_1')).toBe('harmony');
+    expect(extractLayerFromTag('ppt_song_verse_chordTriangle_1')).toBe('harmony');
     expect(extractLayerFromTag('ppt_song_verse_tab_1')).toBe('melody');
   });
 
