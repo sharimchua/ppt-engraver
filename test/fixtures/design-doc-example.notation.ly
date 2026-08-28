@@ -475,10 +475,10 @@
                               (ly:stencil-translate (ly:stencil-add dot out) (cons x y)))
                             (ly:stencil-translate (stencil-with-color (make-circle-stencil 0.15 0.04 #f) (rgb-color 0.75 0.75 0.75)) (cons x y))))))
      (let* ((coords (cond
-                      ((equal? tri-type "D") '((-0.50 . 0.50) (0.0 . -0.55) (0.50 . 0.50)))
-                      ((equal? tri-type "L") '((-0.50 . -0.50) (0.50 . -0.50) (0.50 . 0.55)))
-                      ((equal? tri-type "U") '((-0.50 . -0.50) (0.0 . 0.55) (0.50 . -0.50)))
-                      (else                  '((-0.50 . 0.55) (-0.50 . -0.50) (0.50 . -0.50)))))
+                      ((equal? tri-type "D") '((-0.70 . 0.60) (0.0 . -0.70) (0.70 . 0.60)))
+                      ((equal? tri-type "L") '((-0.70 . -0.60) (0.70 . -0.60) (0.70 . 0.70)))
+                      ((equal? tri-type "U") '((-0.70 . -0.60) (0.0 . 0.70) (0.70 . -0.60)))
+                      (else                  '((-0.70 . 0.70) (-0.70 . -0.60) (0.70 . -0.60)))))
             (c1 (list-ref coords 0))
             (c2 (list-ref coords 1))
             (c3 (list-ref coords 2))
@@ -606,6 +606,39 @@
        (minimum-distance . 8)
        (padding . 3)
        (stretchability . 20))
+  bookTitleMarkup = \markup {
+    \override #'(baseline-skip . 3.5)
+    \column {
+      \fill-line { \fromproperty #'header:dedication }
+      \override #'(baseline-skip . 3.5)
+      \column {
+        \fill-line {
+          \huge \larger \bold
+          \fromproperty #'header:title
+        }
+        \fill-line {
+          \large \bold
+          \fromproperty #'header:subtitle
+        }
+        \fill-line {
+          \smaller \bold
+          \fromproperty #'header:subsubtitle
+        }
+        \fill-line {
+          \general-align #Y #UP \fromproperty #'header:poet
+          { \large \bold \fromproperty #'header:instrument }
+          \general-align #Y #UP \column {
+            \line { \fromproperty #'header:composer }
+            \line { \fromproperty #'header:arranger }
+          }
+        }
+        \fill-line {
+          \fromproperty #'header:piece
+          \fromproperty #'header:opus
+        }
+      }
+    }
+  }
 }
 
 chordNamesVoice = {
@@ -647,6 +680,11 @@ harmonyVoice = {
   <<
     \new ChordNames \with {
       \override ChordName.self-alignment-X = #LEFT
+      \override VerticalAxisGroup.nonstaff-relatedstaff-spacing =
+        #'((basic-distance . 4)
+           (minimum-distance . 3)
+           (padding . 1.2)
+           (stretchability . 0))
     } {
       \chordNamesVoice
     }

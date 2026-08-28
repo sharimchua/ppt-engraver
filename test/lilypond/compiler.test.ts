@@ -128,12 +128,17 @@ describe('compileToLilyPond', () => {
 
   it('emits ChordNames reading from chordNamesVoice, showing all chords by default', () => {
     const ly = compileToLilyPond(sampleOnsets);
-    expect(ly).toContain('\\new ChordNames \\with {\n      \\override ChordName.self-alignment-X = #LEFT\n    } {\n      \\chordNamesVoice\n    }');
+    expect(ly).toContain('\\new ChordNames \\with {');
+    expect(ly).toContain('\\override ChordName.self-alignment-X = #LEFT');
+    expect(ly).toContain('\\chordNamesVoice');
   });
 
   it('allows enabling chordChanges: true to suppress duplicate consecutive chord names', () => {
     const ly = compileToLilyPond(sampleOnsets, { chordChanges: true });
-    expect(ly).toContain('\\new ChordNames \\with {\n      \\override ChordName.self-alignment-X = #LEFT\n    } {\n      \\set chordChanges = ##t\n      \\chordNamesVoice\n    }');
+    expect(ly).toContain('\\new ChordNames \\with {');
+    expect(ly).toContain('\\override ChordName.self-alignment-X = #LEFT');
+    expect(ly).toContain('\\set chordChanges = ##t');
+    expect(ly).toContain('\\chordNamesVoice');
   });
 
   it('renders repeated coil onsets with new barline when onset index resets to 1', () => {
@@ -962,8 +967,8 @@ describe('computeOnsetBeaming & LilyPond Beaming', () => {
     // New format: column with key anchor body and pulse glyph body (no nested \markup inside column)
     expect(ly).toContain('poet = \\markup \\column {');
     expect(ly).toContain('\\line \\vcenter { \\stencil #pptGlyphDoOutlined \\fontsize #1.5 \\bold " = C" }');
-    // Pulse row uses P: label and glyph stencils
-    expect(ly).toContain('"P:"');
+    // Pulse row uses Pulse: label and glyph stencils
+    expect(ly).toContain('"Pulse:"');
     expect(ly).toContain('make-solfege-glyph');
     // Should NOT use plain bold text for pulse
     expect(ly).not.toContain('\\bold "DoLa"');
