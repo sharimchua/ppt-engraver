@@ -38,6 +38,7 @@ The `studio/public/` directory contains the client-side single-page application 
   - `shortcuts-modal.js`: Searchable and categorized Keyboard Shortcuts Cheat Sheet modal.
 - **`js/ui/`**:
   - `toolbar.js`: Top header bar, score picker, and knot projection dropdowns.
+  - `pitch-clock-window.js`: Draggable and resizable 12-Tone Pitch Clock pedagogical floating reference window controller, multi-representation layer toggles, and live score tonic synchronization.
   - `split-pane.js`: Draggable split pane gutter with size persistence.
   - `zoom-controls.js`: Zoom in/out/fit/reset controls.
   - `notifications.js`: Status badges, save indicators, and error banners.
@@ -217,6 +218,16 @@ The `studio/public/` directory contains the client-side single-page application 
   - Shareable score & knot URLs: `?score=autumn_leaves_variants.ppt.yaml&knot=leadSheet`.
   - Remembers active score and knot projection across page refreshes via `localStorage` and `history.replaceState`.
   - Full browser Back/Forward navigation support (`popstate`).
+
+### 8. Pedagogical Pitch Clock Reference Tool (`#pitch-clock-floating-window`)
+- **Draggable & Resizable HUD Overlay**:
+  - Toggleable via Command Palette (`Reference: Toggle Pitch Clock Floating Window`) or global shortcut `Ctrl+Alt+K` (`Cmd+Alt+K` on macOS).
+  - Smooth dragging via title handle, fluid resizing via bottom-right grip, and minimize/maximize toggle.
+  - Persists window geometry, position, active layers, tonic, and preset scale in `localStorage`.
+- **Multi-Representation Geometry**:
+  - Displays concurrent or toggleable layers: **Traditional Pitch Names** (dual/sharp/flat/tri), **Uniform Solfège Syllables** (relative to tonic), **Scale Degrees / Intervals**, **Uniform Solfège Vector Glyphs** ($0^\circ, 90^\circ, 180^\circ, 270^\circ$, axis diacritic on root), and **Piano Triangle Quadrants** (`D`, `L`, `U`, `R`).
+  - **Dynamic Polygon Overlays**: Interactive scale/chord preset dropdown (Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian, Harmonic Minor, Whole Tone, Diminished, Pentatonics, Major/Minor/Dominant 7th chords) connects active pitch nodes with glowing SVG polygons and center rays.
+  - **Live Score Synchronization**: Automatically updates and synchronizes tonic rotation when switching score Knots or clicking the sync button.
 
 ---
 

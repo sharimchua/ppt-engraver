@@ -154,6 +154,7 @@ async function compileScore(yamlContent: string, format = 'pdf', knotId?: string
         sidecarMap: result.sidecarMap,
         availableKnots: result.availableKnots,
         selectedKnotId: result.selectedKnotId,
+        knot: result.knot,
         warnings: result.warnings,
         metrics: {
           compileTimeMs,
@@ -188,6 +189,7 @@ async function compileScore(yamlContent: string, format = 'pdf', knotId?: string
         sidecarMap: result.sidecarMap,
         availableKnots: result.availableKnots,
         selectedKnotId: result.selectedKnotId,
+        knot: result.knot,
         warnings: result.warnings,
         metrics: {
           compileTimeMs,
@@ -205,6 +207,7 @@ async function compileScore(yamlContent: string, format = 'pdf', knotId?: string
       lilypondSource: result.lilypondSource,
       availableKnots: result.availableKnots,
       selectedKnotId: result.selectedKnotId,
+      knot: result.knot,
       warnings: result.warnings,
       metrics: {
         compileTimeMs,

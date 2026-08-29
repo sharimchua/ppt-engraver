@@ -25,6 +25,7 @@ export const SHORTCUT_CATEGORIES = [
       { action: 'Command Palette', keys: ['Ctrl', 'Shift', 'P'], altKeys: ['F1'], desc: 'Search all commands, actions, and snippets' },
       { action: 'Go to Symbol / Reference', keys: ['Ctrl', 'G'], desc: 'Filter weaves (w:), coils (c:), knots (k:), sections (s:)' },
       { action: 'Go to Definition', keys: ['Ctrl', 'Click'], altKeys: ['F12'], desc: 'Jump to coil/weave ID declaration from reference' },
+      { action: 'Toggle Pitch Clock Reference Window', keys: ['Ctrl', 'Alt', 'K'], desc: 'Open draggable 12-tone multi-representation pitch clock' },
       { action: 'Keyboard Shortcuts Cheat Sheet', keys: ['?'], desc: 'Open this shortcuts cheat sheet modal' },
     ],
   },

@@ -13,6 +13,7 @@ import { compileToLilyPond, type CompileOptions } from '../lilypond/compiler.js'
 import { generateSidecarMap, type SidecarMap } from '../sidecar/map.js';
 import type { OnsetStream } from '../schema/onset.js';
 import type { KnotSummary } from '../schema/tapestry.js';
+import type { ResolvedKnot } from '../solfege/pitch.js';
 
 export interface CompileResult {
   /** The emitted LilyPond notation string (.ly) */
@@ -27,6 +28,8 @@ export interface CompileResult {
   availableKnots?: KnotSummary[];
   /** The active resolved knot ID */
   selectedKnotId?: string;
+  /** The resolved knot metadata and pitch anchor */
+  knot?: ResolvedKnot;
 }
 
 export interface CompileFileOptions extends CompileOptions {
@@ -146,6 +149,7 @@ export function compileFile(
     warnings,
     availableKnots,
     selectedKnotId,
+    knot,
   };
 }
 
@@ -236,6 +240,7 @@ export function compileYamlString(
     warnings,
     availableKnots,
     selectedKnotId,
+    knot,
   };
 }
 

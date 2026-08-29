@@ -368,6 +368,113 @@
         </div>
       </div>
     </div>
+
+    <!-- Floating Pitch Clock Pedagogical Tool -->
+    <div id="pitch-clock-floating-window" class="floating-window hidden">
+      <div class="floating-window-header" id="pitch-clock-drag-handle">
+        <div class="floating-window-title">
+          <span class="floating-window-icon">🎛️</span>
+          <span>Pitch Clock Reference</span>
+        </div>
+        <div class="floating-window-actions">
+          <button id="btn-pitch-clock-sync-knot" class="btn-icon-subtle" title="Sync with Current Knot Tonic">🔄</button>
+          <button id="btn-pitch-clock-minimize" class="btn-icon-subtle" title="Minimize/Maximize">🗕</button>
+          <button id="btn-pitch-clock-close" class="btn-icon-subtle" title="Close (Ctrl+Alt+K)">&times;</button>
+        </div>
+      </div>
+      <div class="floating-window-body" id="pitch-clock-window-body">
+        <div class="pitch-clock-toolbar">
+          <div class="pitch-clock-control-group">
+            <label for="pitch-clock-tonic-select">Tonic (Pitch):</label>
+            <select id="pitch-clock-tonic-select" class="pitch-clock-select">
+              <option value="0">C</option>
+              <option value="1">C♯ / D♭</option>
+              <option value="2">D</option>
+              <option value="3">D♯ / E♭</option>
+              <option value="4">E</option>
+              <option value="5">F</option>
+              <option value="6">F♯ / G♭</option>
+              <option value="7">G</option>
+              <option value="8">G♯ / A♭</option>
+              <option value="9">A</option>
+              <option value="10">A♯ / B♭</option>
+              <option value="11">B</option>
+            </select>
+          </div>
+          <div class="pitch-clock-control-group">
+            <label for="pitch-clock-scale-select">Scale / Chord Preset:</label>
+            <select id="pitch-clock-scale-select" class="pitch-clock-select">
+              <option value="">All Chromatic (None)</option>
+              <optgroup label="Diatonic Modes">
+                <option value="major">Major (Ionian)</option>
+                <option value="dorian">Dorian</option>
+                <option value="phrygian">Phrygian</option>
+                <option value="lydian">Lydian</option>
+                <option value="mixolydian">Mixolydian</option>
+                <option value="minor">Natural Minor (Aeolian)</option>
+                <option value="locrian">Locrian</option>
+              </optgroup>
+              <optgroup label="Symmetric & Other Scales">
+                <option value="harmonic_minor">Harmonic Minor</option>
+                <option value="melodic_minor">Melodic Minor</option>
+                <option value="pentatonic_major">Pentatonic Major</option>
+                <option value="pentatonic_minor">Pentatonic Minor</option>
+                <option value="whole_tone">Whole Tone</option>
+                <option value="diminished">Diminished</option>
+              </optgroup>
+              <optgroup label="Chords & Triads">
+                <option value="triad_major">Major Triad</option>
+                <option value="triad_minor">Minor Triad</option>
+                <option value="triad_augmented">Augmented Triad</option>
+                <option value="triad_diminished">Diminished Triad</option>
+                <option value="maj7">Major 7th (maj7)</option>
+                <option value="dom7">Dominant 7th (7)</option>
+                <option value="min7">Minor 7th (m7)</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="pitch-clock-control-group">
+            <label for="pitch-clock-orientation-select">Top (0°):</label>
+            <select id="pitch-clock-orientation-select" class="pitch-clock-select">
+              <option value="c-top" selected>Fixed C</option>
+              <option value="tonic-top">Active Tonic</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pitch-clock-layer-toggles">
+          <label class="pitch-clock-toggle-chip">
+            <input type="checkbox" id="chk-repr-pitch" checked>
+            <span>Pitch</span>
+          </label>
+          <label class="pitch-clock-toggle-chip">
+            <input type="checkbox" id="chk-repr-solfege" checked>
+            <span>Solfège</span>
+          </label>
+          <label class="pitch-clock-toggle-chip">
+            <input type="checkbox" id="chk-repr-degrees" checked>
+            <span>Degrees</span>
+          </label>
+          <label class="pitch-clock-toggle-chip">
+            <input type="checkbox" id="chk-repr-glyphs" checked>
+            <span>Glyphs</span>
+          </label>
+          <label class="pitch-clock-toggle-chip">
+            <input type="checkbox" id="chk-repr-triangles" checked>
+            <span>Piano Triangles</span>
+          </label>
+        </div>
+
+        <div class="pitch-clock-canvas-wrapper">
+          <ppt-pitch-clock id="studio-pitch-clock" tonic="0" representations="pitch-names,solfege,scale-degrees,solfege-glyphs,piano-triangles"></ppt-pitch-clock>
+        </div>
+
+        <div class="pitch-clock-footer-info" id="pitch-clock-info-text">
+          Double-click any node to set as Tonic • Drag header to move
+        </div>
+      </div>
+      <div class="floating-window-resize-handle" id="pitch-clock-resize-handle"></div>
+    </div>
   </div>
 
   <script type="module" src="js/main.js"></script>

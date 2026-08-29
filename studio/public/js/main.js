@@ -22,6 +22,7 @@ import { setupNotifications } from './ui/notifications.js';
 import { setupSettingsModal } from './modals/settings-modal.js';
 import { setupCommandPalette } from './modals/command-palette.js';
 import { setupShortcutsModal } from './modals/shortcuts-modal.js';
+import { pitchClockWindow } from './ui/pitch-clock-window.js';
 import { setupModalManagerListeners } from './modals/modal-manager.js';
 import { createTapestry, deleteTapestry, renameTapestryFile, confirmDiscardUnsavedChanges } from './modals/tapestry-modals.js';
 import { showTonicModeTranspositionModal } from './modals/tonic-modal.js';
@@ -181,7 +182,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         notifications.setMetrics(`Render: ${data.metrics?.renderTimeMs || 0}ms`);
         updateKnotDropdown(data.availableKnots, data.selectedKnotId);
         state.currentKnotId = data.selectedKnotId;
+        state.currentKnot = data.knot;
+        if (data.knot?.doName) {
+          state.currentScoreTonic = data.knot.doName;
+        }
         updateUrlAndStorage(state.currentScoreFile, data.selectedKnotId);
+        pitchClockWindow.syncFromActiveScore();
 
         await preview.renderResult(data);
       } else {
@@ -334,6 +340,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         icon: '⌨',
         shortcut: '?',
         action: () => shortcutsModal.openShortcutsModal(),
+      },
+      {
+        id: 'reference-toggle-pitch-clock',
+        title: 'Toggle Pitch Clock Floating Window',
+        category: 'Reference & Pedagogical Tools',
+        icon: '🎛️',
+        shortcut: 'Ctrl+Alt+K',
+        action: () => pitchClockWindow.toggle(),
+      },
+      {
+        id: 'reference-sync-pitch-clock',
+        title: 'Sync Pitch Clock Tonic from Score',
+        category: 'Reference & Pedagogical Tools',
+        icon: '🔄',
+        action: () => pitchClockWindow.syncFromActiveScore(),
       },
       {
         id: 'project-save-tapestry',
@@ -558,7 +579,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       onRefreshScores: fetchScoresList,
       getEditor: () => editor,
     }),
-    onKnotChanged: (knotId) => updateUrlAndStorage(state.currentScoreFile, knotId),
+    onKnotChanged: (knotId) => {
+      updateUrlAndStorage(state.currentScoreFile, knotId);
+      pitchClockWindow.syncFromActiveScore();
+    },
   });
 
   // Initialize Web MIDI Manager
@@ -597,6 +621,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   setupSettingsModal({
     onOpenShortcuts: () => shortcutsModal.openShortcutsModal(),
+  });
+
+  // Initialize Pitch Clock Pedagogical Reference Window
+  pitchClockWindow.init({
+    onSetStatus: notifications.setStatus,
+    getEditor: () => editor,
   });
 
   // Listen to dirty state changes
@@ -649,6 +679,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (cmdOrCtrl && !e.shiftKey && (e.key === 'o' || e.key === 'O')) {
       e.preventDefault();
       commandPalette.openTapestryPicker();
+      return;
+    }
+
+    // Ctrl+Alt+K / Cmd+Alt+K -> Toggle Pitch Clock Reference Window
+    if (cmdOrCtrl && e.altKey && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      pitchClockWindow.toggle();
       return;
     }
 

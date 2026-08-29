@@ -825,6 +825,13 @@ PPT Studio supports direct "typing" of Solfège tokens into the CodeMirror edito
 - **Additive & Progressive**: Tokens are inserted cleanly at or after the cursor position, and the cursor advances automatically to the newly added token for seamless continuous playing.
 - **Hardware Selection & Toggle**: Toggle with `Ctrl+Shift+M`, the toolbar button, or Command Palette. Select individual MIDI devices or listen to all inputs simultaneously in Settings (⚙).
 
+### Pedagogical Pitch Clock Reference Tool (`Ctrl+Alt+K`)
+PPT Studio includes a floating, draggable/resizable **12-Tone Pitch Clock** designed for teaching and music theory reference:
+- **5 Concurrent Representation Layers**: Toggle Traditional Pitch Names (C, C#/Db, etc.), Uniform Solfège (Do, Ra, Re, etc.), Scale Degrees (1, ♭2, 2, etc.), Uniform Solfège Rotated SVG Glyphs, and Piano Triangle Quadrant badges (`D`, `L`, `U`, `R`).
+- **Dynamic Scale/Chord Polygons**: Overlay interactive preset modes and chords (Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian, Harmonic Minor, Whole Tone, Diminished, Pentatonics, Major/Minor/Dominant 7ths) with illuminated SVG polygons and ray vectors.
+- **Score Synchronization**: Automatically syncs tonic rotation with active score Knots.
+- **Toggle**: Access anytime via `Ctrl+Alt+K` (`Cmd+Alt+K` on Mac), the Command Palette (`Ctrl+Shift+P` / `F1`), or double-clicking nodes to rotate tonic.
+
 ### Keyboard Shortcuts Reference
 
 | Shortcut | Context | Action |
@@ -836,6 +843,7 @@ PPT Studio supports direct "typing" of Solfège tokens into the CodeMirror edito
 | `Ctrl+Enter` / `Cmd+Enter` | Global | **Compile / Recompile** sheet music with LilyPond |
 | `Ctrl+Shift+P` / `Cmd+Shift+P` / `F1` | Global | **Command Palette** (search actions, snippets & tools) |
 | `Ctrl+G` / `Cmd+G` | Global | **Go to Named Reference / Symbol** palette (`w:`, `c:`, `k:`, `s:`) |
+| `Ctrl+Alt+K` / `Cmd+Alt+K` | Global | **Toggle Pitch Clock Reference Window** (floating 12-tone pedagogical tool) |
 | `?` / Command Palette / ⚙ Settings | Global | **Keyboard Shortcuts Cheat Sheet Modal** |
 | `Ctrl+Shift+M` / `Cmd+Shift+M` | Global | **Toggle MIDI Solfège Typing** On / Off |
 | `Ctrl+Up` / `Ctrl+Down` | On Solfège note | Transpose active note chromatically (+1 / -1 semitone) |

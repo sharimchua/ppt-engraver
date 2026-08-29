@@ -22,7 +22,7 @@
 
 The repository consists of:
 1. **Core TypeScript Library & CLI (`src/`)**: Resolves high-level PPT Tapestry/Knot/Weave/Coil definitions into deterministic onset streams, generates LilyPond score markup (`.ly`), emits expectation sidecar maps (`.ppt-map.json`), and exports standard MIDI.
-2. **Interactive IDE & Visual Studio (`studio/`)**: Full-stack web application with CodeMirror YAML editor, live LilyPond PDF/SVG rendering via PDF.js, Frescobaldi-style Point-and-Click source navigation, real-time text-aligned Solfège glyph previews, non-destructive Tonic/Mode & Rhythmic Period Transposition modals, structural shortcuts, Go-To symbol palette (`Ctrl+G`), loupe magnifier, and URL deeplinking.
+2. **Interactive IDE & Visual Studio (`studio/`)**: Full-stack web application with CodeMirror YAML editor, live LilyPond PDF/SVG rendering via PDF.js, Frescobaldi-style Point-and-Click source navigation, real-time text-aligned Solfège glyph previews, non-destructive Tonic/Mode & Rhythmic Period Transposition modals, structural shortcuts, Go-To symbol palette (`Ctrl+G`), loupe magnifier, draggable 12-Tone Pitch Clock pedagogical reference window (`Ctrl+Alt+K`), and URL deeplinking.
 3. **Score Library (`scores/`)**: High-level YAML score definitions (`*.ppt.yaml`).
 4. **Test Suite (`test/`)**: 280+ automated tests across parser, resolvers, compiler, rhythm, pitch, transposition, and sidecars.
 
