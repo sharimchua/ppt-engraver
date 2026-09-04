@@ -636,6 +636,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Global Keyboard Shortcuts (active across the entire studio window)
   window.addEventListener('keydown', (e) => {
+    // If the shortcut was already handled by CodeMirror or a child component, ignore to prevent double execution
+    if (e.defaultPrevented) return;
+
+    // Don't intercept single-key or standard input if an input/textarea/select (outside CodeMirror) has focus
+    const activeEl = document.activeElement;
+    const isModalInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT') && !activeEl.closest('.CodeMirror');
+
+    if (isModalInput) {
+      return;
+    }
+
     const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
 
@@ -660,11 +671,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Don't intercept single-key or standard input if an input/textarea (outside CodeMirror) has focus
-    const activeEl = document.activeElement;
-    const isModalInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT') && !activeEl.closest('.CodeMirror');
-
-    if (isModalInput) {
+    // Ctrl+Shift+E / Cmd+Shift+E -> Export Standalone PDF
+    if (cmdOrCtrl && e.shiftKey && (e.key === 'E' || e.key === 'e')) {
+      e.preventDefault();
+      exportPdf();
       return;
     }
 
