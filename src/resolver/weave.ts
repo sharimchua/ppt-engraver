@@ -12,13 +12,14 @@
 import type { Weave, Coil, WeaveStitch } from '../schema/tapestry.js';
 import type { ResolvedKnot } from '../solfege/pitch.js';
 import type { Onset } from '../schema/onset.js';
-import { midiToPitchName } from '../solfege/pitch.js';
+import { midiToPitchName, deriveModulatedKnot } from '../solfege/pitch.js';
 import { resolveCoil, isMelodyDefined, isHarmonyDefined, isRhythmDefined, isMelodyExplicitlyEmpty } from './coil.js';
 import { beatsToLilyPondDuration, resolveMetricGrammar } from '../solfege/rhythm.js';
 
 export interface WeaveResolutionResult {
   onsets: Onset[];
   warnings: string[];
+  finalKnot?: ResolvedKnot;
 }
 
 /**
@@ -76,6 +77,10 @@ export function resolveWeave(
   const currentStack = [...activeWeaveStack, effectiveWeaveId];
   const allWarnings: string[] = [];
 
+  // 2c. Apply any weave-level tonic or modulation to knot
+  const weaveKnot = deriveModulatedKnot(knot, weave.modulate, weave.tonic);
+  let runningKnot = weaveKnot;
+
   // 3. Resolve default coil for this weave (local or inherited)
   let effectiveDefaultCoil: Coil | undefined = inheritedDefaultCoil;
   if (weave.defaultCoil) {
@@ -112,6 +117,10 @@ export function resolveWeave(
 
   // 4. Resolve each stitch item
   for (const stitch of stitches) {
+    const baseStitchKnot = layout === 'concatenate' ? runningKnot : weaveKnot;
+    const stitchModulate = (stitch as any).modulate;
+    const stitchTonic = (stitch as any).tonic;
+
     if ('weave' in stitch && stitch.weave !== undefined) {
       // --- Stitch is a nested Weave ---
       let childWeave: Weave;
@@ -129,25 +138,34 @@ export function resolveWeave(
         weaveLibrary.set(childWeaveId, childWeave);
       }
 
-      const effectiveWeavePulse = weave.pulse ?? weave.meter ?? knot.pulse ?? knot.meter;
-      if (childWeave.pulse === undefined && childWeave.meter === undefined && effectiveWeavePulse !== undefined) {
-        childWeave.pulse = effectiveWeavePulse;
-        childWeave.meter = effectiveWeavePulse;
+      const stitchKnot = deriveModulatedKnot(baseStitchKnot, stitchModulate, stitchTonic);
+      const effectiveChildWeave = (stitchModulate !== undefined || stitchTonic !== undefined)
+        ? { ...childWeave, modulate: stitchModulate !== undefined ? undefined : childWeave.modulate, tonic: stitchTonic !== undefined ? undefined : childWeave.tonic }
+        : childWeave;
+
+      const effectiveWeavePulse = weave.pulse ?? weave.meter ?? stitchKnot.pulse ?? stitchKnot.meter;
+      if (effectiveChildWeave.pulse === undefined && effectiveChildWeave.meter === undefined && effectiveWeavePulse !== undefined) {
+        effectiveChildWeave.pulse = effectiveWeavePulse;
+        effectiveChildWeave.meter = effectiveWeavePulse;
       }
-      const effectiveWeaveScale = weave.scale ?? knot.scale;
-      if (childWeave.scale === undefined && effectiveWeaveScale !== undefined) {
-        childWeave.scale = effectiveWeaveScale;
+      const effectiveWeaveScale = weave.scale ?? stitchKnot.scale;
+      if (effectiveChildWeave.scale === undefined && effectiveWeaveScale !== undefined) {
+        effectiveChildWeave.scale = effectiveWeaveScale;
       }
 
       const childResult = resolveWeave(
-        childWeave,
-        knot,
+        effectiveChildWeave,
+        stitchKnot,
         coilLibrary,
         weaveLibrary,
         currentStack,
         effectiveDefaultCoil,
       );
       allWarnings.push(...childResult.warnings);
+
+      if (layout === 'concatenate') {
+        runningKnot = childResult.finalKnot ?? stitchKnot;
+      }
 
       resolvedStitches.push({
         type: 'weave',
@@ -179,7 +197,18 @@ export function resolveWeave(
         }
       }
 
-      const effectiveCoilPulse = coil.pulse ?? coil.meter ?? weave.pulse ?? weave.meter ?? knot.pulse ?? knot.meter;
+      let stitchKnot = deriveModulatedKnot(baseStitchKnot, stitchModulate, stitchTonic);
+      if (stitchModulate === undefined && coil.modulate !== undefined) {
+        stitchKnot = deriveModulatedKnot(stitchKnot, coil.modulate);
+      }
+      if (stitchTonic === undefined && coil.tonic !== undefined) {
+        stitchKnot = deriveModulatedKnot(stitchKnot, undefined, coil.tonic);
+      }
+      if (layout === 'concatenate') {
+        runningKnot = stitchKnot;
+      }
+
+      const effectiveCoilPulse = coil.pulse ?? coil.meter ?? weave.pulse ?? weave.meter ?? stitchKnot.pulse ?? stitchKnot.meter;
       if (coil.pulse === undefined && coil.meter === undefined && effectiveCoilPulse !== undefined) {
         coil.pulse = effectiveCoilPulse;
         coil.meter = effectiveCoilPulse;
@@ -199,7 +228,7 @@ export function resolveWeave(
 
       const { onsets, warnings } = resolveCoil(
         coil,
-        knot,
+        stitchKnot,
         coilLibrary,
         effectiveDefaultCoil,
       );
@@ -223,11 +252,11 @@ export function resolveWeave(
 
         mappedOnsets.push({
           tag,
-          pitch: onset.isRest ? 'r' : midiToPitchName(onset.melodyMidi, knot.accidentalMode),
+          pitch: onset.isRest ? 'r' : midiToPitchName(onset.melodyMidi, stitchKnot.accidentalMode),
           midiNote: onset.melodyMidi,
           scaleDegree: onset.scaleDegree,
           isRest: onset.isRest,
-          chordTones: onset.chordMidi.map(m => midiToPitchName(m, knot.accidentalMode)),
+          chordTones: onset.chordMidi.map(m => midiToPitchName(m, stitchKnot.accidentalMode)),
           chordMidi: [...onset.chordMidi],
           projectedChordMidi: [...onset.chordMidi],
           chordRoot: onset.chordRoot,
@@ -248,7 +277,9 @@ export function resolveWeave(
           melodyAugmentationNotes: onset.melodyAugmentationNotes ? [...onset.melodyAugmentationNotes] : undefined,
           pulse: effectiveCoilPulse,
           meter: effectiveCoilPulse,
-          scale: weave.scale ?? knot.scale,
+          scale: weave.scale ?? stitchKnot.scale,
+          tonic: stitchKnot.tonicName ?? stitchKnot.doName,
+          tonicMidi: stitchKnot.tonicMidi ?? stitchKnot.doMidi,
         });
       }
 
@@ -479,6 +510,9 @@ export function resolveWeave(
             harmonySourceCoil: activeChord ? activeChord.sourceCoil : s.id,
             pulse: s.coil?.pulse ?? weave.pulse ?? knot.pulse,
             meter: s.coil?.meter ?? weave.meter ?? knot.meter,
+            scale: weave.scale ?? knot.scale,
+            tonic: knot.tonicName ?? knot.doName,
+            tonicMidi: knot.tonicMidi ?? knot.doMidi,
           });
         }
       }
@@ -489,6 +523,6 @@ export function resolveWeave(
     }
   }
 
-  return { onsets: allOnsets, warnings: allWarnings };
+  return { onsets: allOnsets, warnings: allWarnings, finalKnot: runningKnot };
 }
 

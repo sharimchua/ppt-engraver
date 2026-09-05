@@ -772,6 +772,40 @@ weaves:
           id: four_voice
           melody: [Do, Re, Me, Fa]
           rhythm: [Do, Do, Do, Do]  # 4 beats
+
+### 5. Weave-Level Tonic Modulation & Overrides (`modulate: ...`, `tonic: ...`)
+Weaves and stitch entries can modulate the active tonic across sections using PPT Solfège intervals or semitone offsets:
+
+- **`modulate: <Solfège|semitones>`**: Shifts the active tonic by a Solfège interval (e.g. `modulate: Fa` for +5 semitones / ascending 4th, `modulate: So` for -5 semitones / descending 4th, `_Fa`, `^So`) or signed semitone integer (`5`, `-5`).
+- **Sequential Propagation**: In `layout: concatenate` (sequential) weaves, modulations accumulate down the sequence, matching real-world musical modulation where a piece stays in the modulated key until a subsequent modulation occurs.
+- **Concurrent Isolation**: In `layout: parallel` and `layout: parallelPeriod` weaves, modulations are branch-isolated so parallel voices do not alter sibling tonics.
+- **`tonic: <pitch>`**: Sets an absolute tonic pitch override for that weave or stitch (e.g. `tonic: "C4"`).
+- **Mid-Score Key Signatures & Chords**: When `show: [keySignature]` is enabled, LilyPond emits in-place `\key <newTonic> \<mode>` changes across weave boundaries. Lead-sheet chord names (`show: [chordNames]`) and Piano Triangle hand shapes (`show: [chordTriangles]`) evaluate dynamically relative to the modulated tonic.
+
+```yaml
+tapestry:
+  knot:
+    tonic: "G4"
+    weave: song
+
+  weaves:
+    intro:
+      stitch:
+        - coil: vamp             # Tonic: G4 (Do = G)
+    verse:
+      modulate: Fa               # Shifts tonic to C5 (G4 + Fa / +5 semitones)
+      stitch:
+        - coil: verse_melody     # Tonic: C5 (Do = C)
+    chorus:
+      modulate: So               # Returns tonic to G4 (C5 + So / -5 semitones)
+      stitch:
+        - coil: chorus_melody    # Tonic: G4 (Do = G)
+    song:
+      stitch:
+        - weave: intro
+        - weave: verse
+        - weave: chorus
+```
 ```
 
 ---
@@ -820,8 +854,9 @@ PPT Studio includes a suite of musical transposition modals, structural AST help
 ### Contextual MIDI Solfège Typing (`Ctrl+Shift+M`)
 PPT Studio supports direct "typing" of Solfège tokens into the CodeMirror editor using connected MIDI keyboards and controllers. Entry is contextual and activates when the editor cursor is located on or inside a Solfège array:
 - **Rhythm Layer (`rhythm: [...]`)**: Maps key strikes relative to a universal Rhythm Do reference pitch (default `C4`). Playing Do an octave down (e.g. `C3`) enters `Dox` (beat skip). Single keys enter chromatic rhythm degrees (`Do`, `Ra`, `Re`, `Me`, `Mi`, `Fa`, `Fi`, `So`, `Le`, `La`, `Te`, `Ti`).
-- **Harmony Layer (`harmony: [...]` / `chords: [...]`)**: Realizes absolute chord voicings relative to the active knot tonic using an **octave-down confirmation key** ($N_{\min} - 12$). Holding chord tones and striking the root 1 octave down translates the chord against PPT harmonic grammar (e.g. `C4-E4-G4-B4` + `C3` $\to$ `DoTi`, `C4-B4` + `C3` $\to$ `DoTi`, `A4-C5-E5` + `A3` $\to$ `LaMe`, `G4-B4-D5-F5` + `G3` $\to$ `SoTe`, `D4-F4-A4-C5` + `D3` $\to$ `ReMeTe`).
-- **Melody Layer (`melody: [...]` / `pitches: [...]`)**: Converts played notes into Solfège based on active Knot tonic. Automatically infers **Interval Mode** (when array starts with axis anchor `x`, e.g. `[Dox, ...]`) vs **Absolute Mode** (default). In interval mode, computes relative signed semitone intervals against the preceding note.
+- **Harmony Layer (`harmony: [...]` / `chords: [...]`)**: Realizes absolute chord voicings relative to the active scope tonic using an **octave-down confirmation key** ($N_{\min} - 12$). Holding chord tones and striking the root 1 octave down translates the chord against PPT harmonic grammar (e.g. `C4-E4-G4-B4` + `C3` $\to$ `DoTi`, `C4-B4` + `C3` $\to$ `DoTi`, `A4-C5-E5` + `A3` $\to$ `LaMe`, `G4-B4-D5-F5` + `G3` $\to$ `SoTe`, `D4-F4-A4-C5` + `D3` $\to$ `ReMeTe`).
+- **Melody Layer (`melody: [...]` / `pitches: [...]`)**: Converts played notes into Solfège based on active scope tonic. Automatically infers **Interval Mode** (when array starts with axis anchor `x`, e.g. `[Dox, ...]`) vs **Absolute Mode** (default). In interval mode, computes relative signed semitone intervals against the preceding note.
+- **Scope-Aware Tonic Inference & Temporary Coil Overrides**: Automatically tracks the immediate weave and coil scope at the cursor, adjusting the input tonic for weave/stitch modulations (`modulate: ...`, `tonic: ...`) so playing in a modulated section (e.g. `chorus` in C) translates C keys to `Do` rather than `Fa`. The live toolbar **MIDI Tonic Dropdown** displays `Auto (<InferredTonic>)` and allows selecting an explicit pitch to temporarily cache a custom preference per coil without altering YAML.
 - **Additive & Progressive**: Tokens are inserted cleanly at or after the cursor position, and the cursor advances automatically to the newly added token for seamless continuous playing.
 - **Hardware Selection & Toggle**: Toggle with `Ctrl+Shift+M`, the toolbar button, or Command Palette. Select individual MIDI devices or listen to all inputs simultaneously in Settings (⚙).
 

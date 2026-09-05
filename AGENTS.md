@@ -22,9 +22,9 @@
 
 The repository consists of:
 1. **Core TypeScript Library & CLI (`src/`)**: Resolves high-level PPT Tapestry/Knot/Weave/Coil definitions into deterministic onset streams, generates LilyPond score markup (`.ly`), emits expectation sidecar maps (`.ppt-map.json`), and exports standard MIDI.
-2. **Interactive IDE & Visual Studio (`studio/`)**: Full-stack web application with CodeMirror YAML editor, live LilyPond PDF/SVG rendering via PDF.js, Frescobaldi-style Point-and-Click source navigation, real-time text-aligned Solfège glyph previews, non-destructive Tonic/Mode & Rhythmic Period Transposition modals, structural shortcuts, Go-To symbol palette (`Ctrl+G`), loupe magnifier, draggable 12-Tone Pitch Clock pedagogical reference window (`Ctrl+Alt+K`), and URL deeplinking.
+2. **Interactive IDE & Visual Studio (`studio/`)**: Full-stack web application with CodeMirror YAML editor, live LilyPond PDF/SVG rendering via PDF.js, Frescobaldi-style Point-and-Click source navigation, real-time text-aligned Solfège glyph previews, non-destructive Tonic/Mode & Rhythmic Period Transposition modals, structural shortcuts, Go-To symbol palette (`Ctrl+G`), loupe magnifier, draggable 12-Tone Pitch Clock pedagogical reference window (`Ctrl+Alt+K`), scope-aware MIDI Solfège input with live inferred tonic indicator and temporary coil overrides, and URL deeplinking.
 3. **Score Library (`scores/`)**: High-level YAML score definitions (`*.ppt.yaml`).
-4. **Test Suite (`test/`)**: 280+ automated tests across parser, resolvers, compiler, rhythm, pitch, transposition, and sidecars.
+4. **Test Suite (`test/`)**: 430+ automated tests across parser, resolvers, compiler, rhythm, pitch, transposition, MIDI input, and sidecars.
 
 ---
 
@@ -60,6 +60,12 @@ The repository consists of:
   - Scales are specified with pure Solfège notation (e.g. `scale: "Do"` for major 13th / Ionian, `scale: "Re"` for Dorian, `scale: "La"` for Aeolian/Minor, `scale: "DoMe"` for flat 3rd, `scale: "LaTi"` for harmonic minor, `scale: [Do, Re, Me, Fa, So, Le, Ti]`).
   - Knot-level and weave-level scale definitions propagate to onsets and control traditional staff key signatures (`show: [keySignature]`) as well as in-place mid-score key signature changes across weave boundaries.
   - Score header Scale row displays Solfège glyph scale signature (`show: [scaleSignature]`) and/or Piano Triangle tetrachord chain (`show: [scaleSignaturePianoTriangle]`) in a single composite `Scale:` row.
+- **Weave-Level Tonic Modulation & Overrides (`modulate: ...`, `tonic: ...`)**:
+  - `modulate: <Solfège|semitones>` shifts the active tonic by Solfège interval (e.g. `Fa` for +5 semitones / 4th up, `So` for -5 semitones / 4th down, `_Fa`, `^So`) or signed semitone integer.
+  - In sequential (`layout: concatenate`) weaves, modulations accumulate and carry forward down the phrase sequence. In concurrent (`layout: parallel`, `layout: parallelPeriod`) weaves, modulations remain branch-isolated.
+  - `tonic: <pitch>` sets an absolute tonic pitch override (e.g. `tonic: "C4"`).
+  - When `show: [keySignature]` is active, LilyPond emits in-place `\key <tonic> \<mode>` changes across weave boundaries when tonic or mode changes.
+  - Chord names and Piano Triangle handshapes dynamically evaluate relative to the modulated tonic.
 - **Piano Triangle Notation Layer**:
   - Inferred chord deconstruction & spelling (e.g. C Major $\to$ `R3L1U1`, Dm $\to$ `D2L2U3`, Dm7 $\to$ `D2L2U3R3`, Dmaj7 $\to$ `D2L3U3D1`, Inversions $\to$ `D12L3U3`), enclosed in a Solfège root-colored rectangular box outline, enabled via `show: [chordTriangles]` / `showChordTriangles: true`.
   - Heptatonic scale tetrachord chaining (`[5, 6, 7] + [1] + [2, 3, 4]`, e.g. D Major $\to$ `U3R2D12L13U1`, C Major $\to$ `U13R23D2L12`).

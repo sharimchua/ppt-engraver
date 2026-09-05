@@ -3,6 +3,7 @@
  */
 
 import { isValidSolfegeToken } from './solfege.js';
+import { pitchNameToMidi, applyModulation } from './pitch.js';
 
 export const RESERVED_SCHEMA_KEYS = new Set([
   'tapestry', 'knot', 'knots', 'weaves', 'coils', 'children', 'stitch', 'stitches',
@@ -684,5 +685,285 @@ export function resolveTagFromLyLine(lyLineNum, onsets, sidecarMap, lilypondSour
     targetLayer,
     voiceIndex: tagVoiceIndex,
     onsetIndex: tagOnsetIndex,
+  };
+}
+
+/**
+ * Detects the immediate scope (enclosing weave, enclosing coil, and inferred tonic)
+ * at the current cursor position in CodeMirror.
+ *
+ * @param {object|string} cm - CodeMirror instance or YAML text string
+ * @param {object|number} pos - Cursor { line, ch } or line number
+ * @param {object|null} [compiledData=null] - Optional compile result containing onsets/knot
+ * @param {string} [fallbackKnotTonic='C4'] - Default fallback tonic if not found
+ * @returns {{ weaveId: string|null, coilId: string|null, inferredTonic: string, inferredTonicMidi: number, lineNum: number }}
+ */
+export function getScopeAtCursor(cm, pos, compiledData = null, fallbackKnotTonic = 'C4') {
+  if (!cm) {
+    return {
+      weaveId: null,
+      coilId: null,
+      inferredTonic: fallbackKnotTonic,
+      inferredTonicMidi: 60,
+      lineNum: 0,
+    };
+  }
+
+  const curLine = typeof pos === 'number' ? pos : (pos && typeof pos.line === 'number' ? pos.line : 0);
+  const lineCount = cm.lineCount ? cm.lineCount() : (typeof cm === 'string' ? cm.split('\n').length : 0);
+  const getLine = (l) => cm.getLine ? cm.getLine(l) : (typeof cm === 'string' ? cm.split('\n')[l] : '');
+
+  let weaveId = null;
+  let coilId = null;
+
+  // 1. Detect if cursor is inside an inline stitch coil or dictionary coil
+  let inlineCoilStart = -1;
+  let inlineCoilIndent = -1;
+  let inlineCoilId = null;
+
+  for (let l = curLine; l >= 0; l--) {
+    const line = getLine(l);
+    if (!line || /^\s*#/.test(line)) continue;
+
+    // Check for inline coil: "- coil:"
+    const inlineMatch = line.match(/^(\s*)-\s+coil\s*:\s*(.*)$/i);
+    if (inlineMatch) {
+      inlineCoilStart = l;
+      inlineCoilIndent = inlineMatch[1].length;
+      const rest = inlineMatch[2].trim();
+      const inlineNamed = rest.match(/^([_a-zA-Z0-9]+)$/);
+      if (inlineNamed && !RESERVED_SCHEMA_KEYS.has(inlineNamed[1].toLowerCase())) {
+        inlineCoilId = inlineNamed[1];
+      } else {
+        const idMatch = rest.match(/id\s*:\s*["']?([_a-zA-Z0-9]+)["']?/i);
+        if (idMatch) inlineCoilId = idMatch[1];
+      }
+
+      // If ID not on same line, look forward within coil block
+      if (!inlineCoilId) {
+        for (let s = l + 1; s < lineCount; s++) {
+          const sLine = getLine(s);
+          if (!sLine || !sLine.trim() || /^\s*#/.test(sLine)) continue;
+          const sIndent = getLineIndent(sLine);
+          if (sIndent <= inlineCoilIndent) break;
+          const idM = sLine.match(/^\s*id\s*:\s*["']?([_a-zA-Z0-9]+)["']?/i);
+          if (idM) {
+            inlineCoilId = idM[1];
+            break;
+          }
+        }
+      }
+      break;
+    }
+
+    // Check for dictionary coil or weave definition
+    const dictMatch = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:\s*$/);
+    if (dictMatch) {
+      const key = dictMatch[2];
+      if (!RESERVED_SCHEMA_KEYS.has(key.toLowerCase())) {
+        const parentSec = findParentSection(cm, l);
+        if (parentSec === 'coils') {
+          coilId = key;
+          break;
+        } else if (parentSec === 'weaves') {
+          weaveId = key;
+          break;
+        }
+      }
+    }
+  }
+
+  // 2. If inside an inline coil, find enclosing weave
+  if (inlineCoilStart !== -1) {
+    let stitchIndent = -1;
+    let weaveIndent = -1;
+
+    for (let l = inlineCoilStart - 1; l >= 0; l--) {
+      const line = getLine(l);
+      if (!line || /^\s*#/.test(line)) continue;
+      const indent = getLineIndent(line);
+
+      if (indent < inlineCoilIndent) {
+        if (/^\s*(?:stitch|stitches|children)\s*:/i.test(line)) {
+          stitchIndent = indent;
+        } else if (stitchIndent !== -1 && indent < stitchIndent) {
+          const wMatch = line.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
+          if (wMatch && !RESERVED_SCHEMA_KEYS.has(wMatch[1].toLowerCase())) {
+            weaveId = wMatch[1];
+            weaveIndent = indent;
+            break;
+          }
+        } else if (stitchIndent === -1) {
+          const wMatch = line.match(/^\s*([_a-zA-Z0-9]+)\s*:/);
+          if (wMatch && !RESERVED_SCHEMA_KEYS.has(wMatch[1].toLowerCase())) {
+            const sec = findParentSection(cm, l);
+            if (sec === 'weaves') {
+              weaveId = wMatch[1];
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (inlineCoilId) {
+      coilId = inlineCoilId;
+    } else if (weaveId) {
+      // Calculate 1-based index of this inline coil in this weave
+      let coilIndex = 1;
+      for (let l = inlineCoilStart - 1; l >= 0; l--) {
+        const line = getLine(l);
+        if (!line) continue;
+        const indent = getLineIndent(line);
+        if (weaveIndent !== -1 && indent <= weaveIndent) break;
+        if (/^\s*-\s+coil\s*:/i.test(line) && indent === inlineCoilIndent) {
+          coilIndex++;
+        }
+      }
+      coilId = `${weaveId}_coil_${coilIndex}`;
+    }
+  }
+
+  // 3. If coilId is known from coils: dictionary, find which weave references it
+  if (coilId && !weaveId) {
+    if (compiledData?.onsets && Array.isArray(compiledData.onsets)) {
+      const matchingOnset = compiledData.onsets.find(o =>
+        o.sourceCoilId === coilId || o.melodySourceCoil === coilId || o.harmonySourceCoil === coilId || o.coilId === coilId
+      );
+      if (matchingOnset && matchingOnset.weaveId) {
+        weaveId = matchingOnset.weaveId;
+      }
+    }
+
+    if (!weaveId) {
+      const fullText = cm.getValue ? cm.getValue() : (typeof cm === 'string' ? cm : '');
+      const lines = fullText.split('\n');
+      let currentScanWeave = null;
+      for (let l = 0; l < lines.length; l++) {
+        const line = lines[l];
+        const wMatch = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:/);
+        if (wMatch && !RESERVED_SCHEMA_KEYS.has(wMatch[2].toLowerCase())) {
+          const sec = findParentSection(cm, l);
+          if (sec === 'weaves') {
+            currentScanWeave = wMatch[2];
+          }
+        }
+        if (currentScanWeave && line.includes(coilId)) {
+          weaveId = currentScanWeave;
+          break;
+        }
+      }
+    }
+  }
+
+  // 4. Resolve Inferred Tonic
+  let inferredTonic = null;
+  let inferredTonicMidi = null;
+
+  // Attempt 1: From compiled onsets
+  if (compiledData?.onsets && Array.isArray(compiledData.onsets)) {
+    if (coilId) {
+      const match = compiledData.onsets.find(o =>
+        o.sourceCoilId === coilId || o.melodySourceCoil === coilId || o.harmonySourceCoil === coilId || o.coilId === coilId
+      );
+      if (match && match.tonic) {
+        inferredTonic = match.tonic;
+        inferredTonicMidi = match.tonicMidi ?? (pitchNameToMidi ? pitchNameToMidi(match.tonic) : 60);
+      }
+    }
+    if (!inferredTonic && weaveId) {
+      const match = compiledData.onsets.find(o => o.weaveId === weaveId && o.tonic);
+      if (match && match.tonic) {
+        inferredTonic = match.tonic;
+        inferredTonicMidi = match.tonicMidi ?? (pitchNameToMidi ? pitchNameToMidi(match.tonic) : 60);
+      }
+    }
+  }
+
+  // Attempt 2: Read from compiled knot
+  if (!inferredTonic && compiledData?.knot) {
+    const knotTonic = compiledData.knot.tonicName || compiledData.knot.doName;
+    if (knotTonic) {
+      inferredTonic = knotTonic;
+      inferredTonicMidi = compiledData.knot.tonicMidi || compiledData.knot.doMidi;
+    }
+  }
+
+  // Attempt 3: AST calculation from YAML text
+  if (!inferredTonic) {
+    const fullText = cm.getValue ? cm.getValue() : (typeof cm === 'string' ? cm : '');
+    let baseTonic = fallbackKnotTonic || 'C4';
+    const knotMatch = fullText.match(/^\s*tonic\s*:\s*["']?([A-G](?:#|b|♭)?\d+)["']?/m);
+    if (knotMatch) {
+      baseTonic = knotMatch[1];
+    }
+
+    let baseMidi = 60;
+    try {
+      baseMidi = pitchNameToMidi(baseTonic);
+    } catch {
+      baseMidi = 60;
+    }
+
+    if (weaveId) {
+      const allLines = fullText.split('\n');
+      let weaveLineIdx = -1;
+      let weaveIndent = -1;
+
+      for (let l = 0; l < allLines.length; l++) {
+        const line = allLines[l];
+        const m = line.match(/^(\s*)([_a-zA-Z0-9]+)\s*:/);
+        if (m && m[2] === weaveId) {
+          weaveLineIdx = l;
+          weaveIndent = m[1].length;
+          break;
+        }
+      }
+
+      if (weaveLineIdx !== -1) {
+        let modSpec = null;
+        let tonicSpec = null;
+
+        for (let l = weaveLineIdx + 1; l < allLines.length; l++) {
+          const line = allLines[l];
+          if (!line.trim() || /^\s*#/.test(line)) continue;
+          const indent = getLineIndent(line);
+          if (indent <= weaveIndent) break;
+
+          const modM = line.match(/^\s*modulate\s*:\s*["']?([^\s\r\n,"'\}]+)["']?/i);
+          if (modM && !modSpec) modSpec = modM[1];
+
+          const tonicM = line.match(/^\s*tonic\s*:\s*["']?([A-G](?:#|b|♭)?\d+)["']?/i);
+          if (tonicM && !tonicSpec) tonicSpec = tonicM[1];
+        }
+
+        if (tonicSpec) {
+          inferredTonic = tonicSpec;
+          try { inferredTonicMidi = pitchNameToMidi(inferredTonic); } catch { inferredTonicMidi = 60; }
+        } else if (modSpec) {
+          try {
+            const modRes = applyModulation(baseMidi, 'sharps', modSpec);
+            inferredTonic = modRes.tonicName;
+            inferredTonicMidi = modRes.tonicMidi;
+          } catch {
+            inferredTonic = baseTonic;
+            inferredTonicMidi = baseMidi;
+          }
+        }
+      }
+    }
+
+    if (!inferredTonic) {
+      inferredTonic = baseTonic;
+      inferredTonicMidi = baseMidi;
+    }
+  }
+
+  return {
+    weaveId,
+    coilId,
+    inferredTonic,
+    inferredTonicMidi: inferredTonicMidi ?? 60,
+    lineNum: curLine,
   };
 }

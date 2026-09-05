@@ -188,6 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         updateUrlAndStorage(state.currentScoreFile, data.selectedKnotId);
         pitchClockWindow.syncFromActiveScore();
+        refreshMidiTonicUi();
 
         await preview.renderResult(data);
       } else {
@@ -214,6 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       preview.clearPreviewWindow('Loading & compiling tapestry sheet music...');
       const data = await apiGetScore(filePath);
       if (data.content) {
+        midiManager.clearAllCoilTonicOverrides?.();
         state.currentScoreFile = filePath;
         updateScoresDropdown(state.scores, filePath);
         updateUrlAndStorage(filePath, state.currentKnotId);
@@ -560,6 +562,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     refactorConvertMelody: (cm, mode) => refactorConvertMelody(cm, mode, { onTriggerCompile: triggerCompile, onSetStatus: notifications.setStatus }),
   });
 
+  function refreshMidiTonicUi() {
+    if (!editor) return;
+    const scopeInfo = midiManager.getScopeAndTonic(editor, editor.getCursor(), lastCompiledData);
+    toolbar.updateMidiTonicUi?.(scopeInfo);
+  }
+
+  editor.on('cursorActivity', () => {
+    refreshMidiTonicUi();
+  });
+
   // --- Setup UI Subsystems ---
   const toolbar = setupToolbar({
     onLoadScore: (path) => loadScore(path),
@@ -583,10 +595,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateUrlAndStorage(state.currentScoreFile, knotId);
       pitchClockWindow.syncFromActiveScore();
     },
+    onMidiTonicChanged: (val, coilKey) => {
+      if (val === 'auto') {
+        midiManager.clearCoilTonicOverride(coilKey);
+      } else {
+        midiManager.setCoilTonicOverride(coilKey, val);
+      }
+      refreshMidiTonicUi();
+    },
   });
 
   // Initialize Web MIDI Manager
   midiManager.init(() => editor);
+  refreshMidiTonicUi();
+
+  events.on('midi:tonic-override-changed', () => {
+    refreshMidiTonicUi();
+  });
 
   events.on('midi:status', (statusInfo) => {
     state.midiStatus = statusInfo.status;

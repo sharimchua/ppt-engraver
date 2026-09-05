@@ -1120,19 +1120,20 @@ export function compileToLilyPond(
     `  \\accidentalStyle ${accStyle}`,
   ];
 
-  let tonicDutch = "c";
-  if (options.doPitch) {
+  const getTonicDutch = (pitchStr?: string): string => {
+    if (!pitchStr) return "c";
     try {
-      const midi = pitchNameToMidi(options.doPitch);
+      const midi = pitchNameToMidi(pitchStr);
       const pc = ((midi % 12) + 12) % 12;
-      const tonicAccMode = getAccidentalModeFromPitchName(options.doPitch);
-      tonicDutch = (
+      const tonicAccMode = getAccidentalModeFromPitchName(pitchStr);
+      return (
         tonicAccMode === "flats" ? LILYPOND_FLAT_NOTES : LILYPOND_SHARP_NOTES
       )[pc];
     } catch {
-      tonicDutch = "c";
+      return "c";
     }
-  }
+  };
+  let tonicDutch = getTonicDutch(options.doPitch);
 
   const primaryOnsets = onsets.filter((o) => (o.voiceIndex ?? 1) === 1);
   const initialScaleDef = options.scale ?? (primaryOnsets.length > 0 ? primaryOnsets[0].scale : undefined) ?? 'Do';
@@ -1327,12 +1328,17 @@ export function compileToLilyPond(
           melodyLines.push('      \\bar "|"');
           const prevGroup = coilGroups[c - 1];
           if (group.onsets[0]?.weaveId !== prevGroup.onsets[0]?.weaveId) {
+            const prevTonic = prevGroup.onsets[0]?.tonic ?? options.doPitch;
+            const currTonic = group.onsets[0]?.tonic ?? options.doPitch;
             const prevScale = prevGroup.onsets[0]?.scale ?? options.scale ?? 'Do';
             const currScale = group.onsets[0]?.scale ?? options.scale ?? 'Do';
             const prevScaleStr = parseScaleDefinition(prevScale).scaleString;
             const currParsed = parseScaleDefinition(currScale);
-            if (prevScaleStr !== currParsed.scaleString && showKeySignature) {
-              melodyLines.push(`      \\key ${tonicDutch} \\${currParsed.lilypondMode}`);
+            const isScaleChanged = prevScaleStr !== currParsed.scaleString;
+            const isTonicChanged = prevTonic !== currTonic;
+            if ((isScaleChanged || isTonicChanged) && showKeySignature) {
+              const currTonicDutch = getTonicDutch(currTonic);
+              melodyLines.push(`      \\key ${currTonicDutch} \\${currParsed.lilypondMode}`);
             }
           }
         }
@@ -1370,12 +1376,17 @@ export function compileToLilyPond(
         melodyLines.push('  \\bar "|"');
         const prevGroup = coilGroups[c - 1];
         if (group.onsets[0]?.weaveId !== prevGroup.onsets[0]?.weaveId) {
+          const prevTonic = prevGroup.onsets[0]?.tonic ?? options.doPitch;
+          const currTonic = group.onsets[0]?.tonic ?? options.doPitch;
           const prevScale = prevGroup.onsets[0]?.scale ?? options.scale ?? 'Do';
           const currScale = group.onsets[0]?.scale ?? options.scale ?? 'Do';
           const prevScaleStr = parseScaleDefinition(prevScale).scaleString;
           const currParsed = parseScaleDefinition(currScale);
-          if (prevScaleStr !== currParsed.scaleString && showKeySignature) {
-            melodyLines.push(`  \\key ${tonicDutch} \\${currParsed.lilypondMode}`);
+          const isScaleChanged = prevScaleStr !== currParsed.scaleString;
+          const isTonicChanged = prevTonic !== currTonic;
+          if ((isScaleChanged || isTonicChanged) && showKeySignature) {
+            const currTonicDutch = getTonicDutch(currTonic);
+            melodyLines.push(`  \\key ${currTonicDutch} \\${currParsed.lilypondMode}`);
           }
         }
       }
@@ -2222,6 +2233,8 @@ export function compileToLilyPond(
       totalDurationBeats?: number;
       isBarStart: boolean;
       scale?: string | string[];
+      tonic?: string;
+      tonicMidi?: number;
     }> = [];
 
     let currentHarmonyChunk: typeof harmonyChunks[0] | null = null;
@@ -2261,6 +2274,8 @@ export function compileToLilyPond(
           totalDurationBeats: onset.durationBeats,
           isBarStart: isNewCoil,
           scale: onset.scale,
+          tonic: onset.tonic,
+          tonicMidi: onset.tonicMidi,
         };
       }
     }
@@ -2273,12 +2288,17 @@ export function compileToLilyPond(
       if (chunk.isBarStart) {
         harmonyLines.push('  \\bar "|"');
         if (cIdx > 0 && chunk.weaveId !== harmonyChunks[cIdx - 1].weaveId) {
+          const prevTonic = harmonyChunks[cIdx - 1].tonic ?? options.doPitch;
+          const currTonic = chunk.tonic ?? options.doPitch;
           const prevScale = harmonyChunks[cIdx - 1].scale ?? options.scale ?? 'Do';
           const currScale = chunk.scale ?? options.scale ?? 'Do';
           const prevScaleStr = parseScaleDefinition(prevScale).scaleString;
           const currParsed = parseScaleDefinition(currScale);
-          if (prevScaleStr !== currParsed.scaleString && showKeySignature) {
-            harmonyLines.push(`  \\key ${tonicDutch} \\${currParsed.lilypondMode}`);
+          const isScaleChanged = prevScaleStr !== currParsed.scaleString;
+          const isTonicChanged = prevTonic !== currTonic;
+          if ((isScaleChanged || isTonicChanged) && showKeySignature) {
+            const currTonicDutch = getTonicDutch(currTonic);
+            harmonyLines.push(`  \\key ${currTonicDutch} \\${currParsed.lilypondMode}`);
           }
         }
       }
@@ -2314,6 +2334,7 @@ export function compileToLilyPond(
       spanCount: number;
       totalDurationBeats?: number;
       isBarStart: boolean;
+      tonicMidi?: number;
     }> = [];
 
     let currentChordNameChunk: typeof chordNameChunks[0] | null = null;
@@ -2326,10 +2347,12 @@ export function compileToLilyPond(
           onset.coilId !== primaryOnsets[i - 1].coilId ||
           onset.weaveId !== primaryOnsets[i - 1].weaveId);
 
+      const onsetTonicMidi = onset.tonicMidi ?? resolvedDoMidi;
       const isSameRoot =
         currentChordNameChunk &&
         !isNewCoil &&
-        currentChordNameChunk.chordRoot === onset.chordRoot;
+        currentChordNameChunk.chordRoot === onset.chordRoot &&
+        currentChordNameChunk.tonicMidi === onsetTonicMidi;
 
       if (isSameRoot && currentChordNameChunk) {
         currentChordNameChunk.spanCount++;
@@ -2350,6 +2373,7 @@ export function compileToLilyPond(
           spanCount: 1,
           totalDurationBeats: onset.durationBeats,
           isBarStart: isNewCoil,
+          tonicMidi: onsetTonicMidi,
         };
       }
     }
@@ -2375,9 +2399,10 @@ export function compileToLilyPond(
         chordNamesLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} s${chordDuration}`);
         chordTrianglesLines.push(`  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordTriangle_${chunk.onsetIndex} s${chordDuration}`);
       } else {
+        const chunkDoMidi = chunk.tonicMidi ?? resolvedDoMidi;
         const canonicalChord = canonicalChordToLilyPond(
           chunk.chordRoot,
-          resolvedDoMidi,
+          chunkDoMidi,
           accMode,
           forceAccidentals,
         );
@@ -2388,7 +2413,7 @@ export function compileToLilyPond(
           `  \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordName_${chunk.onsetIndex} ${colorTweak}${canonicalChord}${chordDuration}`,
         );
 
-        const ptMarkup = canonicalChordToPianoTriangleMarkup(chunk.chordRoot, resolvedDoMidi);
+        const ptMarkup = canonicalChordToPianoTriangleMarkup(chunk.chordRoot, chunkDoMidi);
         chordTrianglesLines.push(
           `  \\once \\override ChordName.text = \\markup ${ptMarkup} \\tag #'ppt_${chunk.weaveId}_${chunk.coilId}_chordTriangle_${chunk.onsetIndex} ${canonicalChord}${chordDuration}`,
         );
@@ -2403,12 +2428,17 @@ export function compileToLilyPond(
         chordTrianglesLines.push('  \\bar "|"');
         const prevGroup = coilGroups[c - 1];
         if (group.onsets[0]?.weaveId !== prevGroup.onsets[0]?.weaveId) {
+          const prevTonic = prevGroup.onsets[0]?.tonic ?? options.doPitch;
+          const currTonic = group.onsets[0]?.tonic ?? options.doPitch;
           const prevScale = prevGroup.onsets[0]?.scale ?? options.scale ?? 'Do';
           const currScale = group.onsets[0]?.scale ?? options.scale ?? 'Do';
           const prevScaleStr = parseScaleDefinition(prevScale).scaleString;
           const currParsed = parseScaleDefinition(currScale);
-          if (prevScaleStr !== currParsed.scaleString && showKeySignature) {
-            harmonyLines.push(`  \\key ${tonicDutch} \\${currParsed.lilypondMode}`);
+          const isScaleChanged = prevScaleStr !== currParsed.scaleString;
+          const isTonicChanged = prevTonic !== currTonic;
+          if ((isScaleChanged || isTonicChanged) && showKeySignature) {
+            const currTonicDutch = getTonicDutch(currTonic);
+            harmonyLines.push(`  \\key ${currTonicDutch} \\${currParsed.lilypondMode}`);
           }
         }
       }
@@ -2440,9 +2470,10 @@ export function compileToLilyPond(
             `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordTriangle_${onset.onsetIndex} s${onsetDur}`,
           );
         } else {
+          const onsetDoMidi = onset.tonicMidi ?? resolvedDoMidi;
           const canonicalChord = canonicalChordToLilyPond(
             onset.chordRoot,
-            resolvedDoMidi,
+            onsetDoMidi,
             accMode,
             forceAccidentals,
           );
@@ -2453,7 +2484,7 @@ export function compileToLilyPond(
             `  \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordName_${onset.onsetIndex} ${colorTweak}${canonicalChord}${onsetDur}`,
           );
 
-          const ptMarkup = canonicalChordToPianoTriangleMarkup(onset.chordRoot, resolvedDoMidi);
+          const ptMarkup = canonicalChordToPianoTriangleMarkup(onset.chordRoot, onsetDoMidi);
           chordTrianglesLines.push(
             `  \\once \\override ChordName.text = \\markup ${ptMarkup} \\tag #'ppt_${onset.weaveId}_${onset.coilId}_chordTriangle_${onset.onsetIndex} ${canonicalChord}${onsetDur}`,
           );

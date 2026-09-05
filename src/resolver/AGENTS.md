@@ -26,6 +26,7 @@ The `src/resolver/` directory resolves high-level declarative PPT constructs int
 4. **`resolveWeave()`**:
    - Traverses a Weave's `stitch: [...]` list (coils and nested weaves) and evaluates onset streams according to `layout: 'concatenate'` (sequential), `layout: 'parallel'` (concurrent / simultaneous), or `layout: 'parallelPeriod'` (period-matched polyrhythms).
    - Inherits and propagates weave-level `scale:` declarations (`scale: "Do"`, `scale: "La"`, `scale: "DoMe"`, `scale: "LaTi"`) to all child stitches and onsets, enabling section-level key and modal shifts.
+   - Resolves weave-level and stitch-level modulation (`modulate: <Solfège|semitones>`) and absolute tonic overrides (`tonic: <pitch>`). In `layout: concatenate`, modulations accumulate down the sequence; in `layout: parallel`, modulations remain branch-isolated.
    - In `parallel` and `parallelPeriod` modes:
      - In `parallelPeriod`: scales each stitch's onsets so their total duration matches the target overall period duration, allowing natural-meter polyrhythm definitions.
      - Merges separate harmony and melody/rhythm coils into unified onsets across matching timestamps.
@@ -49,6 +50,8 @@ Each onset resolved by this subsystem contains:
 - `melodyMidi`: Absolute MIDI pitch number.
 - `scaleDegree`: Solfège syllable (e.g. `Do`, `Rex`).
 - `scale`: Active scale definition for the onset (e.g. `Do`, `La`, `DoMe`, `LaTi`).
+- `tonic`: Active tonic pitch name for the onset (e.g. `G4`, `C5`).
+- `tonicMidi`: Active tonic MIDI pitch number.
 - `chordRoot` & `chordMidi`: Active harmony triad.
 - `rhythmToken` & `duration`: Temporal duration value.
 - `isRest`: Boolean flag indicating silence.

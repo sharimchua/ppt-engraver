@@ -413,10 +413,20 @@ export function fitRootToClefRegister(
  * Parsing order: syllable, then 'x' (axis), then ^/_ (octave shifts).
  */
 export function parsePitch(notation: string): ParsedPitch {
-  let remaining = notation;
-  
-  // Count and remove trailing octave shifts
+  let remaining = notation.trim();
   let octaveShift = 0;
+
+  // Count and remove leading octave shifts (e.g. ^So, _Fa, ^^Do)
+  while (remaining.startsWith('^')) {
+    octaveShift++;
+    remaining = remaining.slice(1);
+  }
+  while (remaining.startsWith('_')) {
+    octaveShift--;
+    remaining = remaining.slice(1);
+  }
+  
+  // Count and remove trailing octave shifts (e.g. So^, Fa_, Do^^)
   while (remaining.endsWith('^')) {
     octaveShift++;
     remaining = remaining.slice(0, -1);
@@ -1024,6 +1034,112 @@ export function calculateTonicShift(
     semitones: oldMidi - newMidi,
     oldMidi,
     newMidi,
+  };
+}
+
+/**
+ * Applies a tonic modulation to a base tonic MIDI and accidental mode.
+ * 
+ * Modulation can be specified as:
+ * - A Solfège syllable token: e.g. "Fa" (+5 semitones), "So" (-5 semitones), "^So" (+7 semitones), "_Fa" (-7 semitones)
+ * - A signed semitone integer or numeric string: e.g. 5, -5, "+5", "-2"
+ * 
+ * In PPT geometric nearest-address symmetry around Do:
+ * - Fa = +5 (ascending 4th)
+ * - So = -5 (descending 4th / inverted 5th)
+ * - Re = +2, Me = +3, Mi = +4, Fi = +6
+ * - Ra = +1, Ti = -1, Te = -2, La = -3, Le = -4
+ * - Octave shifts (^ / _) shift by ±12 semitones
+ * 
+ * Accidental mode ('sharps' vs 'flats') is chosen based on the modulation syllable's
+ * harmonic direction (flat degrees Ra/Me/Se/Le/Te vs sharp degrees Di/Ri/Fi/Si/Li),
+ * or based on the resulting pitch circle of fifths for diatonic naturals.
+ */
+export function applyModulation(
+  currentTonicMidi: number,
+  currentAccidentalMode: AccidentalMode = 'sharps',
+  modulateSpec: string | number,
+): { tonicMidi: number; tonicName: string; accidentalMode: AccidentalMode; semitones: number } {
+  let semitones = 0;
+  let preferredMode: AccidentalMode = currentAccidentalMode;
+
+  if (typeof modulateSpec === 'number') {
+    semitones = modulateSpec;
+  } else if (typeof modulateSpec === 'string' && /^[+-]?\d+$/.test(modulateSpec.trim())) {
+    semitones = parseInt(modulateSpec.trim(), 10);
+  } else if (typeof modulateSpec === 'string') {
+    const trimmed = modulateSpec.trim();
+    const parsed = parsePitch(trimmed);
+    semitones = solfegeToNearestAddress(parsed.syllable) + (parsed.octaveShift * 12);
+
+    // Accidental mode selection
+    const flatSyllables = new Set(['Ra', 'Me', 'Se', 'Le', 'Te']);
+    const sharpSyllables = new Set(['Di', 'Ri', 'Fi', 'Si', 'Li']);
+    if (flatSyllables.has(parsed.syllable)) {
+      preferredMode = 'flats';
+    } else if (sharpSyllables.has(parsed.syllable)) {
+      preferredMode = 'sharps';
+    } else {
+      // Natural diatonic syllables: check resulting pitch class
+      const newPc = (((currentTonicMidi + semitones) % 12) + 12) % 12;
+      // Pitch classes standardly spelled with flats in major keys: F(5), Bb(10), Eb(3), Ab(8), Db(1)
+      if ([5, 10, 3, 8, 1].includes(newPc)) {
+        preferredMode = 'flats';
+      } else if ([0, 2, 4, 7, 9, 11].includes(newPc)) {
+        preferredMode = 'sharps';
+      }
+    }
+  } else {
+    throw new Error(`Invalid modulate specification: ${JSON.stringify(modulateSpec)}`);
+  }
+
+  const newMidi = currentTonicMidi + semitones;
+  const newTonicName = midiToPitchName(newMidi, preferredMode);
+
+  return {
+    tonicMidi: newMidi,
+    tonicName: newTonicName,
+    accidentalMode: preferredMode,
+    semitones,
+  };
+}
+
+/**
+ * Derives a new ResolvedKnot by applying a modulation interval or absolute tonic override.
+ */
+export function deriveModulatedKnot(
+  baseKnot: ResolvedKnot,
+  modulateSpec?: string | number,
+  tonicOverride?: string,
+): ResolvedKnot {
+  if (modulateSpec === undefined && !tonicOverride) {
+    return baseKnot;
+  }
+
+  let newTonicMidi = baseKnot.tonicMidi ?? baseKnot.doMidi;
+  let newTonicName = baseKnot.tonicName ?? baseKnot.doName;
+  let newAccMode = baseKnot.accidentalMode ?? 'sharps';
+
+  if (tonicOverride) {
+    newTonicMidi = pitchNameToMidi(tonicOverride);
+    newTonicName = tonicOverride;
+    newAccMode = getAccidentalModeFromPitchName(tonicOverride);
+  }
+
+  if (modulateSpec !== undefined && modulateSpec !== null) {
+    const modResult = applyModulation(newTonicMidi, newAccMode, modulateSpec);
+    newTonicMidi = modResult.tonicMidi;
+    newTonicName = modResult.tonicName;
+    newAccMode = modResult.accidentalMode;
+  }
+
+  return {
+    ...baseKnot,
+    doMidi: newTonicMidi,
+    tonicMidi: newTonicMidi,
+    doName: newTonicName,
+    tonicName: newTonicName,
+    accidentalMode: newAccMode,
   };
 }
 

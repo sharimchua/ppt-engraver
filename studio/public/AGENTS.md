@@ -159,10 +159,15 @@ The `studio/public/` directory contains the client-side single-page application 
     - Single note held + confirmation key $\to$ default Major triad denoted by root (e.g. `Do`, `La`, `Fa`, `So`).
     - Multiple notes held + confirmation key $\to$ evaluated against PPT harmonic grammar (e.g. `C4-E4-G4-B4` + `C3` $\to$ `DoTi`, `C4-B4` + `C3` $\to$ `DoTi`, `A4-C5-E5` + `A3` $\to$ `LaMe`, `G4-B4-D5-F5` + `G3` $\to$ `SoTe`, `D4-F4-A4-C5` + `D3` $\to$ `ReMeTe`).
 - **Melody Layer (`melody: [...]` / `pitches: [...]`)**:
-  - Absolute pitch translated relative to the active Knot's tonic.
+  - Absolute pitch translated relative to the active scope tonic (inferred from enclosing weave/coil or manual temporary override).
   - Automatically detects **Interval Mode** (when array starts with axis anchor `x`, e.g. `[Dox, ...]`) vs **Absolute Mode** (default).
   - In Absolute Mode: emits scale degrees with octave modifiers (`Do`, `Re`, `Mi`, `So^`, `Do_`).
   - In Interval Mode: 1st token enters with axis `x` (`Dox`, `Rex`), subsequent notes compute signed semitone interval from the previous note (`diff = note - prevNote`) and emit interval Solfège tokens (`Do`, `Re`, `Ti`, `So^`).
+- **Scope-Aware Tonic Inference & Temporary Coil Overrides (`#midi-tonic-select`)**:
+  - Automatically detects the immediate scope (enclosing weave, enclosing coil, and inferred tonic) at the editor cursor via `getScopeAtCursor`.
+  - Seamlessly accounts for weave/stitch modulations (`modulate: ...`, `tonic: ...`) and compiled onsets (e.g. `chorus` with `modulate: Fa` infers `C5`, evaluating C keys as `Do` instead of `Fa`).
+  - Live toolbar dropdown (`#midi-tonic-wrapper`, `#midi-tonic-select`) displays `Auto (<InferredTonic>)`.
+  - Selecting an explicit pitch (e.g. `C4`, `G4`) temporarily caches that preference specifically for the active coil (`MidiManager.coilTonicOverrides`). Moving between coils dynamically updates the dropdown to reflect each coil's scope, and returning restores the cached override. Selecting `Auto (...)` resets to automatic inference.
 - **Device Management & UI Controls**:
   - Live toolbar status pill/button (`#btn-midi-toggle`, `.btn-midi-badge`) displaying connection state (`MIDI: On`, `MIDI: Off`, `MIDI: <DeviceName>`).
   - Quick toggle via keyboard shortcut (`Ctrl+Shift+M` / `Cmd+Shift+M`) or Command Palette (`Toggle MIDI Solfège Input`).

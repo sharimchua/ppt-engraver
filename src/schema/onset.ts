@@ -72,6 +72,10 @@ export const OnsetSchema = z.object({
   meter: z.union([z.string(), z.array(z.string())]).optional(),
   /** Scale definition active for this onset (e.g. "Do", "La", "DoMe", "LaTi") */
   scale: z.union([z.string(), z.array(z.string())]).optional(),
+  /** Declared or modulated tonic pitch name active for this onset (e.g. "G4", "C5") */
+  tonic: z.string().optional(),
+  /** Tonic MIDI note number active for this onset */
+  tonicMidi: z.number().int().optional(),
 });
 
 /**

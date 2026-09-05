@@ -10,6 +10,8 @@ import {
   MidiManager,
 } from '../../studio/public/js/core/midi-input.js';
 import { state, setPreference } from '../../studio/public/js/state.js';
+import { getScopeAtCursor } from '../../studio/public/js/core/ast-scanner.js';
+import { applyModulation, midiToPitchName } from '../../studio/public/js/core/pitch.js';
 import {
   isRhythmRestToken,
   expandLayerTokensWithOnsets,
@@ -559,4 +561,160 @@ describe('Paired Music Layer Token Synchronization', () => {
       expect(rhythmOnsets[5].soundingIndex).toBe(2);
     });
   });
+
+  describe('Scope-Aware MIDI Input Tonic Inference & Overrides', () => {
+    const sampleYaml = `tapestry:
+  knot:
+    tonic: "G4"
+  weaves:
+    verse:
+      stitch:
+        - coil:
+            melody: [La, Ti, Do]
+    chorus:
+      modulate: Fa
+      stitch:
+        - coil:
+            melody: [Sox, Te, Re]
+    chorus_end:
+      modulate: So
+      stitch:
+        - coil:
+            melody: [La]
+`;
+
+    it('infers base knot tonic when cursor is in an unmodulated weave', () => {
+      // Line 8 is inside verse coil: melody: [La, Ti, Do]
+      const lines = sampleYaml.split('\n');
+      const verseLine = lines.findIndex(l => l.includes('[La, Ti, Do]'));
+      const scope = getScopeAtCursor(sampleYaml, verseLine);
+
+      expect(scope.weaveId).toBe('verse');
+      expect(scope.coilId).toBe('verse_coil_1');
+      expect(scope.inferredTonic).toBe('G4');
+      expect(scope.inferredTonicMidi).toBe(67);
+    });
+
+    it('infers modulated tonic when cursor is in a weave with modulate: Fa', () => {
+      // Line with chorus melody
+      const lines = sampleYaml.split('\n');
+      const chorusLine = lines.findIndex(l => l.includes('[Sox, Te, Re]'));
+      const scope = getScopeAtCursor(sampleYaml, chorusLine);
+
+      expect(scope.weaveId).toBe('chorus');
+      expect(scope.coilId).toBe('chorus_coil_1');
+      // G4 (67) + Fa (+5) = C5 (72)
+      expect(scope.inferredTonic).toBe('C5');
+      expect(scope.inferredTonicMidi).toBe(72);
+    });
+
+    it('infers tonic correctly with compiled onsets', () => {
+      const mockCompiledData = {
+        onsets: [
+          { weaveId: 'verse', sourceCoilId: 'verse_coil_1', tonic: 'G4', tonicMidi: 67 },
+          { weaveId: 'chorus', sourceCoilId: 'chorus_coil_1', tonic: 'C5', tonicMidi: 72 },
+          { weaveId: 'chorus_end', sourceCoilId: 'chorus_end_coil_1', tonic: 'G4', tonicMidi: 67 },
+        ],
+        knot: { tonicName: 'G4', tonicMidi: 67 },
+      };
+
+      const lines = sampleYaml.split('\n');
+      const chorusLine = lines.findIndex(l => l.includes('[Sox, Te, Re]'));
+      const scope = getScopeAtCursor(sampleYaml, chorusLine, mockCompiledData);
+
+      expect(scope.weaveId).toBe('chorus');
+      expect(scope.coilId).toBe('chorus_coil_1');
+      expect(scope.inferredTonic).toBe('C5');
+      expect(scope.inferredTonicMidi).toBe(72);
+    });
+
+    it('MidiManager manages temporary coil-level tonic overrides', () => {
+      const mgr = new MidiManager();
+      const mockCm = {
+        getValue: () => sampleYaml,
+        lineCount: () => sampleYaml.split('\n').length,
+        getLine: (l: number) => sampleYaml.split('\n')[l],
+        getCursor: () => {
+          const lines = sampleYaml.split('\n');
+          const line = lines.findIndex(l => l.includes('[Sox, Te, Re]'));
+          return { line, ch: 15 };
+        },
+      };
+
+      // 1. Initial state -> auto inferred tonic C5
+      const initialScope = mgr.getScopeAndTonic(mockCm);
+      expect(initialScope.inferredTonic).toBe('C5');
+      expect(initialScope.effectiveTonic).toBe('C5');
+      expect(initialScope.isOverridden).toBe(false);
+
+      // 2. Set temporary override for chorus_coil_1 to D4
+      mgr.setCoilTonicOverride('chorus_coil_1', 'D4');
+
+      const overriddenScope = mgr.getScopeAndTonic(mockCm);
+      expect(overriddenScope.inferredTonic).toBe('C5');
+      expect(overriddenScope.effectiveTonic).toBe('D4');
+      expect(overriddenScope.isOverridden).toBe(true);
+
+      // 3. Switch cursor to verse -> should show verse tonic G4 without override
+      const verseCm = {
+        ...mockCm,
+        getCursor: () => {
+          const lines = sampleYaml.split('\n');
+          const line = lines.findIndex(l => l.includes('[La, Ti, Do]'));
+          return { line, ch: 15 };
+        },
+      };
+      const verseScope = mgr.getScopeAndTonic(verseCm);
+      expect(verseScope.inferredTonic).toBe('G4');
+      expect(verseScope.effectiveTonic).toBe('G4');
+      expect(verseScope.isOverridden).toBe(false);
+
+      // 4. Switch back to chorus -> preference for chorus_coil_1 is retained
+      const backScope = mgr.getScopeAndTonic(mockCm);
+      expect(backScope.effectiveTonic).toBe('D4');
+      expect(backScope.isOverridden).toBe(true);
+
+      // 5. Clear override for chorus_coil_1
+      mgr.clearCoilTonicOverride('chorus_coil_1');
+      const clearedScope = mgr.getScopeAndTonic(mockCm);
+      expect(clearedScope.effectiveTonic).toBe('C5');
+      expect(clearedScope.isOverridden).toBe(false);
+
+      // 6. Test clearAllCoilTonicOverrides
+      mgr.setCoilTonicOverride('chorus_coil_1', 'E4');
+      mgr.clearAllCoilTonicOverrides();
+      const allClearedScope = mgr.getScopeAndTonic(mockCm);
+      expect(allClearedScope.effectiveTonic).toBe('C5');
+      expect(allClearedScope.isOverridden).toBe(false);
+    });
+
+    it('translates MIDI notes according to active scope tonic and overrides', () => {
+      // Note G4 (67)
+      // When tonic is G4: G4 (67) - 67 = 0 -> 'Do'
+      expect(translateMelodyNoteToSolfege(67, 'G4')).toBe('Do');
+      // When tonic is C5: C5 (72) - 72 = 0 -> 'Do', G4 (67) - 72 = -5 -> 'So' (base octave)
+      expect(translateMelodyNoteToSolfege(72, 'C5')).toBe('Do');
+      expect(translateMelodyNoteToSolfege(67, 'C5')).toBe('So');
+
+      // In chorus overridden to D4:
+      // D4 (62) -> 'Do', G4 (67) -> 'Fa'
+      expect(translateMelodyNoteToSolfege(62, 'D4')).toBe('Do');
+      expect(translateMelodyNoteToSolfege(67, 'D4')).toBe('Fa');
+    });
+
+    it('exports applyModulation and midiToPitchName correctly in studio pitch.js', () => {
+      expect(midiToPitchName(60)).toBe('C4');
+      expect(midiToPitchName(67)).toBe('G4');
+      expect(midiToPitchName(72)).toBe('C5');
+
+      const modFa = applyModulation(67, 'sharps', 'Fa');
+      expect(modFa.tonicName).toBe('C5');
+      expect(modFa.tonicMidi).toBe(72);
+
+      const modSo = applyModulation(72, 'sharps', 'So');
+      expect(modSo.tonicName).toBe('G4');
+      expect(modSo.tonicMidi).toBe(67);
+    });
+  });
 });
+

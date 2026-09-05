@@ -53,6 +53,14 @@ export function calculateTonicShift(oldTonicName, newTonicName) {
 export function parsePitch(notation) {
   let remaining = notation;
   let octaveShift = 0;
+  while (remaining.startsWith('^')) {
+    octaveShift++;
+    remaining = remaining.slice(1);
+  }
+  while (remaining.startsWith('_')) {
+    octaveShift--;
+    remaining = remaining.slice(1);
+  }
   while (remaining.endsWith('^')) {
     octaveShift++;
     remaining = remaining.slice(0, -1);
@@ -461,4 +469,63 @@ export function convertAbsoluteToIntervalMelody(tokenList) {
   }
 
   return result;
+}
+
+export const PITCH_NAMES_SHARPS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+export const PITCH_NAMES_FLATS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+/**
+ * Converts a MIDI note number to pitch name string (e.g. 60 -> "C4", 67 -> "G4").
+ */
+export function midiToPitchName(midi, accidentalMode = 'sharps') {
+  const noteIndex = ((midi % 12) + 12) % 12;
+  const octave = Math.floor(midi / 12) - 1;
+  const names = accidentalMode === 'flats' ? PITCH_NAMES_FLATS : PITCH_NAMES_SHARPS;
+  return `${names[noteIndex]}${octave}`;
+}
+
+/**
+ * Applies a tonic modulation shift specified as a Solfège syllable (or semitones)
+ * to a base tonic MIDI note.
+ */
+export function applyModulation(currentTonicMidi, currentAccidentalMode = 'sharps', modulateSpec) {
+  let semitones = 0;
+  let preferredMode = currentAccidentalMode;
+
+  if (typeof modulateSpec === 'number') {
+    semitones = modulateSpec;
+  } else if (typeof modulateSpec === 'string' && /^[+-]?\d+$/.test(modulateSpec.trim())) {
+    semitones = parseInt(modulateSpec.trim(), 10);
+  } else if (typeof modulateSpec === 'string') {
+    const trimmed = modulateSpec.trim();
+    const parsed = parsePitch(trimmed);
+    semitones = solfegeToNearestAddress(parsed.syllable) + (parsed.octaveShift * 12);
+
+    const flatSyllables = new Set(['Ra', 'Me', 'Se', 'Le', 'Te']);
+    const sharpSyllables = new Set(['Di', 'Ri', 'Fi', 'Si', 'Li']);
+    if (flatSyllables.has(parsed.syllable)) {
+      preferredMode = 'flats';
+    } else if (sharpSyllables.has(parsed.syllable)) {
+      preferredMode = 'sharps';
+    } else {
+      const newPc = (((currentTonicMidi + semitones) % 12) + 12) % 12;
+      if ([5, 10, 3, 8, 1].includes(newPc)) {
+        preferredMode = 'flats';
+      } else if ([0, 2, 4, 7, 9, 11].includes(newPc)) {
+        preferredMode = 'sharps';
+      }
+    }
+  } else {
+    throw new Error(`Invalid modulate specification: ${JSON.stringify(modulateSpec)}`);
+  }
+
+  const newMidi = currentTonicMidi + semitones;
+  const newTonicName = midiToPitchName(newMidi, preferredMode);
+
+  return {
+    tonicMidi: newMidi,
+    tonicName: newTonicName,
+    accidentalMode: preferredMode,
+    semitones,
+  };
 }

@@ -681,6 +681,10 @@ export interface Coil {
   melodyAugmentationDisplay?: MelodyAugmentationDisplay;
   /** Optional projection preset override for this coil */
   projection?: ProjectionPreset;
+  /** Optional tonic modulation (Solfège interval syllable e.g. "Fa", "So", or semitone offset) */
+  modulate?: string | number;
+  /** Optional absolute tonic override for this coil (e.g. "C4", "G4") */
+  tonic?: string;
 }
 
 /**
@@ -721,6 +725,10 @@ export const CoilSchema: z.ZodType<Coil> = z.lazy(() =>
     melodyAugmentationDisplay: MelodyAugmentationDisplayEnum.optional(),
     /** Optional projection preset override for this coil */
     projection: ProjectionPresetEnum.optional(),
+    /** Optional tonic modulation (Solfège interval syllable e.g. "Fa", "So", or semitone offset) */
+    modulate: z.union([z.string(), z.number()]).optional(),
+    /** Optional absolute tonic override for this coil (e.g. "C4", "G4") */
+    tonic: z.string().optional(),
   })
 );
 
@@ -756,14 +764,18 @@ export interface Weave {
   projection?: ProjectionPreset;
   /** Scale definition for this weave (e.g. "Do", "La", "DoMe", "LaTi") */
   scale?: string | string[];
+  /** Optional tonic modulation (Solfège interval syllable e.g. "Fa", "So", or semitone offset) */
+  modulate?: string | number;
+  /** Optional absolute tonic override for this weave (e.g. "C4", "G4") */
+  tonic?: string;
 }
 
 /**
  * A stitch entry within a Weave — wraps an inline Coil/Weave or references one by ID.
  */
 export type WeaveStitch =
-  | { coil: Coil | string; weave?: never }
-  | { weave: Weave | string; coil?: never };
+  | { coil: Coil | string; weave?: never; modulate?: string | number; tonic?: string }
+  | { weave: Weave | string; coil?: never; modulate?: string | number; tonic?: string };
 
 /** Backward-compatible alias for WeaveStitch */
 export type WeaveChild = WeaveStitch;
@@ -775,9 +787,13 @@ export const WeaveStitchSchema: z.ZodType<WeaveStitch> = z.lazy(() =>
   z.union([
     z.object({
       coil: CoilSchema.or(z.string()),
+      modulate: z.union([z.string(), z.number()]).optional(),
+      tonic: z.string().optional(),
     }),
     z.object({
       weave: WeaveSchema.or(z.string()),
+      modulate: z.union([z.string(), z.number()]).optional(),
+      tonic: z.string().optional(),
     }),
   ])
 );
@@ -819,6 +835,10 @@ export const WeaveSchema: z.ZodType<Weave> = z.lazy(() =>
     projection: ProjectionPresetEnum.optional(),
     /** Scale definition for this weave (e.g. "Do", "La", "DoMe", "LaTi") */
     scale: z.union([z.string(), z.array(z.string())]).optional(),
+    /** Optional tonic modulation (Solfège interval syllable e.g. "Fa", "So", or semitone offset) */
+    modulate: z.union([z.string(), z.number()]).optional(),
+    /** Optional absolute tonic override for this weave (e.g. "C4", "G4") */
+    tonic: z.string().optional(),
   }).refine(
     data => (data.stitch && data.stitch.length > 0) || (data.stitches && data.stitches.length > 0) || (data.children && data.children.length > 0),
     { message: 'Weave must contain at least one stitch entry (stitch: [...])', path: ['stitch'] }

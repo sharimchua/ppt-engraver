@@ -38,4 +38,5 @@ tapestry:
 ## Key Reference Scores
 
 - `scores/strive.ppt.yaml`: Comprehensive multi-section score demonstrating full PPT voice engraving, interval coils, absolute coils, and complex rhythm grids.
+- `scores/cassandra.ppt.yaml`: Demonstrates weave-level tonic modulation (`modulate: Fa` and `modulate: So`) shifting the tonic between G (verse) and C (chorus) with dynamic mid-score key signature emission and re-anchored chord names.
 - `scores/design-doc-example.ppt.yaml`: Clean reference score showcasing canonical Tapestry schema features.

@@ -57,6 +57,7 @@ export function setupToolbar(options = {}) {
     onCreateTapestry,
     onDeleteTapestry,
     onKnotChanged,
+    onMidiTonicChanged,
   } = options;
 
   const scoreSelect = document.getElementById('score-select');
@@ -69,6 +70,47 @@ export function setupToolbar(options = {}) {
   const btnDeleteScore = document.getElementById('btn-delete-score');
   const btnMidiToggle = document.getElementById('btn-midi-toggle');
   const midiStatusText = document.getElementById('midi-status-text');
+  const midiTonicWrapper = document.getElementById('midi-tonic-wrapper');
+  const midiTonicSelect = document.getElementById('midi-tonic-select');
+
+  let currentScopeInfo = null;
+
+  function updateMidiTonicUi(scopeInfo) {
+    if (!midiTonicWrapper || !midiTonicSelect) return;
+    if (scopeInfo) {
+      currentScopeInfo = scopeInfo;
+    }
+    const info = currentScopeInfo || {
+      inferredTonic: 'C4',
+      effectiveTonic: 'C4',
+      isOverridden: false,
+      coilId: null,
+      weaveId: null,
+    };
+
+    const isEnabled = Boolean(state.preferences.midiEnabled);
+    if (!isEnabled) {
+      midiTonicWrapper.classList.add('midi-disabled');
+    } else {
+      midiTonicWrapper.classList.remove('midi-disabled');
+    }
+
+    const autoOpt = midiTonicSelect.querySelector('option[value="auto"]');
+    if (autoOpt) {
+      autoOpt.textContent = `Auto (${info.inferredTonic || 'C4'})`;
+    }
+
+    if (info.isOverridden) {
+      midiTonicSelect.value = info.effectiveTonic;
+      midiTonicWrapper.classList.add('tonic-overridden');
+      midiTonicWrapper.title = `Active Tonic for MIDI Input: ${info.effectiveTonic} (manual override for coil '${info.coilId}'; auto is ${info.inferredTonic}). Select 'Auto' to reset.`;
+    } else {
+      midiTonicSelect.value = 'auto';
+      midiTonicWrapper.classList.remove('tonic-overridden');
+      const scopeDesc = info.coilId ? `coil '${info.coilId}'` : (info.weaveId ? `weave '${info.weaveId}'` : 'knot default');
+      midiTonicWrapper.title = `Active Tonic for MIDI Input: ${info.effectiveTonic} (auto-inferred from ${scopeDesc}). Select to override for this coil.`;
+    }
+  }
 
   function updateMidiButtonUi() {
     if (!btnMidiToggle || !midiStatusText) return;
@@ -97,6 +139,8 @@ export function setupToolbar(options = {}) {
       midiStatusText.textContent = 'MIDI: On';
       btnMidiToggle.title = 'MIDI Typing Active (Connect a controller / Ctrl+Shift+M)';
     }
+
+    updateMidiTonicUi();
   }
 
   if (btnMidiToggle) {
@@ -105,6 +149,14 @@ export function setupToolbar(options = {}) {
       const nextState = !state.preferences.midiEnabled;
       setPreference('midiEnabled', nextState);
       updateMidiButtonUi();
+    });
+  }
+
+  if (midiTonicSelect) {
+    midiTonicSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      const coilKey = currentScopeInfo?.coilId || currentScopeInfo?.weaveId || 'active';
+      onMidiTonicChanged?.(val, coilKey);
     });
   }
 
@@ -157,5 +209,6 @@ export function setupToolbar(options = {}) {
 
   return {
     updateMidiButtonUi,
+    updateMidiTonicUi,
   };
 }

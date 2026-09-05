@@ -362,7 +362,9 @@ export const COIL_KEYS = [
   { text: 'harmonyVoicing:', displayText: 'harmonyVoicing: ...', type: 'prop', desc: 'Coil-level voicing override' },
   { text: 'melodyAugmentation:', displayText: 'melodyAugmentation: ...', type: 'prop', desc: 'Melody augmentation' },
   { text: 'melodyAugmentationDisplay:', displayText: 'melodyAugmentationDisplay: ...', type: 'prop', desc: 'Augmentation display style' },
-  { text: 'projection:', displayText: 'projection: ...', type: 'prop', desc: 'Coil-level projection preset' }
+  { text: 'projection:', displayText: 'projection: ...', type: 'prop', desc: 'Coil-level projection preset' },
+  { text: 'modulate:', displayText: 'modulate: "Fa"', type: 'prop', desc: 'Shift tonic by Solfège interval (e.g. "Fa", "So")' },
+  { text: 'tonic:', displayText: 'tonic: "C4"', type: 'prop', desc: 'Absolute tonic pitch override' }
 ];
 
 export const ENUMS_LAYOUT = [
@@ -374,6 +376,8 @@ export const ENUMS_LAYOUT = [
 export const WEAVE_KEYS = [
   { text: 'id:', displayText: 'id: ...', type: 'prop', desc: 'Weave identifier' },
   { text: 'scale:', displayText: 'scale: "Do"', type: 'prop', desc: 'Weave-level Solfège scale definition (e.g. "Do", "La", "DoMe", "LaTi")' },
+  { text: 'modulate:', displayText: 'modulate: "Fa"', type: 'prop', desc: 'Shift tonic by Solfège interval (e.g. "Fa", "So", "^So", "_Fa") or semitone integer' },
+  { text: 'tonic:', displayText: 'tonic: "C4"', type: 'prop', desc: 'Absolute tonic pitch override for this weave' },
   { text: 'layout:', displayText: 'layout: concatenate', type: 'prop', desc: 'Stitch sequencing layout (concatenate, parallel, or parallelPeriod)' },
   { text: 'defaultCoil:', displayText: 'defaultCoil: ...', type: 'prop', desc: 'Default fallback coil' },
   { text: 'pulse:', displayText: 'pulse: ...', type: 'prop', desc: 'Weave-level metric pulse pattern' },

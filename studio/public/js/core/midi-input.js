@@ -16,6 +16,7 @@ import {
   parsePitch,
   parseMelodyToken,
 } from './pitch.js';
+import { getScopeAtCursor } from './ast-scanner.js';
 
 export const RHYTHM_SYLLABLES_12 = [
   'Do', 'Ra', 'Re', 'Me', 'Mi', 'Fa', 'Fi', 'So', 'Le', 'La', 'Te', 'Ti',
@@ -511,6 +512,7 @@ export class MidiManager {
     this.heldNotes = new Set();
     this.editorGetter = null;
     this.isListening = false;
+    this.coilTonicOverrides = new Map();
 
     events.on('preference:changed', ({ key, value }) => {
       if (key === 'midiDeviceId') {
@@ -667,9 +669,10 @@ export class MidiManager {
       return;
     }
 
-    // 2. Melody Layer -> Absolute / Interval relative to active Knot tonic
+    // 2. Melody Layer -> Absolute / Interval relative to active scope tonic
     if (layer === 'melody') {
-      const tonic = this.getActiveKnotTonic();
+      const scopeInfo = this.getScopeAndTonic(cm, cm.getCursor());
+      const tonic = scopeInfo.effectiveTonic || 'C4';
       const token = translateMelodyNoteToSolfege(
         note,
         tonic,
@@ -677,7 +680,7 @@ export class MidiManager {
         context.precedingTokens
       );
       insertSolfegeTokenAtCursor(cm, token);
-      events.emit('midi:note', { note, token, layer: 'melody', mode: context.melodyMode });
+      events.emit('midi:note', { note, token, layer: 'melody', mode: context.melodyMode, tonic, scope: scopeInfo });
       this.heldNotes.add(note);
       return;
     }
@@ -689,12 +692,13 @@ export class MidiManager {
         const confirmationNote = minHeldNote - 12;
 
         if (note === confirmationNote) {
-          // Confirmation key pressed! Translate held chord tones to Solfège
-          const tonic = this.getActiveKnotTonic();
+          // Confirmation key pressed! Translate held chord tones to Solfège relative to active scope tonic
+          const scopeInfo = this.getScopeAndTonic(cm, cm.getCursor());
+          const tonic = scopeInfo.effectiveTonic || 'C4';
           const chordNotes = Array.from(this.heldNotes);
           const chordToken = translateChordToSolfege(chordNotes, tonic);
           insertSolfegeTokenAtCursor(cm, chordToken);
-          events.emit('midi:chord', { chordNotes, token: chordToken, layer: 'harmony' });
+          events.emit('midi:chord', { chordNotes, token: chordToken, layer: 'harmony', tonic, scope: scopeInfo });
           return;
         }
       }
@@ -703,6 +707,82 @@ export class MidiManager {
       this.heldNotes.add(note);
       events.emit('midi:harmony-held', { heldNotes: Array.from(this.heldNotes) });
     }
+  }
+
+  /**
+   * Resolves scope and effective tonic for cursor position, accounting for weave modulations
+   * and temporary coil-level overrides.
+   * 
+   * @param {object|null} [cm=null]
+   * @param {object|null} [cursor=null]
+   * @param {object|null} [compiledData=null]
+   * @returns {{ weaveId: string|null, coilId: string|null, inferredTonic: string, inferredTonicMidi: number, effectiveTonic: string, isOverridden: boolean }}
+   */
+  getScopeAndTonic(cm = null, cursor = null, compiledData = null) {
+    const activeCm = cm || this.editorGetter?.();
+    const knotTonic = this.getActiveKnotTonic();
+
+    if (!activeCm) {
+      let effectiveTonic = knotTonic;
+      return {
+        weaveId: null,
+        coilId: null,
+        inferredTonic: knotTonic,
+        inferredTonicMidi: pitchNameToMidi(knotTonic),
+        effectiveTonic,
+        isOverridden: false,
+      };
+    }
+
+    const pos = cursor || (activeCm.getCursor ? activeCm.getCursor() : 0);
+    const compileRes = compiledData || state.lastCompileResult;
+    const scope = getScopeAtCursor(activeCm, pos, compileRes, knotTonic);
+
+    const coilId = scope.coilId;
+    let effectiveTonic = scope.inferredTonic || knotTonic;
+    let isOverridden = false;
+
+    if (coilId && this.coilTonicOverrides.has(coilId)) {
+      effectiveTonic = this.coilTonicOverrides.get(coilId);
+      isOverridden = true;
+    }
+
+    return {
+      ...scope,
+      effectiveTonic,
+      isOverridden,
+    };
+  }
+
+  /**
+   * Sets temporary tonic preference for a specific coil.
+   * 
+   * @param {string} coilId
+   * @param {string} tonic - Pitch string (e.g. 'C4', 'G4')
+   */
+  setCoilTonicOverride(coilId, tonic) {
+    if (!coilId || !tonic) return;
+    this.coilTonicOverrides.set(coilId, tonic);
+    events.emit('midi:tonic-override-changed', { coilId, tonic, isOverridden: true });
+  }
+
+  /**
+   * Clears temporary tonic preference for a specific coil (reverting to auto).
+   * 
+   * @param {string} coilId
+   */
+  clearCoilTonicOverride(coilId) {
+    if (!coilId) return;
+    this.coilTonicOverrides.delete(coilId);
+    events.emit('midi:tonic-override-changed', { coilId, tonic: null, isOverridden: false });
+  }
+
+  /**
+   * Clears all temporary coil tonic overrides (e.g. on loading a new score).
+   */
+  clearAllCoilTonicOverrides() {
+    this.coilTonicOverrides.clear();
+    events.emit('midi:tonic-override-changed', { coilId: null, tonic: null, isOverridden: false });
   }
 
   /**

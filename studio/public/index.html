@@ -59,6 +59,54 @@
         <button id="btn-midi-toggle" class="btn btn-secondary btn-midi-badge" title="Toggle MIDI Solfège Typing (Ctrl+Shift+M)">
           <span class="midi-icon">🎹</span> <span id="midi-status-text">MIDI: On</span>
         </button>
+        <div class="midi-tonic-wrapper" id="midi-tonic-wrapper" title="Active Tonic for MIDI Input (auto-inferred from current weave/coil; select to override)">
+          <label for="midi-tonic-select" class="midi-tonic-label">🎵</label>
+          <select id="midi-tonic-select" class="midi-tonic-select" title="Active Tonic for MIDI Input">
+            <option value="auto">Auto (C4)</option>
+            <optgroup label="Octave 3 (Low)">
+              <option value="C3">C3</option>
+              <option value="Db3">Db3</option>
+              <option value="D3">D3</option>
+              <option value="Eb3">Eb3</option>
+              <option value="E3">E3</option>
+              <option value="F3">F3</option>
+              <option value="F#3">F#3</option>
+              <option value="G3">G3</option>
+              <option value="Ab3">Ab3</option>
+              <option value="A3">A3</option>
+              <option value="Bb3">Bb3</option>
+              <option value="B3">B3</option>
+            </optgroup>
+            <optgroup label="Octave 4 (Standard)">
+              <option value="C4">C4</option>
+              <option value="Db4">Db4</option>
+              <option value="D4">D4</option>
+              <option value="Eb4">Eb4</option>
+              <option value="E4">E4</option>
+              <option value="F4">F4</option>
+              <option value="F#4">F#4</option>
+              <option value="G4">G4</option>
+              <option value="Ab4">Ab4</option>
+              <option value="A4">A4</option>
+              <option value="Bb4">Bb4</option>
+              <option value="B4">B4</option>
+            </optgroup>
+            <optgroup label="Octave 5 (High)">
+              <option value="C5">C5</option>
+              <option value="Db5">Db5</option>
+              <option value="D5">D5</option>
+              <option value="Eb5">Eb5</option>
+              <option value="E5">E5</option>
+              <option value="F5">F5</option>
+              <option value="F#5">F#5</option>
+              <option value="G5">G5</option>
+              <option value="Ab5">Ab5</option>
+              <option value="A5">A5</option>
+              <option value="Bb5">Bb5</option>
+              <option value="B5">B5</option>
+            </optgroup>
+          </select>
+        </div>
         <button id="btn-command-palette" class="btn btn-secondary" title="Command Palette (Ctrl+Shift+P / F1)">
           <span>⌨</span> Commands
         </button>
