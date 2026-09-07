@@ -47,8 +47,8 @@ export const SOLFEGE_TO_SCHEME_COLOR: Record<string, string> = {
 
 export const SOLFEGE_TO_PPT_STENCIL: Record<string, string> = {
   Do: 'stencilDo',
-  Ra: 'stencilRe',
-  Di: 'stencilRe',
+  Ra: 'stencilRa',
+  Di: 'stencilRa',
   Re: 'stencilRe',
   Me: 'stencilMe',
   Ri: 'stencilMe',

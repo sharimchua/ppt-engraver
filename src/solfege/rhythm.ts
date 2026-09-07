@@ -632,7 +632,7 @@ export function solfegeToGlyphShape(syllable: string): GlyphShape {
       return 'circle';
     case 'Ra':
     case 'Di':
-      return 'cross';
+      return 'diamond';
     case 'Re':
       return 'square';
     case 'Me':
@@ -651,11 +651,12 @@ export function solfegeToGlyphShape(syllable: string): GlyphShape {
     case 'Le':
       return 'triangleDown';
     case 'La':
-    case 'Li':
       return 'triangleUp';
     case 'Te':
-    case 'Ti':
+    case 'Li':
       return 'diamond';
+    case 'Ti':
+      return 'square';
     default:
       return 'circle';
   }

@@ -6,6 +6,7 @@ import {
   resolveRhythmTimeline,
   resolveMetricGrammar,
   resolveMetricPulseTimeline,
+  solfegeToGlyphShape,
 } from '../../src/solfege/rhythm.js';
 
 describe('Solfège Rhythmic Grammar', () => {
@@ -260,7 +261,7 @@ describe('Solfège Rhythmic Grammar', () => {
       expect(doLaDiLa.pulses.map(p => p.syllable)).toEqual(['Dox', 'La', 'Dix', 'So']);
       expect(doLaDiLa.pulses[0].weight).toBe('primary');
       expect(doLaDiLa.pulses[2].weight).toBe('secondary');
-      expect(doLaDiLa.pulses[2].shape).toBe('cross');
+      expect(doLaDiLa.pulses[2].shape).toBe('diamond');
       expect(doLaDiLa.timeSignature).toBe('4/4');
 
       const doReDiRe = resolveMetricGrammar('DoReDiRe');
@@ -299,4 +300,51 @@ describe('Solfège Rhythmic Grammar', () => {
       expect(pickupPulses[0].syllable).toBe('So');
     });
   });
+
+  describe('solfegeToGlyphShape', () => {
+    it('maps tonic (Do) to circle', () => {
+      expect(solfegeToGlyphShape('Do')).toBe('circle');
+      expect(solfegeToGlyphShape('Dox')).toBe('circle');
+    });
+
+    it('maps minor 2nd (Ra, Di) to diamond and major 2nd (Re) to square', () => {
+      expect(solfegeToGlyphShape('Ra')).toBe('diamond');
+      expect(solfegeToGlyphShape('Di')).toBe('diamond');
+      expect(solfegeToGlyphShape('Dix')).toBe('diamond');
+      expect(solfegeToGlyphShape('Re')).toBe('square');
+      expect(solfegeToGlyphShape('Rex')).toBe('square');
+    });
+
+    it('maps minor 3rd (Me) to triangleDown and major 3rd (Mi) to triangleUp', () => {
+      expect(solfegeToGlyphShape('Me')).toBe('triangleDown');
+      expect(solfegeToGlyphShape('Ri')).toBe('triangleDown');
+      expect(solfegeToGlyphShape('Mi')).toBe('triangleUp');
+    });
+
+    it('maps perfect 4th (Fa) to halfCircleLeft and perfect 5th (So) to halfCircleRight', () => {
+      expect(solfegeToGlyphShape('Fa')).toBe('halfCircleLeft');
+      expect(solfegeToGlyphShape('Se')).toBe('halfCircleLeft');
+      expect(solfegeToGlyphShape('So')).toBe('halfCircleRight');
+      expect(solfegeToGlyphShape('Si')).toBe('halfCircleRight');
+    });
+
+    it('maps tritone axis (Fi) uniquely to cross', () => {
+      expect(solfegeToGlyphShape('Fi')).toBe('cross');
+      expect(solfegeToGlyphShape('Fix')).toBe('cross');
+    });
+
+    it('maps minor 6th (Le) to triangleDown and major 6th (La) to triangleUp', () => {
+      expect(solfegeToGlyphShape('Le')).toBe('triangleDown');
+      expect(solfegeToGlyphShape('La')).toBe('triangleUp');
+    });
+
+    it('maps minor 7th (Te, Li) to diamond and major 7th (Ti) to square', () => {
+      expect(solfegeToGlyphShape('Te')).toBe('diamond');
+      expect(solfegeToGlyphShape('Li')).toBe('diamond');
+      expect(solfegeToGlyphShape('Tex')).toBe('diamond');
+      expect(solfegeToGlyphShape('Ti')).toBe('square');
+      expect(solfegeToGlyphShape('Tix')).toBe('square');
+    });
+  });
 });
+

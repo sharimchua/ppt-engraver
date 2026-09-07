@@ -47,6 +47,12 @@ The repository consists of:
   - `La` / `Li` (9 semitones, Base 90°, Indigo `#5300A4`)
   - `Te` (10 semitones, Sharp 90°, Pink `#F158A4`)
   - `Ti` (11 semitones, Flat 0°, Pink `#F158A4`)
+- **Geometric Notehead Taxonomy & Quality Shapes**:
+  - **Tonic (Do)**: Circle $\bigcirc$ (Red `#E13610`, unique origin).
+  - **Tritone (Fi)**: Cross $\times$ (Slate `#141414`, unique axis).
+  - **Perfect 4th & 5th**: Left semicircle $\subset$ (Fa, Green `#43A440`) and Right semicircle $\supset$ (So, Blue `#0032A4`).
+  - **3rds & 6ths (3-gon / Triangles)**: Minor = Triangle Down $\nabla$ (`Me`, `Ri`, `Le`), Major = Triangle Up $\Delta$ (`Mi`, `La`). (3rds Yellow `#F5D432`, 6ths Purple/Indigo `#5300A4`).
+  - **2nds & 7ths (4-gon / Quadrilaterals)**: Minor = Diamond $\lozenge$ ($45^\circ$ rotated: `Ra`, `Di`, `Te`, `Li`), Major = Square $\square$ ($0^\circ$ base: `Re`, `Ti`). (2nds Orange `#F98016`, 7ths Pink `#F158A4`).
 - **Axis Diacritic (`x`)**:
   - Suffix `x` on any syllable (e.g. `Dox`, `Rex`, `Mex`, `Tex`) denotes an axis anchor/root notehead with a horizontal line through the glyph center, drawn in the syllable's own color.
 - **Octave Displacement Prefix Triangles (`^` / `_`)**:

@@ -9,7 +9,7 @@ Compiles [Prime Period Theory](https://ppt.midlifemuso.com/) Tapestry source fil
 ## Features
 
 - 🎼 **Live Web Studio**: Real-time side-by-side YAML editor with instant vector SVG and high-resolution PDF preview (`npm run studio`), Frescobaldi-style Point-and-Click source navigation, Solfège preview strips, scroll depth preservation, Auto-Compile toggle, and Command Palette (`Ctrl+Shift+P` / `F1`).
-- 🎨 **PPT Solfège Geometry & Colors**: Standard 12-chromatic Solfège noteheads, vector SVG glyphs, custom clefs (`H`, `Do`, `Rhythm`), and tailored HSL color palette.
+- 🎨 **PPT Solfège Geometry & Notehead Taxonomy**: 12-chromatic Solfège notehead shapes encoding interval qualities (Circle for Tonic `Do`, Cross for Tritone `Fi`, Semicircles for 4th `Fa`/5th `So`, Triangles for 3rds `Me`/`Mi` & 6ths `Le`/`La`, Diamonds for Minor 2nd `Ra`/7th `Te`, Squares for Major 2nd `Re`/7th `Ti`), vector SVG glyphs, custom clefs (`H`, `Do`, `Rhythm`), and tailored chromatic color palette.
 - 🧬 **Multi-Layer Coils**: Melody, Harmony, Rhythm, and metric block layers with priority-fill inheritance and polyphonic multi-voice support.
 - 🔗 **Coil Concatenation & In-Place Maps**: Compose complex phrases using `concat: [...]` with automatic downbeat rhythm boundary collapsing.
 - 📐 **Solfège Rhythmic Grammar**: Full sub-beat subdivisions via 12 chromatic degrees (`Fi` = 8th note, `Me`/`La` = 16th notes, `Mi`/`Le` = triplets, `Re`/`Te` = sextuplets), recursive compound suffixes (`LeFi`, `MeFi`), downbeat skips/rests (`Dox`, `DoxDo`, `DoxFi`), and repeat lookback windows (`X.Y`).

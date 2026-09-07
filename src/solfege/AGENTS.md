@@ -176,7 +176,7 @@ Each semitone has an assigned glyph geometry, rotation angle, and primary color:
     - Consecutive coils continue the pulse phase seamlessly.
     - Explicit mid-score pulse overrides reset downbeat tracking to `Dox` at the change point.
   - **Geometric Shape Mappings (`solfegeToGlyphShape`)**:
-    - `Do` $\to$ `circle`, `Fi` / `Dix` $\to$ `cross`, `Re` $\to$ `square`, `Me` / `Le` $\to$ `triangleDown`, `Mi` / `La` $\to$ `triangleUp`, `So` $\to$ `halfCircleRight`, `Fa` $\to$ `halfCircleLeft`, `Te` / `Ti` $\to$ `diamond`.
+    - `Do` $\to$ `circle`, `Ra` / `Di` $\to$ `diamond`, `Re` $\to$ `square`, `Me` / `Ri` / `Le` $\to$ `triangleDown`, `Mi` / `La` $\to$ `triangleUp`, `Fa` / `Se` $\to$ `halfCircleLeft`, `Fi` $\to$ `cross` (unique tritone axis), `So` / `Si` $\to$ `halfCircleRight`, `Te` / `Li` $\to$ `diamond`, `Ti` $\to$ `square`.
 
 ---
 

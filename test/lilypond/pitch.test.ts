@@ -4,6 +4,8 @@ import {
   chordMidiToLilyPond,
   chordToLilyPondChordMode,
   canonicalChordToLilyPond,
+  SOLFEGE_TO_PPT_STENCIL,
+  SOLFEGE_TO_PPT_TAB_STENCIL,
 } from '../../src/lilypond/pitch.js';
 
 describe('midiToLilyPondPitch', () => {
@@ -192,4 +194,25 @@ describe('canonicalChordToLilyPond', () => {
     expect(canonicalChordToLilyPond('MexDoMe', 60, 'flats')).toBe("<c' ees' g'>/ees");
   });
 });
+
+describe('SOLFEGE_TO_PPT_STENCIL and SOLFEGE_TO_PPT_TAB_STENCIL', () => {
+  it('maps minor 2nd (Ra, Di) to stencilRa and major 2nd (Re) to stencilRe', () => {
+    expect(SOLFEGE_TO_PPT_STENCIL['Ra']).toBe('stencilRa');
+    expect(SOLFEGE_TO_PPT_STENCIL['Di']).toBe('stencilRa');
+    expect(SOLFEGE_TO_PPT_STENCIL['Re']).toBe('stencilRe');
+    expect(SOLFEGE_TO_PPT_TAB_STENCIL['Ra']).toBe('tabStencilRa');
+    expect(SOLFEGE_TO_PPT_TAB_STENCIL['Di']).toBe('tabStencilRa');
+    expect(SOLFEGE_TO_PPT_TAB_STENCIL['Re']).toBe('tabStencilRe');
+  });
+
+  it('maps minor 7th (Te, Li) to stencilTe and major 7th (Ti) to stencilTi', () => {
+    expect(SOLFEGE_TO_PPT_STENCIL['Te']).toBe('stencilTe');
+    expect(SOLFEGE_TO_PPT_STENCIL['Li']).toBe('stencilTe');
+    expect(SOLFEGE_TO_PPT_STENCIL['Ti']).toBe('stencilTi');
+    expect(SOLFEGE_TO_PPT_TAB_STENCIL['Te']).toBe('tabStencilTe');
+    expect(SOLFEGE_TO_PPT_TAB_STENCIL['Li']).toBe('tabStencilTe');
+    expect(SOLFEGE_TO_PPT_TAB_STENCIL['Ti']).toBe('tabStencilTi');
+  });
+});
+
 

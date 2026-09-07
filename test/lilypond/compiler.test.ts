@@ -277,6 +277,8 @@ describe('compileToLilyPond', () => {
       colorNotes: true,
     });
     expect(ly).toContain('#(define stencilDo');
+    expect(ly).toContain('#(define stencilRa');
+    expect(ly).toContain('#(define stencilRe');
     expect(ly).toContain('#(define stencilMi');
     expect(ly).toContain('#(define stencilTi');
     expect(ly).toContain("\\tag #'ppt_verse_introMotif_melody_1 \\tweak NoteHead.stencil #stencilDo \\tweak color #colorDo c'4");

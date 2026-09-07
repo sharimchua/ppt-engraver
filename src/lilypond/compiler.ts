@@ -269,6 +269,7 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 
 
 #(define stencilDo (make-ppt-stencil (make-circle-stencil 0.52 0.0 #t)))
+#(define stencilRa (make-ppt-stencil (make-path-stencil '(moveto -0.62 0.0 lineto 0.0 0.52 lineto 0.62 0.0 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilRe (make-ppt-stencil (make-path-stencil '(moveto -0.50 -0.48 lineto 0.50 -0.48 lineto 0.50 0.48 lineto -0.50 0.48 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilMe (make-ppt-stencil (make-path-stencil '(moveto -0.58 0.48 lineto 0.58 0.48 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilMi (make-ppt-stencil (make-path-stencil '(moveto -0.58 -0.48 lineto 0.58 -0.48 lineto 0.0 0.52 closepath) 0.0 1.0 1.0 #t)))
@@ -278,10 +279,10 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 #(define stencilLe (make-ppt-stencil (make-path-stencil '(moveto -0.58 0.48 lineto 0.58 0.48 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilLa (make-ppt-stencil (make-path-stencil '(moveto -0.58 -0.48 lineto 0.58 -0.48 lineto 0.0 0.52 closepath) 0.0 1.0 1.0 #t)))
 #(define stencilTe (make-ppt-stencil (make-path-stencil '(moveto -0.62 0.0 lineto 0.0 0.52 lineto 0.62 0.0 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
-#(define stencilTi (make-ppt-stencil (make-path-stencil '(moveto -0.62 0.0 lineto 0.0 0.52 lineto 0.62 0.0 lineto 0.0 -0.52 closepath) 0.0 1.0 1.0 #t)))
+#(define stencilTi (make-ppt-stencil (make-path-stencil '(moveto -0.50 -0.48 lineto 0.50 -0.48 lineto 0.50 0.48 lineto -0.50 0.48 closepath) 0.0 1.0 1.0 #t)))
 
 #(define pptTabShapeDo (make-circle-stencil 0.50 0.0 #t))
-#(define pptTabShapeRa (make-path-stencil '(moveto -0.48 -0.46 lineto 0.48 -0.46 lineto 0.48 0.46 lineto -0.48 0.46 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeRa (make-path-stencil '(moveto -0.56 0.0 lineto 0.0 0.48 lineto 0.56 0.0 lineto 0.0 -0.48 closepath) 0.0 1.0 1.0 #t))
 #(define pptTabShapeRe (make-path-stencil '(moveto -0.48 -0.46 lineto 0.48 -0.46 lineto 0.48 0.46 lineto -0.48 0.46 closepath) 0.0 1.0 1.0 #t))
 #(define pptTabShapeMe (make-path-stencil '(moveto -0.54 0.46 lineto 0.54 0.46 lineto 0.0 -0.48 closepath) 0.0 1.0 1.0 #t))
 #(define pptTabShapeMi (make-path-stencil '(moveto -0.54 -0.46 lineto 0.54 -0.46 lineto 0.0 0.48 closepath) 0.0 1.0 1.0 #t))
@@ -291,7 +292,7 @@ export const PPT_SCHEME_COLOR_DEFINITIONS = `#(define colorDo (rgb-color (/ #xE1
 #(define pptTabShapeLe (make-path-stencil '(moveto -0.54 0.46 lineto 0.54 0.46 lineto 0.0 -0.48 closepath) 0.0 1.0 1.0 #t))
 #(define pptTabShapeLa (make-path-stencil '(moveto -0.54 -0.46 lineto 0.54 -0.46 lineto 0.0 0.48 closepath) 0.0 1.0 1.0 #t))
 #(define pptTabShapeTe (make-path-stencil '(moveto -0.56 0.0 lineto 0.0 0.48 lineto 0.56 0.0 lineto 0.0 -0.48 closepath) 0.0 1.0 1.0 #t))
-#(define pptTabShapeTi (make-path-stencil '(moveto -0.56 0.0 lineto 0.0 0.48 lineto 0.56 0.0 lineto 0.0 -0.48 closepath) 0.0 1.0 1.0 #t))
+#(define pptTabShapeTi (make-path-stencil '(moveto -0.48 -0.46 lineto 0.48 -0.46 lineto 0.48 0.46 lineto -0.48 0.46 closepath) 0.0 1.0 1.0 #t))
 
 #(define (make-ppt-tab-stencil base-shape-stencil)
    (lambda (grob)
