@@ -101,6 +101,7 @@ export function initPreview(options = {}) {
       btn.classList.add('active');
       const tabId = btn.getAttribute('data-tab');
       state.activeTab = tabId;
+      events.emit('tab:changed', tabId);
       const targetContent = document.getElementById(tabId);
       if (targetContent) targetContent.classList.add('active');
 

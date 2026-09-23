@@ -5,3 +5,14 @@ dist/
 scores/*
 !scores/AGENTS.md
 tmp_*
+
+# Audio backend artifacts & models
+audio-backend/models/
+audio-backend/bin/
+audio-backend/outputs/
+audio-backend/venv/
+audio-backend/.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+

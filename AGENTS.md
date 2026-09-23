@@ -84,11 +84,13 @@ The repository consists of:
 | Subtree Path | AGENTS.md Link | Primary Responsibility |
 |---|---|---|
 | `src/` | [src/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/src/AGENTS.md) | Core compiler, AST resolvers, LilyPond code gen, Solfège tables, MIDI export |
+| `src/abc/` | [src/abc/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/src/abc/AGENTS.md) | Tapestry-to-ABC compiler, SheetSage2 dialect, time signature derivations, lead sheets |
 | `src/solfege/` | [src/solfege/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/src/solfege/AGENTS.md) | Solfège pitch mapping, interval calculations, glyph specifications |
 | `src/lilypond/` | [src/lilypond/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/src/lilypond/AGENTS.md) | LilyPond markup templates, PostScript path stencils, source tagging |
 | `src/resolver/` | [src/resolver/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/src/resolver/AGENTS.md) | Tapestry, Knot, Weave, and Coil resolution, inheritance, and concat trees |
 | `studio/` | [studio/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/studio/AGENTS.md) | PPT Studio backend server, LilyPond runner, PDF/SVG compile APIs |
 | `studio/public/` | [studio/public/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/studio/public/AGENTS.md) | Studio web client, CodeMirror editor, Point-and-Click PDF.js navigation, loupe |
+| `docs/` | [docs/audio-generation.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/docs/audio-generation.md) | Comprehensive YuE2 audio generation & SheetSage2 ABC specification |
 | `scores/` | [scores/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/scores/AGENTS.md) | PPT score YAML definitions and test fixtures |
 | `snippets/` | [snippets/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/snippets/AGENTS.md) | Modular YAML snippet templates for Studio autocomplete and Command Palette |
 | `test/` | [test/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/test/AGENTS.md) | Vitest test suite and verification criteria |

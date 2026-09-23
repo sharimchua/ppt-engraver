@@ -105,8 +105,8 @@ export async function apiGetConfig() {
 }
 export const fetchConfig = apiGetConfig;
 
-export async function apiSaveConfig(lilypondPath) {
-  const body = typeof lilypondPath === 'object' ? lilypondPath : { lilypondPath };
+export async function apiSaveConfig(config) {
+  const body = typeof config === 'object' ? config : { lilypondPath: config };
   const res = await fetch('/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -115,3 +115,69 @@ export async function apiSaveConfig(lilypondPath) {
   return await res.json();
 }
 export const saveConfig = apiSaveConfig;
+
+// --- Audio Subsystem & ABC Export APIs ---
+
+export async function apiExportAbc(yamlContent, fileName, knotId = null, isInstrumental = undefined, tempo = undefined) {
+  const res = await fetch('/api/export-abc', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ yaml: yamlContent, file: fileName, knotId, isInstrumental, tempo }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'ABC Export Failed');
+  return data;
+}
+export const exportAbc = apiExportAbc;
+
+export async function apiGetAudioStatus() {
+  const res = await fetch('/api/audio/status');
+  if (!res.ok) return { online: false };
+  return await res.json();
+}
+
+export async function apiGetAudioModels() {
+  const res = await fetch('/api/audio/models');
+  if (!res.ok) return { models: [], offline: true };
+  return await res.json();
+}
+
+export async function apiDownloadAudioModel(modelId) {
+  const res = await fetch('/api/audio/models/download', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model_id: modelId }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Model download failed');
+  return data;
+}
+
+export async function apiDeleteAudioModel(modelId) {
+  const res = await fetch('/api/audio/models/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model_id: modelId }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Model deletion failed');
+  return data;
+}
+
+export async function apiGenerateAudio(params) {
+  const res = await fetch('/api/audio/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Audio generation failed');
+  return data;
+}
+
+export async function apiGetAudioJob(jobId) {
+  const res = await fetch(`/api/audio/jobs/${encodeURIComponent(jobId)}`);
+  if (!res.ok) throw new Error('Failed to fetch job status');
+  return await res.json();
+}
+

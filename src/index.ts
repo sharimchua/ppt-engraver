@@ -36,6 +36,9 @@ export * from './lilypond/pitch.js';
 export * from './lilypond/compiler.js';
 export * from './sidecar/map.js';
 export * from './compiler/compile.js';
+export * from './abc/pitch.js';
+export * from './abc/rhythm.js';
+export * from './abc/compiler.js';
 export * from './constants.js';
 
 

@@ -22,6 +22,7 @@ import { setupNotifications } from './ui/notifications.js';
 import { setupSettingsModal } from './modals/settings-modal.js';
 import { setupCommandPalette } from './modals/command-palette.js';
 import { setupShortcutsModal } from './modals/shortcuts-modal.js';
+import { setupAudioPanel } from './preview/audio-panel.js';
 import { pitchClockWindow } from './ui/pitch-clock-window.js';
 import { setupModalManagerListeners } from './modals/modal-manager.js';
 import { createTapestry, deleteTapestry, renameTapestryFile, confirmDiscardUnsavedChanges } from './modals/tapestry-modals.js';
@@ -191,6 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         refreshMidiTonicUi();
 
         await preview.renderResult(data);
+        events.emit('compile:success', data);
       } else {
         notifications.setStatus('error', 'Error');
         notifications.showError(data.error || 'Compilation failed');
@@ -520,6 +522,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         icon: '📂',
         action: (cm) => unfoldAllSections(cm),
       },
+      {
+        id: 'audio-generate',
+        title: 'Audio: Generate Music with YuE2...',
+        category: 'Audio',
+        icon: '🎧',
+        action: () => {
+          const audioTabBtn = document.querySelector('.tab-btn[data-tab="audio-view"]');
+          audioTabBtn?.click();
+        },
+      },
+      {
+        id: 'audio-export-abc',
+        title: 'Export ABC Notation Score (.abc)...',
+        category: 'Export',
+        icon: '🎼',
+        action: () => {
+          const btnExportAbc = document.getElementById('btn-export-abc-file');
+          btnExportAbc?.click();
+        },
+      },
     ];
   }
 
@@ -646,6 +668,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   setupSettingsModal({
     onOpenShortcuts: () => shortcutsModal.openShortcutsModal(),
+  });
+
+  // Initialize Audio Generation & Playback Panel
+  setupAudioPanel({
+    getEditor: () => editor,
   });
 
   // Initialize Pitch Clock Pedagogical Reference Window

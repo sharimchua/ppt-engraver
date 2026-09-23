@@ -15,7 +15,8 @@ Compiles [Prime Period Theory](https://ppt.midlifemuso.com/) Tapestry source fil
 - 📐 **Solfège Rhythmic Grammar**: Full sub-beat subdivisions via 12 chromatic degrees (`Fi` = 8th note, `Me`/`La` = 16th notes, `Mi`/`Le` = triplets, `Re`/`Te` = sextuplets), recursive compound suffixes (`LeFi`, `MeFi`), downbeat skips/rests (`Dox`, `DoxDo`, `DoxFi`), and repeat lookback windows (`X.Y`).
 - 🎹 **Harmonic Grammar, Inversions & Slash Chords**: 12-chromatic Solfège chord qualities, explicit bass notes and inversions via Axis Bass prefix (`${Bass}x${Root}${Quality}`, e.g., `SoxDo` = C/G, `MiexDo` = C/E, `MexDoMe` = Cm/Eb, `FaxDo` = C/F), chord voicing styles (`close`, `rootless`, `shell`, `open`, `smoothLead`, `bassOnly`, `walkingBass`), and melody harmonic augmentations (`thirdsBelow`, `drop2`, `triadClose`).
 - 🎸 **Guitar Tablature & Voicings (`TabStaff`)**: Phrase-level dynamic programming (Viterbi) fingering solver (`guitarTab: { movement: vertical | horizontal, voicing: ... }` / `showGuitarTab: true`) placed underneath traditional harmony, with PPT geometric noteheads rendered behind fret numbers, customizable movement priorities (`vertical` box position vs `horizontal` linear string), guitar voicings (`melodyOnly`, `root`, `triad`, `shell`, `chordMelody`, `auto`), open string handling, and hand reach span limits (`maximumFretSpan: 3` or `4`).
-- 📄 **LilyPond Engine**: Compiles to `.notation.ly`, vector `.svg`, `.pdf`, and `.ppt-map.json` provenance sidecars with standard MIDI export.
+- 🎧 **YuE2 Symbolic Audio Generation & ABC Compiler**: Compiles resolved Knot/Onset streams to YuE2-compliant ABC notation (`.abc`) with lead-sheet chord annotations, interleaved `V: Vocal` and `V: Ins` voices, and section comments (`% [verse]`, `% [chorus]`). Features an in-studio audio generation preview tab with musical style presets, prompt tags, interactive audio player, and an optional Python audio backend supporting native PyTorch BF16 (`m-a-p/YuE2-3B`), GGUF quantizations via `audio.cpp` (Q4/Q8 for consumer GPUs), and offline mock synthesis.
+- 📄 **LilyPond Engine**: Compiles to `.notation.ly`, vector `.svg`, `.pdf`, `.ppt-map.json` provenance sidecars, `.abc` notation, and playable standard MIDI export.
 
 ---
 
@@ -25,9 +26,14 @@ Compiles [Prime Period Theory](https://ppt.midlifemuso.com/) Tapestry source fil
 
 ```bash
 npm install
+
+# Start Studio (standard)
 npm run studio
+
+# Or start Studio with Python YuE Audio Backend enabled together
+npm run studio:audio
 ```
-Opens the interactive Web Studio in your browser at `http://localhost:3333` with live vector score preview, schema validation, diagnostics, and interactive point-and-click source navigation.
+Opens the interactive Web Studio in your browser at `http://localhost:3333` with live vector score preview, schema validation, diagnostics, interactive point-and-click source navigation, and optional YuE audio backend streaming.
 
 ### 2. Command-Line Compilation
 
@@ -35,10 +41,10 @@ Opens the interactive Web Studio in your browser at `http://localhost:3333` with
 # Build the distribution CLI
 npm run build
 
-# Run unit test suite (270+ tests)
+# Run unit test suite (440+ tests)
 npm test
 
-# Compile YAML score to LilyPond notation (.notation.ly) & sidecar map (.ppt-map.json)
+# Compile YAML score to LilyPond notation (.notation.ly), sidecar map (.ppt-map.json), and ABC (.abc)
 node dist/compile-cli.js scores/strive.ppt.yaml -o scores/
 
 # Compile a specific knot projection from a multi-knot score
@@ -810,16 +816,42 @@ tapestry:
 
 ---
 
+## 🎧 Audio Generation (YuE2 & Symbolic ABC)
+
+`ppt-engraver` features an optional audio generation module powered by the **YuE / YuE2 foundation model** ([multimodal-art-projection/YuE](https://github.com/multimodal-art-projection/YuE)). Rather than relying purely on descriptive text prompts, YuE2 uses a **symbolic music planning layer** based on standard **ABC notation** (`V: Vocal` for melodic lines with inline lead-sheet chords `"Am7"`, `"D7"`, and `V: Ins` for accompaniment/bass), followed by an acoustic codec diffusion stage.
+
+### Key Capabilities:
+- **Symbolic ABC Translation**: Deterministically maps resolved PPT onsets, Solfège chords, scale degrees, and section boundaries into clean, measure-grouped ABC notation with `% [verse]` and `% [chorus]` section markers.
+- **In-Studio Audio Preview (`🎧 Audio (YuE)`)**:
+  - Live, editable ABC notation viewer with 1-click **Copy ABC** and **Export .abc**.
+  - **Musical Presets**: Full Song (Male/Female vocals, Pop/Rock), Jazz Lead & Trio (Sax/Trumpet lead with upright bass and piano), Rhythm & Bass (Bass groove and drum kit), Bass Only (Solo electric/double bass), and Free Prompt.
+  - Interactive prompt tag chips for genre, instrumentation, vocal timbre, and mood.
+  - Progress bar with multi-stage tracking (Stage 1 Symbolic Planning $\to$ Stage 2 Acoustic Diffusion) and integrated HTML5 audio player.
+  - Re-render / revision support via seed locking.
+- **Hardware-Tiered Python Backend (`audio-backend/`)**:
+  - **High-End Tier (24GB+ VRAM)**: Native PyTorch BF16 `m-a-p/YuE2-3B`.
+  - **Consumer Tier (~8-9GB VRAM / CPU)**: Quantized GGUF models (`audio-cpp/Yue2-3B-GGUF` Q4/Q8) running via [`audio.cpp`](https://github.com/audio-cpp/audio.cpp).
+  - **Offline / Dev Mock Engine**: Instant procedural 48kHz stereo WAV synthesis without external model weights.
+  - **Starting the Backend**:
+    - **Combined (Studio + Audio)**: `npm run studio:audio` (or `npm run studio -- --with-audio`)
+    - **Standalone Daemon**: `npm run audio:backend` (or `python audio-backend/main.py`)
+  - **Settings Management**: Studio **Settings (⚙) → Audio Generation (YuE)** tab displays GPU VRAM availability and provides 1-click model download and deletion.
+
+---
+
 ## CLI Reference
 
-### `ppt-compile` (LilyPond Compiler)
+### `ppt-compile` (LilyPond & ABC Compiler)
 
 ```bash
-# Compile to <base>.notation.ly & <base>.ppt-map.json
+# Compile to <base>.notation.ly, <base>.ppt-map.json, and <base>.abc
 ppt-compile scores/dracula.ppt.yaml
 
 # Custom output file paths
-ppt-compile scores/dracula.ppt.yaml -o score.ly --map score.map.json
+ppt-compile scores/dracula.ppt.yaml -o score.ly --map score.map.json -a score.abc
+
+# Select specific knot projection
+ppt-compile scores/autumn_leaves_variants.ppt.yaml -k leadSheet
 
 # Render PDF using local LilyPond engine
 ppt-compile scores/dracula.ppt.yaml --render
@@ -866,6 +898,23 @@ PPT Studio includes a floating, draggable/resizable **12-Tone Pitch Clock** desi
 - **Dynamic Scale/Chord Polygons**: Overlay interactive preset modes and chords (Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian, Harmonic Minor, Whole Tone, Diminished, Pentatonics, Major/Minor/Dominant 7ths) with illuminated SVG polygons and ray vectors.
 - **Score Synchronization**: Automatically syncs tonic rotation with active score Knots.
 - **Toggle**: Access anytime via `Ctrl+Alt+K` (`Cmd+Alt+K` on Mac), the Command Palette (`Ctrl+Shift+P` / `F1`), or double-clicking nodes to rotate tonic.
+
+### Local Audio Generation & YuE2 / audio.cpp Integration (Experimental)
+
+> [!TIP]
+> **Detailed Documentation & Guide**: For a full technical breakdown of the ABC generation architecture, SheetSage2 dialect alignment, Solfège pulse grammar time signatures (`DoRe` $\to$ `3/4`), Mothersuperior Instrumental LoRA pairing, and complete installation instructions, see **[`docs/audio-generation.md`](docs/audio-generation.md)**.
+
+PPT Studio features an integrated local audio generation panel powered by **YuE2**, **audio.cpp (GGUF)**, and **PyTorch**:
+- **SheetSage2 ABC Compiler (`src/abc/`)**: Compiles PPT OnsetStreams into authentic SheetSage2-compliant ABC notation (`.abc`) with inline lead-sheet chords (`"Ebmaj7"`), compact barlines, and multi-measure accompaniment rests (`Z4|`).
+- **Solfège Pulse Grammar & Alternative Time Signatures**: Automatically maps PPT pulse definitions to exact musical meters (e.g. `DoRe` $\to$ `M:3/4`, `DoSo` $\to$ `M:2/4`, `DoLa` $\to$ `M:4/4`, `DoMi` $\to$ `M:5/4`, `DoSi` / `DoReDiRe` $\to$ `M:6/8`) and slices measures to matching beat lengths.
+- **Instrumental vs Vocal Discrimination (`V: InsLead` vs `V: Vocal`)**: Automatically routes instrumental lead melodies to `V: InsLead clef=treble name="InsLead Melody" snm="Inst."` when lyrics contain only section tags, eliminating vocal hallucinations. When sung lyrics are provided, routes to `V: Vocal`.
+- **Mothersuperior Instrumental LoRA Pairing**: Pre-pairs `Mothersuperior/YuE2-instrumental-cot-full-loras` (`ar_lora_inst_v3abc.bf16.safetensors`) merged into `yue2-3b-gguf-q8-instrumental` (Q8_0), enforcing strict instrumental synthesis without vocal ad-libs.
+- **Instrumental Band Templates & Timbres**: Dropdown presets covering Full Band Rhythm Section Backing (Funk Fusion, Rock Band, Neo-Soul, Jazz Quartet, Latin Jazz, Indie Folk), Acoustic Timbres (Piano Trio, Vibraphone, Strings, Solo Piano), and Backing Tracks (Drums + Bass + Comping Keys with no lead soloist).
+- **Categorized Prompt Chips**: Rapid-click tag chips for Lead Timbres (`#tenor-sax`, `#electric-guitar`, `#synth-lead`, etc.), Rhythm Section (`#rhythm-section`, `#slap-bass`, `#walking-bass`, `#punchy-drums`), and Fullness (`#full-band`, `#trio`, `#backing-track`).
+- **Timed Section Tags & Score Runtime Bounding**: Deterministically calculates exact section start/end timestamps from tapestry tempo (BPM) and beat values (`[intro 0:00-0:08]\n[verse 0:08-0:12]\n[outro 0:12-0:14]`) with a 2-second outro ringout buffer to prevent autoregressive loop repeats.
+- **Interim Pipeline Diagnostics**: Inspect, copy, and download the exact effective ABC score, text conditioning prompt, execution timings (plan, AR decode, ODE diffusion, VAE decode, and realtime factor), and terminal CLI command.
+- **Hardware Tiers**: Supports `audio.cpp` native binaries with CUDA GPU acceleration (Q4_0 / Q8_0), native PyTorch BF16, and instant mock preview without GPU hardware.
+- **Launching**: Run `npm run studio:audio` to start Web Studio and the Python audio backend daemon together.
 
 ### Keyboard Shortcuts Reference
 

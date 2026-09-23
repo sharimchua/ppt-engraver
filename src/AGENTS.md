@@ -17,6 +17,7 @@ src/
 ├── lilypond/      # LilyPond template generation, PostScript stencils, tagging
 ├── sidecar/       # Machine-readable onset expectation maps (.ppt-map.json)
 ├── midi/          # Standard MIDI file writer
+├── abc/           # ABC notation compiler for YuE2 audio generation (pitch, rhythm, compiler)
 ├── compiler/      # Top-level orchestrator (compile.ts)
 └── index.ts       # Public API exports
 ```
@@ -30,6 +31,7 @@ src/
 | `solfege/` | [src/solfege/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/src/solfege/AGENTS.md) | 12-chromatic degrees, SVG glyphs, angle rotations, interval calculators |
 | `lilypond/` | [src/lilypond/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/src/lilypond/AGENTS.md) | Scheme stencil paths (`pptPathBase`, `pptPathSharp`, `pptPathFlat`), voice layout |
 | `resolver/` | [src/resolver/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/src/resolver/AGENTS.md) | AST resolution, weave hierarchies, rhythm expansion, chord harmonization |
+| `abc/` | [src/abc/AGENTS.md](file:///d:/Development/Midlife%20Muso/ppt-engraver/src/abc/AGENTS.md) | ABC notation generation, YuE2 symbolic voices (`V: Vocal`, `V: Ins`), chord symbols |
 
 ---
 
@@ -41,7 +43,8 @@ src/
    - Resolves all knots and weaves into flat onset streams via `resolveTapestry()`.
    - Generates LilyPond `.ly` source markup via `generateLilyPond()`.
    - Constructs `SidecarMap` (`sidecarMap`) mapping tagged notes (`\tag #'ppt_${coil}_...`) to their respective `coilId` and `onsetIndex`.
-   - Returns `{ lilypondSource, onsets, sidecarMap, midiBuffer, warnings }`.
+   - Compiles symbolic ABC notation for YuE2 audio generation (`generateAbc()`).
+   - Returns `{ lilypondSource, onsets, sidecarMap, midiBuffer, abcSource, warnings }`.
 
 ---
 

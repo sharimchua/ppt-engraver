@@ -158,6 +158,7 @@
             <button class="tab-btn active" data-tab="score-view">🎼 Sheet Music</button>
             <button class="tab-btn" data-tab="lilypond-view">📄 LilyPond Source</button>
             <button class="tab-btn" data-tab="onsets-view">🔍 Diagnostics</button>
+            <button class="tab-btn" data-tab="audio-view">🎧 Audio (YuE)</button>
           </div>
           <div class="preview-actions" id="zoom-controls">
             <button id="btn-zoom-out" class="btn-icon" title="Zoom Out">-</button>
@@ -256,6 +257,277 @@
               </table>
             </div>
           </div>
+
+          <!-- Tab 4: Audio Generation & Playback (YuE) -->
+          <div id="audio-view" class="tab-content">
+            <div class="audio-panel-container">
+              <div class="audio-panel-header">
+                <div class="audio-knot-badge">
+                  <span class="audio-badge-label">Active Knot:</span>
+                  <span id="audio-active-knot-name" class="audio-badge-val">default</span>
+                </div>
+                <div class="audio-header-controls">
+                  <label for="audio-model-select" class="audio-ctrl-label">Model / Tier:</label>
+                  <select id="audio-model-select" class="input-select audio-ctrl-select">
+                    <option value="yue2-3b-gguf-q8-instrumental" selected>Tier 2B: Q8_0 Instrumental LoRA Merged (GGUF ~12GB VRAM)</option>
+                    <option value="yue2-3b-gguf-q8">Tier 2B: Q8_0 Stock Foundation Model (GGUF ~12GB VRAM)</option>
+                    <option value="yue2-3b-gguf-q4">Tier 2A: Q4_0 Balanced (GGUF ~8GB VRAM)</option>
+                    <option value="yue2-3b-pytorch">Tier 1: BF16 Full Model (PyTorch ~24GB VRAM)</option>
+                    <option value="mock">Tier 0: Mock / Dev Preview (Instant)</option>
+                  </select>
+                  <label for="audio-template-select" class="audio-ctrl-label" style="margin-left: 8px;">Template:</label>
+                  <select id="audio-template-select" class="input-select audio-ctrl-select">
+                    <optgroup label="── Full Band Rhythm Section Backing ──">
+                      <option value="funk_fusion" selected>Funk Fusion (Drums, Slap Bass, Rhodes & Synth Lead)</option>
+                      <option value="full_band_rock">Rock Band (Drums, Bass, Rhythm Guitars & Lead Guitar)</option>
+                      <option value="neo_soul">Neo-Soul Groove (Pocket Drums, Warm Bass, Keys & Guitar)</option>
+                      <option value="jazz_quartet">Jazz Quartet (Drums, Walking Bass, Piano & Tenor Sax)</option>
+                      <option value="latin_jazz">Latin Jazz (Percussion, Salsa Bass, Piano & Trumpet)</option>
+                      <option value="indie_folk">Acoustic Ensemble (Percussion, Acoustic Bass, Guitars & Cello)</option>
+                    </optgroup>
+                    <optgroup label="── Acoustic & Chamber Timbres ──">
+                      <option value="piano_trio">Piano Trio (Grand Piano, Upright Bass & Brushed Drums)</option>
+                      <option value="vibes_quartet">Vibraphone & Rhythm (Vibes, Guitar, Upright Bass, Brushes)</option>
+                      <option value="cinematic_chamber">Cinematic Chamber (Cello Lead, Double Bass & Strings)</option>
+                      <option value="solo_piano">Solo Concert Piano (Full Harmonies & Lead)</option>
+                    </optgroup>
+                    <optgroup label="── Rhythm Section / Backing Tracks ──">
+                      <option value="rhythm_backing_band">Band Backing Track (Drums, Bass & Keys, No Lead)</option>
+                      <option value="bass_drums_duo">Bass & Drums Duo (Pocket Groove)</option>
+                      <option value="solo_electric_bass">Solo Electric Bass (Melodic & Harmonic)</option>
+                    </optgroup>
+                    <optgroup label="── Custom ──">
+                      <option value="free">Free Style Prompt</option>
+                    </optgroup>
+                  </select>
+                  <label for="audio-cot-select" class="audio-ctrl-label" style="margin-left: 8px;">Plan:</label>
+                  <select id="audio-cot-select" class="input-select audio-ctrl-select">
+                    <option value="full" selected>Full Plan: Melody & Chords (cot="full")</option>
+                    <option value="melody">Melody Only (cot="melody")</option>
+                    <option value="off">Direct Audio (cot="off")</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Style Prompt & Arrangement -->
+              <div class="audio-card">
+                <div class="audio-card-title">Style & Instrumentation Prompt</div>
+                <textarea id="audio-prompt-input" class="input-textarea audio-prompt-textarea" rows="2" placeholder="e.g. tight funk fusion band, punchy slap bass, synchronized drum kit groove, comping Rhodes electric piano, expressive synth lead, instrumental">tight funk fusion band, punchy slap bass, synchronized drum kit groove, comping Rhodes electric piano, expressive synthesizer melodic lead, instrumental</textarea>
+                <div class="audio-prompt-tags">
+                  <span class="prompt-tag-category-label">Lead Timbre:</span>
+                  <span class="prompt-tag" data-tag="warm tenor saxophone melodic lead">#tenor-sax</span>
+                  <span class="prompt-tag" data-tag="singing melodic electric guitar lead">#electric-guitar</span>
+                  <span class="prompt-tag" data-tag="expressive synthesizer melodic lead">#synth-lead</span>
+                  <span class="prompt-tag" data-tag="acoustic grand piano melodic lead">#grand-piano</span>
+                  <span class="prompt-tag" data-tag="vintage Rhodes electric piano">#rhodes</span>
+                  <span class="prompt-tag" data-tag="shimmering vibraphone melodic lead">#vibraphone</span>
+                  <span class="prompt-tag" data-tag="expressive acoustic cello melodic lead">#cello</span>
+                  <span class="prompt-tag" data-tag="warm muted trumpet melodic lead">#trumpet</span>
+
+                  <span class="prompt-tag-category-label">Rhythm Section:</span>
+                  <span class="prompt-tag" data-tag="tight band rhythm section, locked drums and bass">#rhythm-section</span>
+                  <span class="prompt-tag" data-tag="punchy slap electric bassline">#slap-bass</span>
+                  <span class="prompt-tag" data-tag="driving walking acoustic upright bass">#walking-bass</span>
+                  <span class="prompt-tag" data-tag="punchy acoustic drum kit, clear kick and snare">#punchy-drums</span>
+                  <span class="prompt-tag" data-tag="brushed jazz snare drum groove">#brushed-drums</span>
+                  <span class="prompt-tag" data-tag="rhythmic comping keyboard chords">#comping-keys</span>
+                  <span class="prompt-tag" data-tag="rhythmic comping guitar chords">#comping-guitar</span>
+
+                  <span class="prompt-tag-category-label">Fullness & Timing:</span>
+                  <span class="prompt-tag" data-tag="full dynamic band arrangement">#full-band</span>
+                  <span class="prompt-tag" data-tag="intimate acoustic trio">#trio</span>
+                  <span class="prompt-tag" data-tag="backing track rhythm section, no lead soloist">#backing-track</span>
+                  <span class="prompt-tag" data-tag="tight groove, locked rhythm, steady pulse">#tight-groove</span>
+                  <span class="prompt-tag" data-tag="strict tempo, metronomic timing">#strict-tempo</span>
+                </div>
+              </div>
+
+              <!-- Lyrics & Timed Section Plan -->
+              <details class="audio-card audio-collapsible">
+                <summary class="audio-card-title audio-summary-title">
+                  <span>🎤 Lyrics & Section Plan (Timed Tags / Vocals)</span>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="audio-score-timing-badge" style="font-size: 11px; font-weight: normal; color: var(--primary); font-family: var(--font-mono);"></span>
+                    <button type="button" id="btn-sync-audio-timing" class="btn btn-secondary btn-xs" title="Reset lyrics tags and duration to match exact score timing">↺ Sync Timing</button>
+                  </div>
+                </summary>
+                <div style="margin-top: 8px;">
+                  <textarea id="audio-lyrics-input" class="input-textarea audio-prompt-textarea" rows="3" placeholder="Timed section tags (e.g. [intro 0:00-0:08] \n[verse 0:08-0:12] \n[outro 0:12-0:14]) to control section duration, or vocal lyrics with [Verse] / [Chorus]."></textarea>
+                </div>
+              </details>
+
+              <!-- ABC Score Inspector -->
+              <details class="audio-card audio-collapsible" open>
+                <summary class="audio-card-title audio-summary-title">
+                  <span>🎼 ABC Score Plan (White-Box Symbolic Input)</span>
+                  <button type="button" id="btn-copy-abc" class="btn btn-secondary btn-xs" title="Copy ABC score to clipboard">📋 Copy ABC</button>
+                </summary>
+                <div class="abc-preview-wrapper">
+                  <pre id="audio-abc-preview" class="abc-preview-code">Compile the score to inspect generated ABC plan...</pre>
+                </div>
+              </details>
+
+              <!-- Advanced Controls Accordion -->
+              <details class="audio-card audio-collapsible">
+                <summary class="audio-card-title audio-summary-title">⚙️ Audio Controls & Parameters (Tempo, Rhythm Fidelity, Seed)</summary>
+                <div class="audio-params-grid">
+                  <div class="param-item">
+                    <label for="audio-param-tempo">Tempo (BPM): <span id="label-audio-tempo">120</span></label>
+                    <input type="number" id="audio-param-tempo" class="input-text" min="30" max="300" step="1" placeholder="120" value="120">
+                  </div>
+                  <div class="param-item">
+                    <label for="audio-param-temp" title="Lower values (0.3 - 0.6) strictly follow written rhythm and melody; higher values (0.9 - 1.2) allow loose improvisation and variation.">
+                      Temperature: <span id="label-audio-temp">0.6</span>
+                      <span style="font-size: 10px; color: var(--text-muted); display: block;">(Lower = strict rhythm, Higher = loose)</span>
+                    </label>
+                    <input type="range" id="audio-param-temp" min="0.2" max="1.4" step="0.05" value="0.6">
+                  </div>
+                  <div class="param-item">
+                    <label for="audio-param-duration">Max Duration: <span id="label-audio-duration">30s</span></label>
+                    <input type="range" id="audio-param-duration" min="5" max="180" step="1" value="30">
+                  </div>
+                  <div class="param-item">
+                    <label for="audio-param-seed">Random Seed (optional):</label>
+                    <input type="number" id="audio-param-seed" class="input-text" placeholder="e.g. 42">
+                  </div>
+                </div>
+              </details>
+
+              <!-- Primary Action & Progress -->
+              <div class="audio-actions-row">
+                <button id="btn-generate-audio" class="btn btn-primary btn-generate-audio">
+                  <span>🎵</span> Generate Audio from Knot
+                </button>
+                <button id="btn-export-abc-file" class="btn btn-secondary" title="Export .abc score file">
+                  <span>💾</span> Export .abc
+                </button>
+              </div>
+
+              <!-- Progress Indicator Card -->
+              <div id="audio-progress-card" class="audio-card audio-progress-card hidden">
+                <div class="progress-stages-bar">
+                  <div class="stage-step" data-stage="planning"><span class="step-dot">1</span> Planning (ABC)</div>
+                  <div class="stage-step" data-stage="semantic"><span class="step-dot">2</span> Semantic</div>
+                  <div class="stage-step" data-stage="synthesizing"><span class="step-dot">3</span> Synthesis</div>
+                  <div class="stage-step" data-stage="decoding"><span class="step-dot">4</span> 48kHz Decode</div>
+                </div>
+                <div class="progress-bar-container">
+                  <div id="audio-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+                </div>
+                <div id="audio-progress-message" class="progress-message">Queued for generation...</div>
+
+                <!-- Live Engine Console -->
+                <details id="audio-logs-details" class="audio-logs-accordion" open style="margin-top: 10px;">
+                  <summary style="font-size: 11px; font-weight: 600; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                    <span>🖥️ Engine Console / Live Logs</span>
+                    <span id="audio-backend-badge" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.06); font-family: var(--font-mono); color: var(--text-muted);">CPU</span>
+                  </summary>
+                  <pre id="audio-logs-console" class="audio-logs-terminal" style="margin-top: 6px; max-height: 180px; overflow-y: auto; font-family: var(--font-mono); font-size: 10.5px; line-height: 1.4; background: #0c0e12; color: #a0aec0; padding: 8px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.08); white-space: pre-wrap; word-break: break-all;">Engine initializing...</pre>
+                </details>
+              </div>
+
+              <!-- Audio Player Card -->
+              <div id="audio-player-card" class="audio-card audio-player-card hidden">
+                <div class="audio-player-title">Generated Audio Output (48kHz Stereo)</div>
+                <audio id="audio-native-player" controls style="width: 100%; margin-top: 8px;"></audio>
+                <div class="audio-player-actions">
+                  <a id="btn-download-audio" class="btn btn-secondary btn-xs" download="composition.wav">⬇ Download WAV</a>
+                  <button id="btn-audio-revise" class="btn btn-secondary btn-xs" title="Revise with preserved seed and prompt">🔄 Re-render Revision</button>
+                </div>
+              </div>
+
+              <!-- Interim Pipeline Artifacts & Diagnostics -->
+              <details id="audio-artifacts-card" class="audio-card audio-collapsible hidden" open>
+                <summary class="audio-card-title audio-summary-title">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span>🔍 Interim Pipeline Artifacts & Diagnostics</span>
+                    <span id="audio-artifact-job-badge" class="badge" style="font-size: 10px; font-family: var(--font-mono); background: rgba(59, 130, 246, 0.15); color: var(--primary);">Job: -</span>
+                  </div>
+                  <div style="display: flex; gap: 6px;" onclick="event.stopPropagation();">
+                    <button type="button" id="btn-copy-interim-abc" class="btn btn-secondary btn-xs" title="Copy exact interim ABC used for this generation">📋 Copy ABC</button>
+                    <a id="btn-download-interim-abc" class="btn btn-secondary btn-xs" title="Download .abc file used for this generation" download="generation.abc">⬇ .abc</a>
+                    <a id="btn-download-interim-meta" class="btn btn-secondary btn-xs" title="Download metadata JSON" download="metadata.json">⬇ JSON</a>
+                  </div>
+                </summary>
+
+                <!-- Subtabs Navigation -->
+                <div class="audio-artifacts-tabs" style="margin-top: 10px; display: flex; gap: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+                  <button type="button" class="btn-artifact-tab active" data-artifact-tab="abc">🎼 Effective ABC Score</button>
+                  <button type="button" class="btn-artifact-tab" data-artifact-tab="conditioning">🎛️ Prompt & Conditioning</button>
+                  <button type="button" class="btn-artifact-tab" data-artifact-tab="timings">⚡ Timings & Metrics</button>
+                  <button type="button" class="btn-artifact-tab" data-artifact-tab="cli">🖥️ CLI Invocation</button>
+                </div>
+
+                <!-- Subtab Content: ABC Score -->
+                <div id="artifact-tab-content-abc" class="artifact-tab-pane" style="margin-top: 8px;">
+                  <div class="abc-preview-wrapper" style="max-height: 240px; margin-top: 0;">
+                    <pre id="artifact-abc-code" class="abc-preview-code">No interim ABC generated yet...</pre>
+                  </div>
+                </div>
+
+                <!-- Subtab Content: Prompt & Conditioning -->
+                <div id="artifact-tab-content-conditioning" class="artifact-tab-pane hidden" style="margin-top: 8px;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px;">
+                      <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Effective Style Prompt (conditioned):</div>
+                      <div id="artifact-effective-prompt" style="font-size: 11px; color: var(--text-main); font-family: var(--font-mono); white-space: pre-wrap; word-break: break-all;">-</div>
+                    </div>
+                    <div style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px;">
+                      <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Text / Lyric Conditioning:</div>
+                      <div id="artifact-text-conditioning" style="font-size: 11px; color: var(--text-main); font-family: var(--font-mono); white-space: pre-wrap; word-break: break-all;">-</div>
+                    </div>
+                    <div style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px;">
+                      <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Chain-of-Thought (CoT):</div>
+                      <div id="artifact-cot-mode" style="font-size: 11px; color: var(--text-main); font-family: var(--font-mono);">-</div>
+                    </div>
+                    <div style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px;">
+                      <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Parameters:</div>
+                      <div id="artifact-params-summary" style="font-size: 11px; color: var(--text-main); font-family: var(--font-mono);">-</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Subtab Content: Timings & Metrics -->
+                <div id="artifact-tab-content-timings" class="artifact-tab-pane hidden" style="margin-top: 8px;">
+                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                    <div style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
+                      <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Symbolic Plan</div>
+                      <div id="metric-plan-time" style="font-size: 16px; font-weight: 700; color: #60a5fa; font-family: var(--font-mono); margin-top: 2px;">-</div>
+                      <div id="metric-plan-tokens" style="font-size: 9.5px; color: var(--text-muted); margin-top: 2px;">- tokens</div>
+                    </div>
+                    <div style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
+                      <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">AR Decode</div>
+                      <div id="metric-ar-time" style="font-size: 16px; font-weight: 700; color: #34d399; font-family: var(--font-mono); margin-top: 2px;">-</div>
+                      <div id="metric-ar-tokens" style="font-size: 9.5px; color: var(--text-muted); margin-top: 2px;">- tokens</div>
+                    </div>
+                    <div style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
+                      <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Acoustic ODE</div>
+                      <div id="metric-ode-time" style="font-size: 16px; font-weight: 700; color: #f59e0b; font-family: var(--font-mono); margin-top: 2px;">-</div>
+                      <div id="metric-ode-steps" style="font-size: 9.5px; color: var(--text-muted); margin-top: 2px;">32 steps</div>
+                    </div>
+                    <div style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
+                      <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">VAE 48kHz</div>
+                      <div id="metric-vae-time" style="font-size: 16px; font-weight: 700; color: #ec4899; font-family: var(--font-mono); margin-top: 2px;">-</div>
+                      <div id="metric-audio-duration" style="font-size: 9.5px; color: var(--text-muted); margin-top: 2px;">- sec audio</div>
+                    </div>
+                  </div>
+                  <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); padding: 6px 10px; background: rgba(255,255,255,0.03); border-radius: 4px; border: 1px solid var(--border-color);">
+                    <span><strong>Compute Device:</strong> <span id="metric-compute-device" style="color: var(--text-main); font-family: var(--font-mono);">-</span></span>
+                    <span><strong>Total Wall Time:</strong> <span id="metric-wall-time" style="color: var(--text-main); font-family: var(--font-mono);">-</span> (<span id="metric-rtf" style="color: #34d399; font-family: var(--font-mono); font-weight: 600;">-</span>)</span>
+                  </div>
+                </div>
+
+                <!-- Subtab Content: CLI Invocation -->
+                <div id="artifact-tab-content-cli" class="artifact-tab-pane hidden" style="margin-top: 8px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div style="font-size: 11px; font-weight: 600; color: var(--text-muted);">Exact CLI Command Line:</div>
+                    <button type="button" id="btn-copy-cli-command" class="btn btn-secondary btn-xs">📋 Copy Command</button>
+                  </div>
+                  <pre id="artifact-cli-command" class="abc-preview-code" style="max-height: 140px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; color: #e2e8f0; word-break: break-all;">-</pre>
+                </div>
+              </details>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -298,59 +570,54 @@
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal hidden">
       <div class="modal-backdrop"></div>
-      <div class="modal-card">
+      <div class="modal-card settings-card-wide">
         <div class="modal-header">
           <h3>Studio Settings</h3>
           <button id="btn-close-settings" class="btn-icon">&times;</button>
         </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="setting-lilypond-path">LilyPond Binary Executable Path:</label>
-            <input type="text" id="setting-lilypond-path" class="input-text" placeholder="e.g. C:\lilypond-2.24.4\bin\lilypond.exe">
-            <small id="setting-status-hint" class="hint-text"></small>
-          </div>
-
-          <div class="form-group" style="margin-top: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <label for="setting-loupe-size">Magnifying Lens Size (Diameter):</label>
-              <span id="label-loupe-size" style="font-family: var(--font-mono); font-size: 11px; color: var(--primary);">220 px</span>
+        <div class="settings-nav-tabs">
+          <button type="button" class="settings-nav-tab active" data-tab="settings-tab-general">General & LilyPond</button>
+          <button type="button" class="settings-nav-tab" data-tab="settings-tab-editor">Editor & MIDI</button>
+          <button type="button" class="settings-nav-tab" data-tab="settings-tab-audio">🎧 Audio Generation (YuE)</button>
+        </div>
+        <div class="modal-body settings-tab-body">
+          <!-- Tab 1: General & LilyPond -->
+          <div id="settings-tab-general" class="settings-tab-pane active">
+            <div class="form-group">
+              <label for="setting-lilypond-path">LilyPond Binary Executable Path:</label>
+              <input type="text" id="setting-lilypond-path" class="input-text" placeholder="e.g. C:\lilypond-2.24.4\bin\lilypond.exe">
+              <small id="setting-status-hint" class="hint-text"></small>
             </div>
-            <input type="range" id="setting-loupe-size" min="140" max="400" step="10" value="220" style="cursor: pointer;">
-          </div>
 
-          <div class="form-group" style="margin-top: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <label for="setting-loupe-power">Magnification Power (Zoom):</label>
-              <span id="label-loupe-power" style="font-family: var(--font-mono); font-size: 11px; color: var(--primary);">2.5x</span>
-            </div>
-            <input type="range" id="setting-loupe-power" min="1.5" max="5.0" step="0.25" value="2.5" style="cursor: pointer;">
-          </div>
-
-          <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
-            <div style="font-weight: 600; font-size: 12px; margin-bottom: 10px; color: var(--text-main);">MIDI Solfège Typing</div>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
-                <input type="checkbox" id="setting-enable-midi" checked>
-                <span>Enable MIDI Solfège Typing</span>
-              </label>
-              
-              <div class="form-group" style="margin-top: 4px;">
-                <label for="setting-midi-rhythm-do" style="font-size: 11px;">Universal Rhythm Do Reference Pitch:</label>
-                <input type="text" id="setting-midi-rhythm-do" class="input-text" placeholder="e.g. C4, C3, D4" value="C4" style="padding: 4px 8px; font-size: 12px;">
-                <small class="hint-text" style="font-size: 10px; color: var(--text-muted);">Defines Do for rhythm input (Dox = 1 octave down, e.g. C3 when Do is C4).</small>
+            <div class="form-group" style="margin-top: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label for="setting-loupe-size">Magnifying Lens Size (Diameter):</label>
+                <span id="label-loupe-size" style="font-family: var(--font-mono); font-size: 11px; color: var(--primary);">220 px</span>
               </div>
+              <input type="range" id="setting-loupe-size" min="140" max="400" step="10" value="220" style="cursor: pointer;">
+            </div>
 
-              <div class="form-group" style="margin-top: 4px;">
-                <label for="setting-midi-device" style="font-size: 11px;">MIDI Input Device:</label>
-                <select id="setting-midi-device" class="input-text" style="padding: 4px 8px; font-size: 12px; background: var(--bg-card); color: var(--text-main);">
-                  <option value="all">All Connected MIDI Devices</option>
-                </select>
-                <small id="setting-midi-device-hint" class="hint-text" style="font-size: 10px; color: var(--text-muted);">Select a specific controller or listen to all inputs.</small>
+            <div class="form-group" style="margin-top: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label for="setting-loupe-power">Magnification Power (Zoom):</label>
+                <span id="label-loupe-power" style="font-family: var(--font-mono); font-size: 11px; color: var(--primary);">2.5x</span>
               </div>
+              <input type="range" id="setting-loupe-power" min="1.5" max="5.0" step="0.25" value="2.5" style="cursor: pointer;">
+            </div>
+
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 600; font-size: 12px; color: var(--text-main);">Keyboard Shortcuts</div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">View all keyboard shortcuts and navigation keys</div>
+              </div>
+              <button type="button" id="btn-open-shortcuts-from-settings" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">
+                <span>⌨</span> View Shortcuts
+              </button>
             </div>
           </div>
 
-          <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <!-- Tab 2: Editor & MIDI -->
+          <div id="settings-tab-editor" class="settings-tab-pane">
             <div style="font-weight: 600; font-size: 12px; margin-bottom: 10px; color: var(--text-main);">Editor Features</div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
@@ -374,16 +641,66 @@
                 <span>Inline Melody Coil Preview (Interval & Absolute)</span>
               </label>
             </div>
+
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+              <div style="font-weight: 600; font-size: 12px; margin-bottom: 10px; color: var(--text-main);">MIDI Solfège Typing</div>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
+                  <input type="checkbox" id="setting-enable-midi" checked>
+                  <span>Enable MIDI Solfège Typing</span>
+                </label>
+                
+                <div class="form-group" style="margin-top: 4px;">
+                  <label for="setting-midi-rhythm-do" style="font-size: 11px;">Universal Rhythm Do Reference Pitch:</label>
+                  <input type="text" id="setting-midi-rhythm-do" class="input-text" placeholder="e.g. C4, C3, D4" value="C4" style="padding: 4px 8px; font-size: 12px;">
+                  <small class="hint-text" style="font-size: 10px; color: var(--text-muted);">Defines Do for rhythm input (Dox = 1 octave down, e.g. C3 when Do is C4).</small>
+                </div>
+
+                <div class="form-group" style="margin-top: 4px;">
+                  <label for="setting-midi-device" style="font-size: 11px;">MIDI Input Device:</label>
+                  <select id="setting-midi-device" class="input-text" style="padding: 4px 8px; font-size: 12px; background: var(--bg-card); color: var(--text-main);">
+                    <option value="all">All Connected MIDI Devices</option>
+                  </select>
+                  <small id="setting-midi-device-hint" class="hint-text" style="font-size: 10px; color: var(--text-muted);">Select a specific controller or listen to all inputs.</small>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <div style="font-weight: 600; font-size: 12px; color: var(--text-main);">Keyboard Shortcuts</div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">View all keyboard shortcuts and navigation keys</div>
+          <!-- Tab 3: Audio Generation (YuE) -->
+          <div id="settings-tab-audio" class="settings-tab-pane">
+            <div class="audio-subsystem-header-card">
+              <div class="subsystem-status-row">
+                <span class="subsystem-status-title">YuE2 Subsystem Daemon:</span>
+                <span id="audio-backend-status-badge" class="badge" style="background: var(--bg-surface-elevated); color: var(--text-muted);">Checking...</span>
+              </div>
+              <div class="form-group" style="margin-top: 10px;">
+                <label for="setting-audio-backend-url" style="font-size: 11px;">Audio Subsystem Daemon URL:</label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="setting-audio-backend-url" class="input-text" placeholder="http://127.0.0.1:8000" value="http://127.0.0.1:8000" style="flex: 1;">
+                  <button type="button" id="btn-test-audio-backend" class="btn btn-secondary" style="font-size: 11px; white-space: nowrap;">Ping / Test</button>
+                </div>
+                <small id="setting-audio-backend-hint" class="hint-text" style="font-size: 10px; color: var(--text-muted);">Runs local Python service (audio-backend) or remote GPU host.</small>
+              </div>
             </div>
-            <button type="button" id="btn-open-shortcuts-from-settings" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">
-              <span>⌨</span> View Shortcuts
-            </button>
+
+            <div class="form-group" style="margin-top: 16px;">
+              <label for="setting-audio-engine" style="font-weight: 600; font-size: 12px;">Active Generation Model & Hardware Tier:</label>
+              <select id="setting-audio-engine" class="input-text" style="background: var(--bg-card); color: var(--text-main); margin-top: 4px;">
+                <option value="yue2-3b-gguf-q8" selected>Tier 2B: Yue2-3B Q8_0 High-Precision (audio.cpp GGUF ~12GB VRAM / CPU)</option>
+                <option value="yue2-3b-gguf-q4">Tier 2A: Yue2-3B Q4_0 Fast / Balanced (audio.cpp GGUF ~8GB VRAM / CPU)</option>
+                <option value="yue2-3b-pytorch">Tier 1: YuE2-3B PyTorch BF16 Full Model (~24GB VRAM - RTX 3090/4090)</option>
+                <option value="mock">Tier 0: Mock / Dev Procedural Preview (Instant, No GPU Required)</option>
+              </select>
+              <div id="setting-hardware-detected" class="hint-text" style="font-size: 11px; margin-top: 4px; color: var(--primary);"></div>
+            </div>
+
+            <div style="margin-top: 18px;">
+              <div style="font-weight: 600; font-size: 12px; margin-bottom: 8px; color: var(--text-main);">Model Files & Downloads (Hugging Face)</div>
+              <div id="audio-models-list" class="audio-models-table-container">
+                <div style="padding: 12px; font-size: 11px; color: var(--text-muted); text-align: center;">Loading model catalog...</div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">

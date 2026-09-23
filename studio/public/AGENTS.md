@@ -26,6 +26,7 @@ The `studio/public/` directory contains the client-side single-page application 
   - `score-highlighter.js`: Real-time bidirectional notehead halo highlighting.
   - `loupe.js`: Circular magnifying glass canvas tool.
   - `diagnostics.js`: Diagnostics onset table and LilyPond source code viewer.
+  - `audio-panel.js`: YuE2 audio generation preview panel (style presets, prompt tags, progress polling, audio playback, ABC inspector, interim pipeline artifacts & diagnostics tabs for effective ABC, conditioning, timings/metrics, and CLI invocation).
   - `preview.js`: Preview tab switcher, loading cards, and viewport coordinator.
 - **`js/modals/`**:
   - `modal-manager.js`: Generic refactor form dialog controller.
@@ -232,7 +233,20 @@ The `studio/public/` directory contains the client-side single-page application 
 - **Multi-Representation Geometry**:
   - Displays concurrent or toggleable layers: **Traditional Pitch Names** (dual/sharp/flat/tri), **Uniform Solfège Syllables** (relative to tonic), **Scale Degrees / Intervals**, **Uniform Solfège Vector Glyphs** ($0^\circ, 90^\circ, 180^\circ, 270^\circ$, axis diacritic on root), and **Piano Triangle Quadrants** (`D`, `L`, `U`, `R`).
   - **Dynamic Polygon Overlays**: Interactive scale/chord preset dropdown (Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian, Harmonic Minor, Whole Tone, Diminished, Pentatonics, Major/Minor/Dominant 7th chords) connects active pitch nodes with glowing SVG polygons and center rays.
-  - **Live Score Synchronization**: Automatically updates and synchronizes tonic rotation when switching score Knots or clicking the sync button.
+### 9. Audio Generation Preview Panel & Model Manager (`#audio-view`)
+- **Symbolic ABC Translation & Inspector**:
+  - Live, editable ABC notation viewer generated from the current knot/onset stream using YuE2 structure (`V: Vocal`, `V: Ins`, chords, bar grouping, and section markers `% [verse]`, `% [chorus]`).
+  - Copy to clipboard (`Copy ABC`) and export standalone `.abc` file (`Export .abc`).
+- **Prompt & Style Presets**:
+  - Musical style templates: Full Song (Male/Female vocals, pop/rock), Jazz Lead & Trio (Saxophone/Trumpet lead with upright bass and piano), Rhythm & Bass (Bass guitar groove and drum kit), Bass Only (Solo electric/double bass), and Free Prompt.
+  - Interactive clickable prompt tag chips for genre, instruments, vocal timbre, and mood.
+- **Audio Generation Controls**:
+  - Configurable generation parameters: Target Model, Random Seed (or lock seed for reproducible revision/inpainting re-renders), Max Tokens, Temperature, Top-p.
+  - Multi-stage generation progress indicator (Stage 1 symbolic generation $\to$ Stage 2 acoustic synthesis) and background status polling.
+- **HTML5 Audio Player & Library**:
+  - Built-in audio player with waveform scrubber, time readout, playback speed, and direct `.wav` download.
+- **Tabbed Settings Modal**:
+  - Settings modal features a dedicated `🎧 Audio Generation (YuE)` tab displaying backend health, GPU VRAM status, and available models (`m-a-p/YuE2-3B`, `audio.cpp` GGUF Q4/Q8, Mock Engine) with 1-click download/deletion controls.
 
 ---
 

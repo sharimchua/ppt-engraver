@@ -11,6 +11,7 @@
  *   1 — validation or compilation error
  */
 import { parseArgs } from 'node:util';
+import { writeFileSync } from 'node:fs';
 import { compileFile } from './compiler/compile.js';
 
 function main(): void {
@@ -19,6 +20,7 @@ function main(): void {
     options: {
       output: { type: 'string', short: 'o' },
       map: { type: 'string' },
+      abc: { type: 'string', short: 'a' },
       knot: { type: 'string', short: 'k' },
       render: { type: 'boolean', short: 'r' },
       help: { type: 'boolean', short: 'h' },
@@ -26,17 +28,19 @@ function main(): void {
   });
 
   if (values.help || positionals.length === 0) {
-    console.log(`ppt-compile — PPT Tapestry → LilyPond compiler (Phase 2)
+    console.log(`ppt-compile — PPT Tapestry → LilyPond & ABC compiler
 
 Usage:
-  ppt-compile <file.ppt.yaml>                 Compile to .notation.ly and .ppt-map.json
+  ppt-compile <file.ppt.yaml>                 Compile to .notation.ly, .ppt-map.json, and .abc
   ppt-compile <file.ppt.yaml> -o <out.ly>     Specify custom LilyPond output path
+  ppt-compile <file.ppt.yaml> -a <out.abc>    Specify custom ABC notation output path
   ppt-compile <file.ppt.yaml> -k <knotId>     Select specific Knot projection to compile
   ppt-compile <file.ppt.yaml> --render        Also render PDF if lilypond is installed
 
 Options:
   -o, --output <file>   Output .ly path (default: <base>.notation.ly)
   --map <file>          Output sidecar JSON path (default: <base>.ppt-map.json)
+  -a, --abc <file>      Output ABC notation path (default: <base>.abc)
   -k, --knot <id>       Select specific Knot projection by ID
   -r, --render          Invoke local lilypond binary to render PDF
   -h, --help            Show this help message`);
@@ -49,6 +53,7 @@ Options:
     const baseName = inputFile.replace(/(\.ppt)?\.ya?ml$/, '');
     const outLy = values.output ?? `${baseName}.notation.ly`;
     const outMap = values.map ?? `${baseName}.ppt-map.json`;
+    const outAbc = values.abc ?? `${baseName}.abc`;
 
     const result = compileFile(inputFile, {
       outLyPath: outLy,
@@ -57,12 +62,19 @@ Options:
       renderPdf: values.render,
     });
 
+    if (result.abcSource) {
+      writeFileSync(outAbc, result.abcSource, 'utf-8');
+    }
+
     for (const warning of result.warnings) {
       console.error(`⚠ ${warning}`);
     }
 
     console.error(`✓ Emitted LilyPond notation: ${outLy}`);
     console.error(`✓ Emitted sidecar map:       ${outMap}`);
+    if (result.abcSource) {
+      console.error(`✓ Emitted ABC notation:     ${outAbc}`);
+    }
   } catch (err) {
     console.error(`✗ ${(err as Error).message}`);
     process.exit(1);

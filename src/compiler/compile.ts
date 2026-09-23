@@ -11,6 +11,7 @@ import { spawnSync } from 'node:child_process';
 import { resolveFile, resolveYaml } from '../resolver/resolve.js';
 import { compileToLilyPond, type CompileOptions } from '../lilypond/compiler.js';
 import { generateSidecarMap, type SidecarMap } from '../sidecar/map.js';
+import { compileToAbc, calculateScoreTiming, type ScoreTiming } from '../abc/compiler.js';
 import type { OnsetStream } from '../schema/onset.js';
 import type { KnotSummary } from '../schema/tapestry.js';
 import type { ResolvedKnot } from '../solfege/pitch.js';
@@ -22,6 +23,8 @@ export interface CompileResult {
   sidecarMap: SidecarMap;
   /** The underlying resolved onset stream */
   onsets: OnsetStream;
+  /** Emitted ABC notation for YuE audio generation */
+  abcSource?: string;
   /** Any non-fatal warnings generated during resolution */
   warnings: string[];
   /** List of all available knots in the score */
@@ -30,6 +33,8 @@ export interface CompileResult {
   selectedKnotId?: string;
   /** The resolved knot metadata and pitch anchor */
   knot?: ResolvedKnot;
+  /** Calculated score timing, duration in seconds, and timed section plan */
+  timing?: ScoreTiming;
 }
 
 export interface CompileFileOptions extends CompileOptions {
@@ -41,6 +46,10 @@ export interface CompileFileOptions extends CompileOptions {
   renderPdf?: boolean;
   /** ID of the knot to resolve and compile */
   knotId?: string;
+  /** Whether to format ABC for pure instrumental execution (routes lead melody to V: Ins) */
+  isInstrumental?: boolean;
+  /** Explicit tempo override in BPM for ABC score plan */
+  tempo?: number;
 }
 
 /**
@@ -142,14 +151,23 @@ export function compileFile(
     }
   }
 
+  const abcOptions = {
+    isInstrumental: options.isInstrumental,
+    tempo: options.tempo,
+  };
+  const abcSource = compileToAbc(onsets, knot, abcOptions);
+  const timing = calculateScoreTiming(onsets, knot, abcOptions);
+
   return {
     lilypondSource,
     sidecarMap,
     onsets,
+    abcSource,
     warnings,
     availableKnots,
     selectedKnotId,
     knot,
+    timing,
   };
 }
 
@@ -162,7 +180,7 @@ export function compileFile(
  */
 export function compileYamlString(
   yamlContent: string,
-  options: CompileOptions = {},
+  options: CompileFileOptions = {},
 ): CompileResult {
   const { onsets, warnings, knot, availableKnots, selectedKnotId } = resolveYaml(yamlContent, options.knotId);
   const effectiveOptions: CompileOptions = {
@@ -232,15 +250,23 @@ export function compileYamlString(
   const lilypondSource = compileToLilyPond(onsets, effectiveOptions);
 
   const sidecarMap = generateSidecarMap(onsets);
+  const abcOptions = {
+    isInstrumental: options.isInstrumental,
+    tempo: options.tempo,
+  };
+  const abcSource = compileToAbc(onsets, knot, abcOptions);
+  const timing = calculateScoreTiming(onsets, knot, abcOptions);
 
   return {
     lilypondSource,
     sidecarMap,
     onsets,
+    abcSource,
     warnings,
     availableKnots,
     selectedKnotId,
     knot,
+    timing,
   };
 }
 
